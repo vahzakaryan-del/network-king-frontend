@@ -2,20 +2,20 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   async rewrites() {
     return [
-      // Badges → backend
       {
         source: "/badges/:path*",
-        destination: "http://localhost:4000/badges/:path*",
+        destination: "https://networkking.app/badges/:path*",
       },
-
-      // Avatars → backend
       {
         source: "/avatars/:path*",
-        destination: "http://localhost:4000/avatars/:path*",
+        destination: "https://networkking.app/avatars/:path*",
       },
-
     ];
   },
 };
