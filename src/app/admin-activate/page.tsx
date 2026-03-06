@@ -16,7 +16,7 @@ export default function AdminActivatePage() {
     }
 
     try {
-      const res = await fetch("http://localhost:4000/api/make-admin", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/make-admin`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

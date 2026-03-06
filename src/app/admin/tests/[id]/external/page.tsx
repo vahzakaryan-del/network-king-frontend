@@ -31,7 +31,7 @@ export default function ExternalTestAdminPage() {
 
     (async () => {
       try {
-        const res = await fetch(`http://localhost:4000/admin/tests/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -61,7 +61,7 @@ export default function ExternalTestAdminPage() {
       const token = localStorage.getItem("token");
       if (!token) return alert("Not authorized");
 
-      const res = await fetch(`http://localhost:4000/admin/tests/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

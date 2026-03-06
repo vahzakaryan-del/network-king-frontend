@@ -66,9 +66,9 @@ export default function AllBadgesPage() {
 
     (async () => {
       try {
-        const res = await fetch(`http://localhost:4000/profile/${profileId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/${profileId}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load badges");
@@ -105,9 +105,9 @@ export default function AllBadgesPage() {
 
   (async () => {
     try {
-      const res = await fetch(`http://localhost:4000/badges`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/badges`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
      const data = await res.json();
 if (!res.ok) throw new Error(data.error || "Failed to load badges");

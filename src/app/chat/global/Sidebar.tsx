@@ -55,7 +55,7 @@ export default function Sidebar({
       if (!token) return;
 
       try {
-        const res = await fetch("http://localhost:4000/levels/mine", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/levels/mine`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

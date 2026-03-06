@@ -58,7 +58,7 @@ type Entitlements = {
   tombolaDailyLimit: number;
 };
 
-const API = "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 const formatMinutes = (seconds?: number | null) => {
   if (!seconds || seconds <= 0) return "∞";

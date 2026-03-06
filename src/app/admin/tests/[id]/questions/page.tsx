@@ -118,13 +118,13 @@ useEffect(() => {
 
       try {
         const res = await fetch(
-          `http://localhost:4000/admin/tests/${testId}/questions`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+  `${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${testId}/questions`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
         const data = await res.json();
 
@@ -210,17 +210,17 @@ setScoringType(data.scoringType ?? "percentage");
     if (!token) return alert("Unauthorized – no token found");
 
     try {
-      const res = await fetch(
-        `http://localhost:4000/admin/tests/${testId}/questions/bulk`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ questions }),
-        }
-      );
+     const res = await fetch(
+  `${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${testId}/questions/bulk`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ questions }),
+  }
+);
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to save questions");
@@ -391,7 +391,7 @@ setScoringType(data.scoringType ?? "percentage");
     {/* Prepend the backend URL to the image path */}
    {q.imageUrl && (
   <img
-    src={`http://localhost:4000${q.imageUrl}`} // Full image URL
+    src={`${process.env.NEXT_PUBLIC_API_URL}${q.imageUrl}`}
     alt="Question preview"
     className="w-48 h-48 object-cover rounded border border-white/20"
   />

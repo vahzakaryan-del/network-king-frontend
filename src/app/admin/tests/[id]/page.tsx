@@ -13,9 +13,9 @@ export default function EditTestPage() {
     if (!token || !id) return;
 
     (async () => {
-      const res = await fetch(`http://localhost:4000/admin/tests/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
       const data = await res.json();
       if (res.ok) setTest(data.test);
     })();

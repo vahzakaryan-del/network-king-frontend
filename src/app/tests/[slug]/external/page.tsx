@@ -21,9 +21,9 @@ export default function ExternalTestPage() {
     const token = localStorage.getItem("token");
     if (!token) return router.push("/login");
 
-    fetch(`http://localhost:4000/tests/${slug}/info`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/info`, {
+  headers: { Authorization: `Bearer ${token}` },
+})
       .then((r) => r.json())
       .then((data) => {
         if (!data.test) throw new Error();
@@ -42,7 +42,7 @@ export default function ExternalTestPage() {
 
     const send = async () => {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:4000/tests/${test.slug}/submit-external`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests/${test.slug}/submit-external`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -64,9 +64,9 @@ export default function ExternalTestPage() {
     const handler = async (event: MessageEvent) => {
       if (event.data?.type !== "test_score") return;
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:4000/tests/${test.slug}/submit-external`, {
-        method: "POST",
-        headers: {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests/${test.slug}/submit-external`, {
+  method: "POST",
+  headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },

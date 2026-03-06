@@ -11,7 +11,7 @@ type Entitlements = {
   tombolaDailyLimit: number;
 };
 
-const API = "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 // ✅ Change these if your dev endpoints are named differently
 const DEV_ACTIVATE_ENDPOINT = `${API}/dev/premium/activate`;

@@ -6,7 +6,7 @@ import { getSocket } from "@/lib/socket";
 import type React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-const BACKEND_URL = "http://localhost:4000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL!;
 const MAX_MESSAGE_LEN = 500;
 
 /* ----------------------------- shared helpers ----------------------------- */

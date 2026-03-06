@@ -14,9 +14,9 @@ export default function Home() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:4000/auth/verify", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify`, {
+  headers: { Authorization: `Bearer ${token}` },
+})
       .then(async (res) => {
         if (res.ok) {
           setShowToast(true);

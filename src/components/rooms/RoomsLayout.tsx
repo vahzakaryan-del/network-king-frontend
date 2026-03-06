@@ -74,9 +74,9 @@ export default function RoomsLayout({
       const token = localStorage.getItem("token");
       if (!token) return null;
 
-      const res = await fetch("http://localhost:4000/levels/next-status", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/levels/next-status`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
       if (!res.ok) {
         throw new Error(`next-status failed: ${res.status}`);
@@ -113,9 +113,9 @@ export default function RoomsLayout({
       const token = localStorage.getItem("token");
       if (!token) return null;
 
-      const res = await fetch("http://localhost:4000/levels/next-status", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/levels/next-status`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
       if (!res.ok) {
         throw new Error(`next-status failed: ${res.status}`);

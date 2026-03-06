@@ -46,7 +46,7 @@ type BillingResponse = {
   totals: { totalSpentCents: number };
 };
 
-const API = "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 function euro(cents: number) {
   return `€${(cents / 100).toFixed(2)}`;

@@ -204,7 +204,7 @@ function ConnectPopover({
 // ---------------------------------------------
 export default function ProfilePage() {
 
-  const API_BASE = "http://localhost:4000";
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
   // ----------------------------
   // Router / Params
   // ----------------------------
@@ -266,7 +266,7 @@ const refreshEntitlements = async () => {
   if (!token) return;
 
   try {
-    const r = await fetch("http://localhost:4000/me/entitlements", {
+    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/entitlements`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await r.json().catch(() => ({}));
@@ -332,7 +332,7 @@ const [nameCooldownCleared, setNameCooldownCleared] = useState(false);
 
 
     try {
-      const res = await fetch("http://localhost:4000/profile/name", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/name`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -399,7 +399,7 @@ if (data?.error === "Name is unchanged.") {
 
     try {
       // 1) friends list
-      const fRes = await fetch("http://localhost:4000/friends", {
+      const fRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const fData = await fRes.json().catch(() => ({}));
@@ -411,7 +411,7 @@ if (data?.error === "Name is unchanged.") {
       }
 
       // 2) requests
-      const rRes = await fetch("http://localhost:4000/friends/requests", {
+      const rRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/requests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const rData = await rRes.json().catch(() => ({}));
@@ -466,7 +466,7 @@ const skipNameCooldown = async () => {
   setNameError(null);
 
   try {
-    const res = await fetch("http://localhost:4000/profile/name/skip-cooldown", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/name/skip-cooldown`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -505,9 +505,9 @@ const createTokenPurchase = async (quantity: number) => {
   setBuyTokensError(null);
 
   try {
-    const checkoutRes = await fetch(
-      "http://localhost:4000/payments/checkout/token-pack",
-      {
+   const checkoutRes = await fetch(
+  `${process.env.NEXT_PUBLIC_API_URL}/payments/checkout/token-pack`,
+  {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -550,8 +550,8 @@ const confirmDevPayment = async () => {
 
   try {
     const fulfillRes = await fetch(
-      `http://localhost:4000/dev/purchases/${pendingPurchase.id}/mark-paid`,
-      {
+  `${process.env.NEXT_PUBLIC_API_URL}/dev/purchases/${pendingPurchase.id}/mark-paid`,
+  {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -645,7 +645,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
         website: normalizeUrl(linksDraft.website || ""),
       };
 
-      const res = await fetch(`http://localhost:4000/profile`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -704,7 +704,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
 
     try {
       // fetch "me" to get full badge list + existing featured selection
-      const res = await fetch("http://localhost:4000/profile", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -749,7 +749,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
     setFeaturedError(null);
 
     try {
-      const res = await fetch("http://localhost:4000/profile/featured-badges", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/featured-badges`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -859,7 +859,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
     try {
       const payload = talismanDraft.trim() ? talismanDraft.trim() : null;
 
-      const res = await fetch(`http://localhost:4000/profile`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -958,7 +958,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
     setLangError(null);
 
     try {
-      const res = await fetch(`http://localhost:4000/profile`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -999,7 +999,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
     setAboutError(null);
 
     try {
-      const res = await fetch(`http://localhost:4000/profile`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1041,7 +1041,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
 
     (async () => {
       try {
-        const res = await fetch(`http://localhost:4000/profile/${profileId}`, {
+       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/${profileId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -1239,7 +1239,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
 
         setFriendBusy(true);
         try {
-          const res = await fetch("http://localhost:4000/friends/request", {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/requests`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -2707,7 +2707,7 @@ setBuyTokensOpen(true);
                   setCountryError(null);
 
                   try {
-                    const res = await fetch("http://localhost:4000/profile", {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
                       method: "PUT",
                       headers: {
                         "Content-Type": "application/json",

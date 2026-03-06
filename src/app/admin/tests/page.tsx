@@ -64,9 +64,9 @@ export default function AdminTestsPage() {
 
     (async () => {
       try {
-        const res = await fetch("http://localhost:4000/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
         const data = await res.json();
         if (!res.ok || !data?.user) throw new Error("Profile fetch failed");
         if (data.user.role !== "admin") {
@@ -91,9 +91,9 @@ export default function AdminTestsPage() {
     setFetching(true);
     setError(null);
 
-    fetch("http://localhost:4000/admin/tests", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests`, {
+  headers: { Authorization: `Bearer ${token}` },
+})
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) {
@@ -195,10 +195,10 @@ export default function AdminTestsPage() {
     if (!token) return alert("No token");
     if (!confirm("Archive this test? It will no longer appear to users.")) return;
 
-    const res = await fetch(`http://localhost:4000/admin/tests/${id}/archive`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/archive`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${token}` },
+});
 
     const data = await res.json();
     if (res.ok) {
@@ -212,10 +212,10 @@ export default function AdminTestsPage() {
     if (!token) return alert("No token");
     if (!confirm("Restore this test to active status?")) return;
 
-    const res = await fetch(`http://localhost:4000/admin/tests/${id}/restore`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/restore`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${token}` },
+});
 
     const data = await res.json();
     if (res.ok) {
@@ -230,10 +230,10 @@ export default function AdminTestsPage() {
     if (!confirm("This will permanently delete the test and all related data. Are you 100% sure?"))
       return;
 
-    const res = await fetch(`http://localhost:4000/admin/tests/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}`, {
+  method: "DELETE",
+  headers: { Authorization: `Bearer ${token}` },
+});
 
     const data = await res.json();
 

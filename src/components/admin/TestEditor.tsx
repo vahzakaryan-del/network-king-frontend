@@ -13,7 +13,7 @@ import { toast, Toaster } from "sonner";
 type Difficulty = "bronze" | "silver" | "gold" | "legendary";
 type Category = "achievement" | "fun";
 
-const API_BASE = "http://localhost:4000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 function resolveBadgeIcon(icon?: string | null) {
   if (!icon) return "";
@@ -297,9 +297,9 @@ export default function TestEditor({ mode, testData }: TestEditorProps) {
 
     try {
       const url =
-        mode === "edit"
-          ? `http://localhost:4000/admin/tests/${testData.id}`
-          : "http://localhost:4000/admin/tests";
+  mode === "edit"
+    ? `${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${testData.id}`
+    : `${process.env.NEXT_PUBLIC_API_URL}/admin/tests`;
 
       const res = await fetch(url, {
         method: mode === "edit" ? "PUT" : "POST",

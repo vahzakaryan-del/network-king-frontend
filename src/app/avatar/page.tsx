@@ -53,7 +53,7 @@ type CheckoutResponse = {
   error?: string;
 };
 
-const API = "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 function getMonthKeyUTC() {
   const d = new Date();

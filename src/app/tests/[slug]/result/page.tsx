@@ -30,9 +30,9 @@ export default function TestResultPage() {
         const token = localStorage.getItem("token");
         if (!token) return router.push("/login");
 
-        const url = attemptId
-          ? `http://localhost:4000/tests/${slug}/result?attempt=${attemptId}`
-          : `http://localhost:4000/tests/${slug}/result`;
+       const url = attemptId
+  ? `${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/result?attempt=${attemptId}`
+  : `${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/result`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },

@@ -8,7 +8,7 @@ import UserList from "./UserList";
 import { getSocket } from "@/lib/socket";
 import Link from "next/link";
 
-const BACKEND_URL = "http://localhost:4000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 function parseLevelChannel(channelId: string) {
   const m = /^level-(\d+)$/.exec(channelId);

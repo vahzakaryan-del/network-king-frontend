@@ -7,6 +7,7 @@ import Portal from "@/components/Portal";
 import { getSocket } from "@/lib/socket";
 import BadgeScore from "@/components/BadgeScore";
 import "@fortawesome/fontawesome-free/css/all.min.css";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 /* -------------------------
    Types (adjust if needed)
@@ -213,13 +214,13 @@ function GlobalChatPreview({ limit = 3, compact = false }: { limit?: number; com
     return "just now";
   };
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    fetch("http://localhost:4000/global/preview")
-      .then((res) => res.json())
-      .then((data) => setPreview((data || []).slice(-limit)))
-      .catch(console.error);
-  }, [limit]);
+useEffect(() => {
+  if (typeof window === "undefined") return;
+  fetch(`${API}/global/preview`)
+    .then((res) => res.json())
+    .then((data) => setPreview((data || []).slice(-limit)))
+    .catch(console.error);
+}, [limit]);
 
   
 
@@ -302,12 +303,11 @@ function TestPreview({ limit = 6 }: { limit?: number }) {
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const API = "http://localhost:4000";
 
   async function loadTests() {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:4000/admin/tests/preview");
+    const res = await fetch(`${API}/admin/tests/preview`);
       const data = await res.json();
       if (Array.isArray(data)) {
         const shuffled = data.sort(() => 0.5 - Math.random());
@@ -409,7 +409,7 @@ function FriendsPreview({ limit = 4 }: { limit?: number }) {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:4000/friends/preview", {
+    fetch(`${API}/friends/preview`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -553,12 +553,12 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:4000/levels")
+    fetch(`${API}/levels`)
       .then((r) => r.json())
       .then((d) => setLevels(d.levels || []))
       .catch(() => {});
 
-    fetch("http://localhost:4000/levels/mine", {
+    fetch(`${API}/levels/mine`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -601,7 +601,7 @@ const wasOpenRef = useRef(false);
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:4000/me/entitlements", {
+    fetch(`${API}/me/entitlements`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -831,11 +831,12 @@ useEffect(() => {
   if (!token) return;
 
   try {
-    const res = await fetch("http://localhost:4000/lottery/status", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+   const res = await fetch(`${API}/lottery/status`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
-    const data = await res.json();
+const data = await res.json();
+
 
     // Status should update immediately
     setLotteryInventory(data.inventory || {});
@@ -861,12 +862,13 @@ async function spinLottery() {
   setLotteryResult(null);
 
   try {
-    const res = await fetch("http://localhost:4000/lottery/spin", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+   const res = await fetch(`${API}/lottery/spin`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${token}` },
+});
 
-    const data = await res.json();
+const data = await res.json();
+    
 
     if (!res.ok) {
       if (data?.error === "COOLDOWN") {
@@ -915,7 +917,7 @@ async function spinLottery() {
       return;
     }
 
-    fetch("http://localhost:4000/profile", {
+    fetch(`${API}/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
@@ -934,14 +936,14 @@ async function spinLottery() {
         setTimeout(() => router.push("/login"), 1200);
       });
 
-    fetch("http://localhost:4000/notifications/unread-count", {
+   fetch(`${API}/notifications/unread-count`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .then((d) => setUnreadCount(d.unread ?? 0))
       .catch(() => {});
 
-    fetch("http://localhost:4000/notifications", {
+    fetch(`${API}/notifications`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -1015,7 +1017,7 @@ async function spinLottery() {
 
   async function markAsRead(id: number) {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:4000/notifications/${id}/read`, {
+    await fetch(`${API}/notifications/${id}/read`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -1025,7 +1027,7 @@ async function spinLottery() {
 
   async function deleteNotification(id: number) {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:4000/notifications/${id}`, {
+   await fetch(`${API}/notifications/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -1037,7 +1039,7 @@ async function spinLottery() {
   if (!token) return;
 
   try {
-    const res = await fetch("http://localhost:4000/notifications/delete-all", {
+    const res = await fetch(`${API}/notifications/delete-all`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -1058,7 +1060,7 @@ async function spinLottery() {
     if (!token) return;
 
     try {
-      const res = await fetch("http://localhost:4000/notifications/read-all", {
+      const res = await fetch(`${API}/notifications/delete-all`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });

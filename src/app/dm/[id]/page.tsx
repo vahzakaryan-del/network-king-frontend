@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:4000");
+const socket = io(process.env.NEXT_PUBLIC_API_URL!);
 
 export default function DirectMessagePage() {
   const { id } = useParams(); // friend’s ID
@@ -22,25 +22,24 @@ export default function DirectMessagePage() {
     socket.emit("auth", token);
 
     // Load friend info
-    fetch(`http://localhost:4000/users/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+  headers: { Authorization: `Bearer ${token}` },
+})
       .then((res) => res.json())
       .then((data) => setFriend(data.user));
 
     // Load previous messages
-    fetch(`http://localhost:4000/dm/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/dm/${id}`, {
+  headers: { Authorization: `Bearer ${token}` },
+})
       .then((res) => res.json())
       .then((data) => setMessages(data.messages || []));
 
       // Mark all messages from this friend as read
-fetch(`http://localhost:4000/dm/${id}/read`, {
+fetch(`${process.env.NEXT_PUBLIC_API_URL}/dm/${id}/read`, {
   method: "POST",
   headers: { Authorization: `Bearer ${token}` },
 });
-
 
     // Listen for new messages
     socket.on("private_message", (msg) => {

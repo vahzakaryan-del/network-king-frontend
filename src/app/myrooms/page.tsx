@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import RoomsLayout from "@/components/rooms/RoomsLayout";
 import PyramidIntro from "@/components/rooms/PyramidIntro";
 
-const API = "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 export default function MyRoomsPage() {
   const [levels, setLevels] = useState<any[]>([]);

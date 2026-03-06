@@ -136,7 +136,7 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
     setFindLoading(true);
 
     fetch(
-      `http://localhost:4000/users/search?q=${encodeURIComponent(findQuery)}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/users/search?q=${encodeURIComponent(findQuery)}`,
       {
         headers: { Authorization: `Bearer ${token}` },
         signal: controller.signal,
@@ -155,9 +155,9 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
     if (!token) return;
 
     const loadUnread = () => {
-      fetch("http://localhost:4000/dm/unread", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/dm/unread`, {
+  headers: { Authorization: `Bearer ${token}` },
+})
         .then((res) => res.json())
         .then((data) => {
           const map: Record<number, number> = {};
@@ -176,7 +176,7 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
   }, [token]);
 
   async function loadFriends() {
-    const res = await fetch("http://localhost:4000/friends", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -189,7 +189,7 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
   setInvitedError("");
 
   try {
-    const res = await fetch("http://localhost:4000/auth/invited?limit=200", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/invited?limit=200`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -212,7 +212,7 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
   if (!token) return;
   setInviteLoading(true);
   try {
-    const res = await fetch("http://localhost:4000/auth/invite", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/invite`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -288,7 +288,7 @@ async function handleShareInviteLink() {
 }
 
 async function loadRequests() {
-  const res = await fetch("http://localhost:4000/friends/requests", {
+ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/requests`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -302,7 +302,7 @@ async function loadRequests() {
 
   async function loadRecommended() {
   try {
-    const res = await fetch("http://localhost:4000/friends/recommended", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/recommended`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -322,7 +322,7 @@ async function loadRequests() {
     // instant UI update
     setSentRequests((prev) => [...prev, targetId]);
 
-    await fetch("http://localhost:4000/friends/request", {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/request`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -336,7 +336,7 @@ async function loadRequests() {
   }
 
   async function handleAccept(id: number) {
-    await fetch("http://localhost:4000/friends/accept", {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/accept`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -349,7 +349,7 @@ async function loadRequests() {
   }
 
   async function handleDecline(id: number) {
-    await fetch("http://localhost:4000/friends/decline", {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/decline`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -363,7 +363,7 @@ async function loadRequests() {
   async function handleRemoveFriend(friendId: number) {
     if (!confirm("Remove this friend?")) return;
 
-    await fetch(`http://localhost:4000/friends/${friendId}`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/${friendId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -1519,7 +1519,7 @@ async function loadRequests() {
                           setSentRequests((prev) => [...prev, u.id]);
                           setFindMessage("Sending request...");
 
-                          await fetch("http://localhost:4000/friends/request", {
+                          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/request`, {
                             method: "POST",
                             headers: {
                               Authorization: `Bearer ${token}`,

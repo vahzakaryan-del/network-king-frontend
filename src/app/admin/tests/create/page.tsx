@@ -27,7 +27,7 @@ function BadgeSelector({
 
 
   const fetchBadges = async () => {
-    const res = await fetch("http://localhost:4000/badges");
+   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/badges`);
     const data = await res.json();
     setBadges(data);
   };
@@ -61,7 +61,7 @@ function BadgeSelector({
 
   const token = localStorage.getItem("token");
 
-const res = await fetch("http://localhost:4000/admin/badges/upload", {
+const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/badges/upload`, {
   method: "POST",
   headers: {
     Authorization: `Bearer ${token}`,
@@ -183,7 +183,7 @@ export default function NewTestPage() {
       externalUrl: mode === "external" ? externalUrl : null,
     };
 
-    const res = await fetch("http://localhost:4000/admin/tests", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -223,7 +223,7 @@ export default function NewTestPage() {
     const token = localStorage.getItem("token");
     if (!token) return alert("Not authorized");
 
-    const res = await fetch("http://localhost:4000/admin/tests", {
+const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

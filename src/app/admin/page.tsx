@@ -21,7 +21,7 @@ type Profile = {
 type SectionKey = "home" | "tests" | "badges" | "avatars" | "emojis" | "settings";
 
 
-const API_BASE = "http://localhost:4000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 // Small helper: consistent auth header
 function authHeaders(token: string | null, extra?: Record<string, string>) {

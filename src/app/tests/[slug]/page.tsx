@@ -27,7 +27,7 @@ export default function TestPage() {
   const endTimeRef = useRef<number | null>(null);
 
 
-  const API = "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 const assetUrl = (path?: string | null) => {
   if (!path) return null;
@@ -77,7 +77,7 @@ const [showExitWarning, setShowExitWarning] = useState(false);
       if (!token) return router.push("/login");
 
       try {
-        const res = await fetch(`http://localhost:4000/tests/${slug}/info`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/info`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -112,7 +112,7 @@ const [showExitWarning, setShowExitWarning] = useState(false);
 
       try {
         const res = await fetch(
-          `http://localhost:4000/tests/${slug}/submit-external`,
+          `${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/submit-external`,
           {
             method: "POST",
             headers: {
@@ -151,7 +151,7 @@ const [showExitWarning, setShowExitWarning] = useState(false);
 
       try {
         const res = await fetch(
-          `http://localhost:4000/tests/${slug}/start`,
+          `${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/start`,
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
@@ -190,7 +190,7 @@ const preloadNextQuestion = async (aId: number, nextIndex: number) => {
 
   try {
     const res = await fetch(
-      `http://localhost:4000/tests/${aId}/question/${nextIndex}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/tests/${aId}/question/${nextIndex}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -224,7 +224,7 @@ const preloadNextQuestion = async (aId: number, nextIndex: number) => {
 
     try {
       const res = await fetch(
-        `http://localhost:4000/tests/${aId}/question/${index}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/tests/${aId}/question/${index}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
@@ -258,7 +258,7 @@ if (index + 1 < data.totalQuestions) {
   const handler = () => {
     if (attemptId && !hasSubmitted) {
       navigator.sendBeacon(
-        `http://localhost:4000/tests/${slug}/abandon`,
+        `${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/abandon`,
         JSON.stringify({ attemptId })
       );
     }
@@ -317,7 +317,7 @@ useEffect(() => {
 
     const token = localStorage.getItem("token");
 
-    await fetch(`http://localhost:4000/tests/${attemptId}/answer`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests/${attemptId}/answer`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -349,7 +349,7 @@ useEffect(() => {
   try {
     // 1. Send the answers to the backend
     const res = await fetch(
-      `http://localhost:4000/tests/${slug}/submit`,
+      `${process.env.NEXT_PUBLIC_API_URL}/tests/${slug}/submit`,
       {
         method: "POST",
         headers: {
