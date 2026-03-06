@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
@@ -19,7 +19,7 @@ function parseLevelChannel(channelId: string) {
 
 type UnreadMap = Record<string, number>;
 
-export default function GlobalChatPage() {
+function GlobalChatPageContent() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -28,12 +28,8 @@ export default function GlobalChatPage() {
 
   const [currentLevel, setCurrentLevel] = useState<number | null>(null);
 
-  
-
-  // ✅ unread badges for sidebar
   const [unreadByChannel, setUnreadByChannel] = useState<UnreadMap>({});
 
-  // ✅ mobile members drawer
   const [membersOpen, setMembersOpen] = useState(false);
 
   const handleLevelUnreadTotal = useCallback(
@@ -46,11 +42,9 @@ export default function GlobalChatPage() {
     []
   );
 
-  // keep channel in sync with URL changes (back/forward)
   useEffect(() => {
     const urlChannel = params.get("channel") || "global";
     setChannel(urlChannel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
   // -----------------------------------------------------------
@@ -93,7 +87,7 @@ export default function GlobalChatPage() {
   }, []);
 
   // -----------------------------------------------------------
-  // ✅ fetch unread counts for sidebar
+  // fetch unread counts
   // -----------------------------------------------------------
   const refreshUnread = useCallback(async () => {
     const token = localStorage.getItem("token");
@@ -101,18 +95,17 @@ export default function GlobalChatPage() {
 
     const next: UnreadMap = {};
 
-    // 1) global/announcements/random
     const g = await fetch(
       `${BACKEND_URL}/global/unread-counts?channels=global,announcements,random`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+
     if (g.ok) {
       const data = await g.json();
       const by = data?.byChannel || {};
       for (const k of Object.keys(by)) next[k] = Number(by[k]) || 0;
     }
 
-    // 2) levels totals
     if (typeof currentLevel === "number" && currentLevel > 0) {
       const results = await Promise.all(
         Array.from({ length: currentLevel }, (_, i) => i + 1).map(async (lvl) => {
@@ -144,7 +137,7 @@ export default function GlobalChatPage() {
   }, [channel, refreshUnread]);
 
   // -----------------------------------------------------------
-  // Enforce level access for "level-X"
+  // Enforce level access
   // -----------------------------------------------------------
   useEffect(() => {
     if (currentLevel == null) return;
@@ -160,14 +153,14 @@ export default function GlobalChatPage() {
   }, [channel, currentLevel, router]);
 
   // -----------------------------------------------------------
-  // Sync URL so refresh keeps the same channel
+  // Sync URL
   // -----------------------------------------------------------
   useEffect(() => {
     router.replace(`/chat/global?channel=${channel}`);
   }, [channel, router]);
 
   // -----------------------------------------------------------
-  // realtime refresh when messages arrive
+  // realtime refresh
   // -----------------------------------------------------------
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -207,9 +200,6 @@ export default function GlobalChatPage() {
 
   return (
     <>
-      {/* ========================= */}
-      {/* DESKTOP/TABLET (md+) */}
-      {/* ========================= */}
       <main className="hidden md:flex h-screen bg-[#2b2d31] text-white overflow-hidden">
         <Sidebar
           selected={channel}
@@ -218,7 +208,6 @@ export default function GlobalChatPage() {
         />
 
         <div className="flex-1 flex flex-col border-x border-white/10 min-w-0">
-          {/* ✅ show top bar only for NON-level channels (levels have their own header in ChatWindow) */}
           {!isLevel && (
             <div className="h-12 border-b border-white/10 px-4 flex items-center">
               <div className="flex items-center gap-4">
@@ -246,11 +235,7 @@ export default function GlobalChatPage() {
         <UserList channel={channel} />
       </main>
 
-      {/* ========================= */}
-      {/* MOBILE (max-sm) */}
-      {/* ========================= */}
       <main className="md:hidden flex h-screen bg-[#2b2d31] text-white overflow-hidden">
-        {/* mini sidebar */}
         <Sidebar
           compact
           selected={channel}
@@ -261,9 +246,7 @@ export default function GlobalChatPage() {
           unreadByChannel={unreadByChannel}
         />
 
-        {/* chat */}
         <div className="flex-1 flex flex-col border-l border-white/10 min-w-0">
-          {/* ✅ mobile top bar only for NON-level channels (levels have their own header in ChatWindow) */}
           {!isLevel && (
             <div className="h-12 border-b border-white/10 px-3 flex items-center justify-between">
               <div className="text-sm text-white/80 font-semibold truncate pr-2">
@@ -272,24 +255,21 @@ export default function GlobalChatPage() {
 
               <div className="flex items-center gap-2">
                 {channel === "global" && (
-  <button
-    type="button"
-    onClick={() => setMembersOpen(true)}
-    className="px-2 py-1 rounded-md bg-blue-200 hover:bg-white/15 border border-white/10 text-xs"
-    title="Online members"
-  >
-    👥
-  </button>
-)}
-
+                  <button
+                    type="button"
+                    onClick={() => setMembersOpen(true)}
+                    className="px-2 py-1 rounded-md bg-blue-200 hover:bg-white/15 border border-white/10 text-xs"
+                  >
+                    👥
+                  </button>
+                )}
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard")}
                   className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/10 text-xs"
-                  title="Dashboard"
                 >
-                   Back to 👑
+                  Back to 👑
                 </button>
               </div>
             </div>
@@ -298,17 +278,15 @@ export default function GlobalChatPage() {
           <ChatWindow
             channel={channel}
             onLevelUnreadTotal={handleLevelUnreadTotal}
-             isMobile
+            isMobile
           />
         </div>
 
-        {/* Mobile Members Drawer */}
         {membersOpen && (
           <>
             <button
               className="fixed inset-0 z-[9998] bg-black/60"
               onClick={() => setMembersOpen(false)}
-              aria-label="Close members"
             />
             <div className="fixed right-0 top-0 h-full w-[82vw] max-w-[340px] z-[9999] bg-[#1e1f22] border-l border-white/10">
               <div className="h-12 px-3 flex items-center justify-between border-b border-white/10">
@@ -325,9 +303,15 @@ export default function GlobalChatPage() {
             </div>
           </>
         )}
-
-        
       </main>
     </>
+  );
+}
+
+export default function GlobalChatPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-[#2b2d31]" />}>
+      <GlobalChatPageContent />
+    </Suspense>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FiEye, FiEyeOff } from "react-icons/fi"; // Eye icons
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 function getPasswordStrength(pw: string) {
   const length = pw.length;
@@ -35,7 +35,7 @@ function getPasswordStrength(pw: string) {
   return { score, label, hasLower, hasUpper, hasNumber, hasSymbol, length };
 }
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -51,7 +51,6 @@ export default function ResetPasswordPage() {
   const strength = getPasswordStrength(password);
   const strengthPct = Math.min(100, (strength.score / 5) * 100);
 
-  // Prevent copy, cut, and paste actions
   const handleCopyCutPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     setMessage("Copying, cutting, or pasting passwords is not allowed.");
@@ -124,13 +123,15 @@ export default function ResetPasswordPage() {
             <h2 className="text-base font-medium text-gray-200 sm:text-lg">
               Set a new password for
             </h2>
+
             <h1 className="mt-1 text-3xl font-extrabold text-amber-300 drop-shadow-md sm:text-4xl">
               Networ.King 👑
             </h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Password Input */}
+
+            {/* Password */}
             <div className="relative">
               <input
                 type={isPasswordVisible ? "text" : "password"}
@@ -144,9 +145,10 @@ export default function ResetPasswordPage() {
                 onPaste={handleCopyCutPaste}
                 className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
               />
+
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
                 onClick={() => setIsPasswordVisible((prev) => !prev)}
               >
                 {isPasswordVisible ? (
@@ -157,11 +159,13 @@ export default function ResetPasswordPage() {
               </button>
             </div>
 
-            {/* Strength meter */}
+            {/* Strength */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-gray-200">
                 <span>Password strength</span>
-                <span className="font-semibold text-amber-200">{strength.label}</span>
+                <span className="font-semibold text-amber-200">
+                  {strength.label}
+                </span>
               </div>
 
               <div className="h-2 w-full rounded-full bg-white/10 ring-1 ring-white/10 overflow-hidden">
@@ -172,14 +176,22 @@ export default function ResetPasswordPage() {
               </div>
 
               <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-200/90">
-                <li className={strength.length >= 8 ? "text-emerald-200" : ""}>• 8+ chars</li>
-                <li className={strength.hasNumber ? "text-emerald-200" : ""}>• Number</li>
-                <li className={strength.hasSymbol ? "text-emerald-200" : ""}>• Symbol</li>
-                <li className={strength.hasUpper ? "text-emerald-200" : ""}>• Uppercase</li>
+                <li className={strength.length >= 8 ? "text-emerald-200" : ""}>
+                  • 8+ chars
+                </li>
+                <li className={strength.hasNumber ? "text-emerald-200" : ""}>
+                  • Number
+                </li>
+                <li className={strength.hasSymbol ? "text-emerald-200" : ""}>
+                  • Symbol
+                </li>
+                <li className={strength.hasUpper ? "text-emerald-200" : ""}>
+                  • Uppercase
+                </li>
               </ul>
             </div>
 
-            {/* Confirm Password Input */}
+            {/* Confirm */}
             <div className="relative">
               <input
                 type={isConfirmPasswordVisible ? "text" : "password"}
@@ -193,10 +205,13 @@ export default function ResetPasswordPage() {
                 onPaste={handleCopyCutPaste}
                 className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
               />
+
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                onClick={() => setIsConfirmPasswordVisible((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                onClick={() =>
+                  setIsConfirmPasswordVisible((prev) => !prev)
+                }
               >
                 {isConfirmPasswordVisible ? (
                   <FiEyeOff className="text-white" />
@@ -206,7 +221,6 @@ export default function ResetPasswordPage() {
               </button>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -217,7 +231,9 @@ export default function ResetPasswordPage() {
           </form>
 
           {message && (
-            <p className="mt-4 text-center text-sm text-gray-100">{message}</p>
+            <p className="mt-4 text-center text-sm text-gray-100">
+              {message}
+            </p>
           )}
 
           <p className="mt-6 text-center text-sm text-gray-200/90">
@@ -235,5 +251,13 @@ export default function ResetPasswordPage() {
         </footer>
       </div>
     </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-red-900" />}>
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }
