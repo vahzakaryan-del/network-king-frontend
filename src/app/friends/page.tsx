@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-export default function FriendsPage() {
+function FriendsPageContent() {
   const [friends, setFriends] = useState<any[]>([]);
   const [incoming, setIncoming] = useState<any[]>([]);
   const [outgoing, setOutgoing] = useState<any[]>([]);
@@ -1694,5 +1694,13 @@ async function loadRequests() {
 )}
 
     </main>
+  );
+}
+
+export default function FriendsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-indigo-900" />}>
+      <FriendsPageContent />
+    </Suspense>
   );
 }
