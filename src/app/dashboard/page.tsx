@@ -105,12 +105,13 @@ function BadgeMedallion({
         title={badge.name || "Badge"}
       >
         {icon.startsWith("/") || icon.startsWith("http") ? (
+
           <img
-            src={icon}
-            alt={badge.name || "badge"}
-            className="w-[90%] h-[90%] object-contain"
-            draggable={false}
-          />
+  src={icon.startsWith("/") ? `${API}${icon}` : icon}
+  alt={badge.name || "badge"}
+  className="w-[90%] h-[90%] object-contain"
+  draggable={false}
+/>
         ) : (
           <span
             className="select-none"
@@ -272,7 +273,7 @@ useEffect(() => {
                 className="w-full text-left flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-md px-2 py-1 transition"
               >
                 <img
-                  src={m.user.avatar ? `/avatars/${m.user.avatar}` : "/avatar-placeholder.png"}
+                  src={m.user.avatar ? `${API}/avatars/${m.user.avatar}` : "/avatar-placeholder.png"}
                   alt={m.user.name}
                   className="w-6 h-6 rounded-full object-cover border border-white/20"
                 />
@@ -439,7 +440,7 @@ function FriendsPreview({ limit = 4 }: { limit?: number }) {
         >
           <div className="relative">
             <img
-              src={f.avatar ? `/avatars/${f.avatar}` : "/avatars/default.png"}
+              src={f.avatar ? `${API}/avatars/${f.avatar}` : `${API}/avatars/default.png`}
               alt={f.name}
               className="w-10 h-10 rounded-full object-cover border border-white/30"
             />
@@ -1546,7 +1547,7 @@ const data = await res.json();
     title="Change Avatar"
   >
     <img
-      src={user.avatar ? `/avatars/${user.avatar}` : "https://via.placeholder.com/120"}
+      src={user.avatar ? `${API}/avatars/${user.avatar}` : "https://via.placeholder.com/120"}
       alt="User Avatar"
       className="w-20 h-20 rounded-full border-[4px] border-amber-400 shadow-lg"
     />
@@ -1799,7 +1800,7 @@ const data = await res.json();
                     title="Change Avatar"
                   >
                     <img
-                      src={user.avatar ? `/avatars/${user.avatar}` : "https://via.placeholder.com/120"}
+                      src={user.avatar ? `${API}/avatars/${user.avatar}` : "https://via.placeholder.com/120"}
                       alt="User Avatar"
                       className="w-24 h-24 rounded-full border-[4px] border-amber-400 shadow-lg transition-transform group-hover:scale-105"
                     />
