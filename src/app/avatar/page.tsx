@@ -204,7 +204,7 @@ const [showAchievements, setShowAchievements] = useState(false);
       });
       const data = await r.json();
       if (data.user?.avatar) {
-        setSelectedAvatar(`/avatars/${data.user.avatar}`);
+        setSelectedAvatar(`${API}/avatars/${data.user.avatar}`)
       } else {
         setSelectedAvatar(null);
       }
@@ -407,7 +407,7 @@ const [showAchievements, setShowAchievements] = useState(false);
       previewable?: boolean; // NEW
       onPreview?: () => void; // NEW
     }) => {
-      const imgPath = `/avatars/${a.fileName}`;
+      const imgPath = `${API}/avatars/${a.fileName}`;
       const canInteract = clickable || previewable;
 
       return (
@@ -505,7 +505,7 @@ const [showAchievements, setShowAchievements] = useState(false);
               <>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-5">
                   {visibleAvailable.map((a) => {
-                    const imgPath = `/avatars/${a.fileName}`;
+                    const imgPath = `${API}/avatars/${a.fileName}`;
                     return (
                       <AvatarBubble
                         key={a.id}
@@ -707,7 +707,7 @@ const [showAchievements, setShowAchievements] = useState(false);
             return (
               <div key={a.id} className="flex flex-col items-center gap-2">
                 <img
-                  src={`/avatars/${a.fileName}`}
+                  src={`${API}/avatars/${a.fileName}`}
                   className="w-24 h-24 rounded-full opacity-80"
                 />
 
@@ -853,8 +853,7 @@ const [showAchievements, setShowAchievements] = useState(false);
           Close
         </button>
 
-        <a
-          href="http://localhost:3000/Subscription"
+        <a href="/Subscription"
           className="px-4 py-2 rounded-xl font-bold shadow-lg bg-yellow-400 text-gray-900 hover:bg-yellow-300"
         >
           Go Premium
