@@ -7,6 +7,8 @@ import Portal from "@/components/Portal";
 import { getSocket } from "@/lib/socket";
 import BadgeScore from "@/components/BadgeScore";
 import "@fortawesome/fontawesome-free/css/all.min.css";
+
+import { asset } from "@/lib/assets";
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
 /* -------------------------
@@ -107,7 +109,7 @@ function BadgeMedallion({
         {icon.startsWith("/") || icon.startsWith("http") ? (
 
           <img
-  src={icon.startsWith("/") ? `${API}${icon}` : icon}
+ src={asset(icon)}
   alt={badge.name || "badge"}
   className="w-[90%] h-[90%] object-contain"
   draggable={false}
@@ -273,7 +275,7 @@ useEffect(() => {
                 className="w-full text-left flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-md px-2 py-1 transition"
               >
                 <img
-                  src={m.user.avatar ? `${API}/avatars/${m.user.avatar}` : "/avatar-placeholder.png"}
+                 src={m.user.avatar ? asset(`avatars/${m.user.avatar}`) : asset("avatars/default.png")}
                   alt={m.user.name}
                   className="w-6 h-6 rounded-full object-cover border border-white/20"
                 />
@@ -382,7 +384,7 @@ function TestPreview({ limit = 6 }: { limit?: number }) {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition"
               >
                 <img
-                  src={t.icon ? `${API}${t.icon}` : "/default-test.png"}
+                  src={t.icon ? asset(t.icon) : asset("default-test.png")}
                   alt={t.title}
                   className="w-12 h-12 mb-2 rounded-full object-cover border border-white/20 shadow-md"
                 />
@@ -440,7 +442,7 @@ function FriendsPreview({ limit = 4 }: { limit?: number }) {
         >
           <div className="relative">
             <img
-              src={f.avatar ? `${API}/avatars/${f.avatar}` : `${API}/avatars/default.png`}
+              src={asset(`avatars/${f.avatar || "default.png"}`)}
               alt={f.name}
               className="w-10 h-10 rounded-full object-cover border border-white/30"
             />
@@ -1547,10 +1549,10 @@ const data = await res.json();
     title="Change Avatar"
   >
     <img
-      src={user.avatar ? `${API}/avatars/${user.avatar}` : "https://via.placeholder.com/120"}
-      alt="User Avatar"
-      className="w-20 h-20 rounded-full border-[4px] border-amber-400 shadow-lg"
-    />
+  src={user.avatar ? asset(`avatars/${user.avatar}`) : asset("avatars/default.png")}
+  alt="User Avatar"
+  className="w-20 h-20 rounded-full border-[4px] border-amber-400 shadow-lg"
+/>
   </div>
 
   {/* Name (top-right) */}
@@ -1799,11 +1801,11 @@ const data = await res.json();
                     onClick={() => router.push("/avatar")}
                     title="Change Avatar"
                   >
-                    <img
-                      src={user.avatar ? `${API}/avatars/${user.avatar}` : "https://via.placeholder.com/120"}
-                      alt="User Avatar"
-                      className="w-24 h-24 rounded-full border-[4px] border-amber-400 shadow-lg transition-transform group-hover:scale-105"
-                    />
+                   <img
+  src={user.avatar ? asset(`avatars/${user.avatar}`) : asset("avatars/default.png")}
+  alt="User Avatar"
+  className="w-24 h-24 rounded-full border-[4px] border-amber-400 shadow-lg transition-transform group-hover:scale-105"
+/>
                     <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-xs text-white/80 bg-black/40 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
                       Edit
                     </span>
