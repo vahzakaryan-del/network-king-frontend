@@ -217,9 +217,9 @@ const [showAchievements, setShowAchievements] = useState(false);
 
   const normalizeSelection = useCallback((currentSelected: string | null, nextAvailable: AvatarRow[]) => {
     if (!nextAvailable || nextAvailable.length === 0) return null;
-    const set = new Set(nextAvailable.map((a) => `/avatars/${a.fileName}`));
+    const set = new Set(nextAvailable.map((a) => asset(`avatars/${a.fileName}`)));
     if (currentSelected && set.has(currentSelected)) return currentSelected;
-    return `/avatars/${nextAvailable[0].fileName}`;
+    return asset(`avatars/${nextAvailable[0].fileName}`);
   }, []);
 
   useEffect(() => {
@@ -244,7 +244,10 @@ const [showAchievements, setShowAchievements] = useState(false);
     })();
   }, [router, fetchProfile, fetchAvatars, fetchEntitlements, normalizeSelection]);
 
-  const availablePaths = useMemo(() => new Set(available.map((a) => `/avatars/${a.fileName}`)), [available]);
+  const availablePaths = useMemo(
+  () => new Set(available.map((a) => asset(`avatars/${a.fileName}`))),
+  [available]
+);
 
   const handleSave = useCallback(async () => {
     const token = localStorage.getItem("token");
