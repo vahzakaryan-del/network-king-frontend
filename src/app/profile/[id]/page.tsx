@@ -12,6 +12,8 @@ import { motion } from "framer-motion";
 import BadgeScore from "@/components/BadgeScore";
 import CountryPicker from "@/components/CountryPicker";
 
+import { asset } from "@/lib/assets";
+
 // ---------------------------------------------
 // Small helper to render a flag via CDN
 // ---------------------------------------------
@@ -794,42 +796,42 @@ const fmtMoney = (cents: number, currency = "EUR") =>
   {
     key: "mind",
     label: "Mind",
-    image: `${API_BASE}/talismans/mind.webp`,
+    image: asset("talismans/mind.webp"),
     desc: "Strategy, Logic, Focus",
     rarity: "legendary",
   },
   {
     key: "heart",
     label: "Heart",
-    image: `${API_BASE}/talismans/heart.webp`,
+    image: asset("talismans/heart.webp"),
     desc: "Empathy, Kindness, Trust",
     rarity: "epic",
   },
   {
     key: "crown",
     label: "Crown",
-    image: `${API_BASE}/talismans/crown.webp`,
+    image: asset("talismans/crown.webp"),
     desc: "Status, Achievement, Recognition",
     rarity: "epic",
   },
   {
     key: "shield",
     label: "Shield",
-    image: `${API_BASE}/talismans/shield.webp`,
+    image: asset("talismans/shield.webp"),
     desc: "Loyalty, Reliability, Defense",
     rarity: "legendary",
   },
    {
     key: "magnet",
     label: "Magnet",
-    image: `${API_BASE}/talismans/magnet.webp`,
+    image: asset("talismans/magnet.webp"),
     desc: "Luck, Attraction, Communication",
     rarity: "rare",
   },
   {
     key: "flame",
     label: "Flame",
-    image: `${API_BASE}/talismans/flame.webp`,
+    image: asset("talismans/flame.webp"),
     desc: "Ambition, Energy, Passion",
     rarity: "common",
   },
@@ -1134,7 +1136,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
           ...prev,
           id: data.id ?? prev.id,
           name: data.name ?? prev.name,
-          avatar: data.avatar || "/avatar-placeholder.png",
+          avatar: data.avatar || "avatars/avatar-placeholder.png",
           countries: parsedCountries,
           mainCountry: data.mainCountry || parsedCountries[0] || null,
           country: parsedCountries.join(", "),
@@ -1345,7 +1347,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
   </button>
 
               <img
-                src={profile.avatar}
+                src={asset(profile.avatar)}
                 alt={profile.name}
                 className={`w-28 h-28 rounded-full border-4 border-amber-300 object-cover
     ${isSelf ? "cursor-pointer hover:scale-[1.03] transition" : ""}`}
@@ -1353,8 +1355,8 @@ const fmtMoney = (cents: number, currency = "EUR") =>
                   if (isSelf) router.push("/avatar");
                 }}
                 onError={(e) => {
-                  e.currentTarget.src = "/avatar-placeholder.png";
-                }}
+  e.currentTarget.src = asset("avatars/avatar-placeholder.png");
+}}
               />
 
               <div className="mt-4 w-full">
@@ -1746,12 +1748,8 @@ setBuyTokensOpen(true);
                     <div key={b.id} className="relative">
                       {/* circular badge */}
                       <div className="relative w-16 h-16 rounded-full bg-white/10 border border-amber-300/40 shadow-lg grid place-items-center overflow-hidden">
-                        <img
-                          src={
-                            b.icon?.startsWith("/badges/")
-                              ? b.icon
-                              : `/badges/${b.icon}`
-                          }
+                       <img
+  src={asset(b.icon?.startsWith("/badges/") ? b.icon : `badges/${b.icon}`)}
                           alt=""
                           className="w-12 h-12 object-contain"
                           draggable={false}
@@ -1841,11 +1839,7 @@ setBuyTokensOpen(true);
                       >
                         {/* Badge Icon */}
                         <img
-                          src={
-                            b.icon?.startsWith("/badges/")
-                              ? b.icon
-                              : `/badges/${b.icon}`
-                          }
+  src={asset(b.icon?.startsWith("/badges/") ? b.icon : `badges/${b.icon}`)}
                           className="w-12 h-12 mx-auto object-contain drop-shadow-lg"
                         />
 
@@ -2436,11 +2430,7 @@ setBuyTokensOpen(true);
                     )}
 
                     <img
-                      src={
-                        b.icon?.startsWith("/badges/")
-                          ? b.icon
-                          : `/badges/${b.icon}`
-                      }
+  src={asset(b.icon?.startsWith("/badges/") ? b.icon : `badges/${b.icon}`)}
                       alt={b.name}
                       className="w-12 h-12 mx-auto object-contain"
                     />

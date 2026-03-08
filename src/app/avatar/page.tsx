@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { asset } from "@/lib/assets";
 
 type AvatarRow = {
   id: number;
@@ -204,7 +205,7 @@ const [showAchievements, setShowAchievements] = useState(false);
       });
       const data = await r.json();
       if (data.user?.avatar) {
-        setSelectedAvatar(`${API}/avatars/${data.user.avatar}`)
+        setSelectedAvatar(asset(`avatars/${data.user.avatar}`))
       } else {
         setSelectedAvatar(null);
       }
@@ -407,7 +408,7 @@ const [showAchievements, setShowAchievements] = useState(false);
       previewable?: boolean; // NEW
       onPreview?: () => void; // NEW
     }) => {
-      const imgPath = `${API}/avatars/${a.fileName}`;
+      const imgPath = asset(`avatars/${a.fileName}`);
       const canInteract = clickable || previewable;
 
       return (
@@ -505,7 +506,7 @@ const [showAchievements, setShowAchievements] = useState(false);
               <>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-5">
                   {visibleAvailable.map((a) => {
-                    const imgPath = `${API}/avatars/${a.fileName}`;
+                    const imgPath = asset(`avatars/${a.fileName}`);
                     return (
                       <AvatarBubble
                         key={a.id}
@@ -554,8 +555,8 @@ const [showAchievements, setShowAchievements] = useState(false);
 >
 
                           <div className="relative">
-                            <img
-                              src={`/avatars/${monthlyAvatar.fileName}`}
+                           <img
+                              src={asset(`avatars/${monthlyAvatar.fileName}`)}
                               className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover"
                               alt={monthlyAvatar.fileName}
                               draggable={false}
@@ -707,7 +708,7 @@ const [showAchievements, setShowAchievements] = useState(false);
             return (
               <div key={a.id} className="flex flex-col items-center gap-2">
                 <img
-                  src={`${API}/avatars/${a.fileName}`}
+                 src={asset(`avatars/${a.fileName}`)}
                   className="w-24 h-24 rounded-full opacity-80"
                 />
 
@@ -831,7 +832,7 @@ const [showAchievements, setShowAchievements] = useState(false);
 
               <div className="mt-4 flex justify-center">
                 <motion.img
-                  src={`/avatars/${previewAvatar.fileName}`}
+                  src={asset(`avatars/${previewAvatar.fileName}`)}
                   alt={previewAvatar.fileName}
                   className="w-56 h-56 sm:w-72 sm:h-72 rounded-full object-cover border-4 border-white/20 shadow-xl"
                   initial={{ scale: 0.98 }}

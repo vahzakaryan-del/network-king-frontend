@@ -1301,7 +1301,7 @@ const SectionEmojis = () => {
           {me && (
             <div className="hidden md:flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl px-3 py-2">
               <img
-                src={me.avatar ? `${API_BASE}/avatars/${me.avatar}` : `${API_BASE}/avatars/default.png`}
+                src={me.avatar ? `${API_BASE}/avatars/${me.avatar}` : `${API_BASE}/avatars/default.webp`}
                 className="w-8 h-8 rounded-full border border-white/20"
                 alt="me"
                 onError={(e) => withImgFallback(e, "avatar")}

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import io from "socket.io-client";
+import { asset } from "@/lib/assets";
 
 const socket = io(process.env.NEXT_PUBLIC_API_URL!);
 
@@ -73,7 +74,7 @@ fetch(`${process.env.NEXT_PUBLIC_API_URL}/dm/${id}/read`, {
       <header className="p-4 bg-white/10 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <img
-            src={friend?.avatar ? `/avatars/${friend.avatar}` : "/avatars/default.png"}
+            src={friend?.avatar ? asset(`avatars/${friend.avatar}`) : asset("avatars/default.webp")}
             alt="friend"
             className="w-10 h-10 rounded-full border border-amber-300"
           />

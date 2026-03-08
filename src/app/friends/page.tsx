@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { asset } from "@/lib/assets";
 
 function FriendsPageContent() {
   const [friends, setFriends] = useState<any[]>([]);
@@ -412,7 +413,7 @@ async function loadRequests() {
       >
         <div className="relative shrink-0">
           <img
-            src={f.avatar ? `/avatars/${f.avatar}` : "/avatars/default.png"}
+            src={f.avatar ? asset(`avatars/${f.avatar}`) : asset("avatars/default.webp")}
             alt={f.name}
             className="w-10 h-10 rounded-full border border-amber-400/40 group-hover:border-amber-300/70 transition"
           />
@@ -479,9 +480,7 @@ async function loadRequests() {
       >
         <div className="relative shrink-0">
           <img
-            src={
-              r.from.avatar ? `/avatars/${r.from.avatar}` : "/avatars/default.png"
-            }
+            src={r.from.avatar ? asset(`avatars/${r.from.avatar}`) : asset("avatars/default.webp")}
             alt={r.from.name}
             className="w-10 h-10 rounded-full border border-amber-400/40 group-hover:border-amber-300/70 transition"
           />
@@ -532,7 +531,7 @@ async function loadRequests() {
       >
         <div className="relative shrink-0">
           <img
-            src={r.to.avatar ? `/avatars/${r.to.avatar}` : "/avatars/default.png"}
+            src={r.to.avatar ? asset(`avatars/${r.to.avatar}`) : asset("avatars/default.webp")}
             alt={r.to.name}
             className="w-10 h-10 rounded-full border border-amber-400/40 group-hover:border-amber-300/70 transition"
           />
@@ -841,10 +840,10 @@ async function loadRequests() {
                         <div className="relative shrink-0">
                           <img
                             src={
-                              u.avatar
-                                ? `/avatars/${u.avatar}`
-                                : "/avatars/default.png"
-                            }
+  u.avatar
+    ? asset(`avatars/${u.avatar}`)
+    : asset("avatars/default.webp")
+}
                             alt={u.name}
                             className="w-10 h-10 rounded-full border border-white/20"
                           />
@@ -980,10 +979,10 @@ async function loadRequests() {
                         <div className="relative">
                           <img
                             src={
-                              f.avatar
-                                ? `/avatars/${f.avatar}`
-                                : "/avatars/default.png"
-                            }
+  f.avatar
+    ? asset(`avatars/${f.avatar}`)
+    : asset("avatars/default.webp")
+}
                             alt={f.name}
                             className="w-10 h-10 rounded-full border border-amber-400/40 group-hover:border-amber-300/70 transition"
                           />
@@ -1111,10 +1110,10 @@ async function loadRequests() {
                               <div className="relative">
                                 <img
                                   src={
-                                    r.from.avatar
-                                      ? `/avatars/${r.from.avatar}`
-                                      : "/avatars/default.png"
-                                  }
+  r.from.avatar
+    ? asset(`avatars/${r.from.avatar}`)
+    : asset("avatars/default.webp")
+}
                                   alt={r.from.name}
                                   className="w-10 h-10 rounded-full border border-amber-400/40 group-hover:border-amber-300/70 transition"
                                 />
@@ -1190,11 +1189,11 @@ async function loadRequests() {
                             >
                               <div className="relative">
                                 <img
-                                  src={
-                                    r.to.avatar
-                                      ? `/avatars/${r.to.avatar}`
-                                      : "/avatars/default.png"
-                                  }
+                                 src={
+  r.to.avatar
+    ? asset(`avatars/${r.to.avatar}`)
+    : asset("avatars/default.webp")
+}
                                   alt={r.to.name}
                                   className="w-10 h-10 rounded-full border border-amber-400/40 group-hover:border-amber-300/70 transition"
                                 />
@@ -1344,10 +1343,10 @@ async function loadRequests() {
                           <div className="relative">
                             <img
                               src={
-                                u.avatar
-                                  ? `/avatars/${u.avatar}`
-                                  : "/avatars/default.png"
-                              }
+  u.avatar
+    ? asset(`avatars/${u.avatar}`)
+    : asset("avatars/default.webp")
+}
                               alt={u.name}
                               className="w-10 h-10 rounded-full border border-white/20"
                             />
@@ -1499,10 +1498,10 @@ async function loadRequests() {
                       >
                         <img
                           src={
-                            u.avatar
-                              ? `/avatars/${u.avatar}`
-                              : "/avatars/default.png"
-                          }
+  u.avatar
+    ? asset(`avatars/${u.avatar}`)
+    : asset("avatars/default.webp")
+}
                           alt={u.name}
                           className="w-10 h-10 rounded-full border border-white/20 shrink-0"
                         />
@@ -1633,7 +1632,11 @@ async function loadRequests() {
                     className="flex items-center gap-3 min-w-0 text-left"
                   >
                     <img
-                      src={u.avatar ? `/avatars/${u.avatar}` : "/avatars/default.png"}
+                      src={
+  u.avatar
+    ? asset(`avatars/${u.avatar}`)
+    : asset("avatars/default.webp")
+}
                       alt={u.name}
                       className="w-10 h-10 rounded-full border border-white/20 shrink-0"
                     />

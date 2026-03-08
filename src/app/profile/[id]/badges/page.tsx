@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { asset } from "@/lib/assets";
 
 type BadgeItem = {
   id: number;
@@ -79,8 +80,8 @@ export default function AllBadgesPage() {
             name: b.name,
             rarity: (b.rarity || "bronze").toLowerCase(),
             icon: b.icon?.startsWith("/badges/")
-              ? b.icon
-              : `/badges/${b.icon || "default.png"}`,
+  ? b.icon
+  : `badges/${b.icon || "default.png"}`,
             earnedAt: b.earnedAt,
             badgeScore: b.badgeScore ?? null,
             badgeScoreColor: b.badgeScoreColor ?? "white",
@@ -121,7 +122,7 @@ const mapped: BadgeItem[] = source.map((b: any) => ({
   rarity: (b.rarity || "bronze").toLowerCase(),
   icon: b.icon?.startsWith("/badges/")
     ? b.icon
-    : `/badges/${b.icon || "default.png"}`,
+    : `badges/${b.icon || "default.png"}`,
   description: b.description ?? null,
 }));
 
@@ -303,11 +304,11 @@ const displayedBadges = useMemo(() => {
 
                   {/* icon */}
                   <img
-                    src={b.icon}
+                      src={asset(b.icon)}
                     alt={b.name}
                     className="w-14 h-14 md:w-16 md:h-16 object-contain drop-shadow-lg mt-5"
                     onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = "/badges/default.png";
+                      (e.currentTarget as HTMLImageElement).src = asset("badges/default.png");
                     }}
                   />
 
@@ -371,7 +372,7 @@ const displayedBadges = useMemo(() => {
                     alt={openBadge.name}
                     className="w-14 h-14 object-contain"
                     onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = "/badges/default.png";
+                      (e.currentTarget as HTMLImageElement).src = asset("badges/default.png");
                     }}
                   />
                 </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import type React from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { asset } from "@/lib/assets";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL!;
 const MAX_MESSAGE_LEN = 500;
@@ -41,7 +42,7 @@ const OnlineIndicator = ({ online }: { online: boolean }) => (
 );
 
 const avatarSrc = (a?: string | null) =>
-  a ? `/avatars/${a}` : "/avatar-placeholder.png";
+  a ? asset(`avatars/${a}`) : asset("avatars/default.webp");
 
 const formatTs = (iso: string) =>
   new Date(iso).toLocaleString([], {
@@ -214,7 +215,7 @@ function EmojiIcon({ e }: { e: AvailableEmoji }) {
   if (e.type === "image") {
     return (
       <img
-        src={`${BACKEND_URL}${e.value}`}
+        src={asset(e.value)}
         alt={e.label ?? e.code}
         className="w-5 h-5"
         style={{ objectFit: "contain" }}
@@ -599,9 +600,9 @@ useEffect(() => {
                   m.user?.id ? "cursor-pointer hover:opacity-80" : ""
                 }`}
                 onError={(e) =>
-                  (((e.currentTarget as HTMLImageElement).src =
-                    "/avatar-placeholder.png") as any)
-                }
+                   ((e.currentTarget as HTMLImageElement).src =
+                  asset("avatars/default.webp"))
+}
               />
               {m.user?.id ? (
                 <OnlineIndicator online={onlineUsers.includes(m.user.id)} />
@@ -751,7 +752,7 @@ function renderContentWithEmojis(
       return (
         <img
           key={idx}
-          src={`${BACKEND_URL}${e.value}`}
+          src={asset(e.value)}
           alt={e.label ?? code}
           className="inline-block w-5 h-5 align-[-0.2em] mx-0.5"
           style={{ objectFit: "contain" }}
@@ -1463,9 +1464,9 @@ function insertEmoji(e: AvailableEmoji) {
                           src={avatarSrc(u.avatar)}
                           className="w-9 h-9 rounded-full object-cover"
                           onError={(e) =>
-                            (((e.currentTarget as HTMLImageElement).src =
-                              "/avatar-placeholder.png") as any)
-                          }
+                   ((e.currentTarget as HTMLImageElement).src =
+                  asset("avatars/default.webp"))
+                       }
                         />
                         <div className="text-left min-w-0 flex-1">
                           <div className="font-semibold truncate flex items-center gap-2">
@@ -1506,9 +1507,9 @@ function insertEmoji(e: AvailableEmoji) {
                       src={avatarSrc(u.avatar)}
                       className="w-9 h-9 rounded-full object-cover"
                       onError={(e) =>
-                        (((e.currentTarget as HTMLImageElement).src =
-                          "/avatar-placeholder.png") as any)
-                      }
+                   ((e.currentTarget as HTMLImageElement).src =
+                  asset("avatars/default.webp"))
+                       }
                     />
                     <div className="min-w-0 text-left flex-1">
                       <div className="font-semibold truncate flex items-center gap-2">
@@ -1573,9 +1574,9 @@ function insertEmoji(e: AvailableEmoji) {
                         m.user?.id ? "cursor-pointer hover:opacity-80" : ""
                       }`}
                       onError={(e) =>
-                        (((e.currentTarget as HTMLImageElement).src =
-                          "/avatar-placeholder.png") as any)
-                      }
+                   ((e.currentTarget as HTMLImageElement).src =
+                  asset("avatars/default.webp"))
+                       }
                     />
                     {m.user?.id ? (
                       <OnlineIndicator online={onlineUsers.includes(m.user.id)} />
@@ -1723,9 +1724,9 @@ function insertEmoji(e: AvailableEmoji) {
                           m.user?.id ? "cursor-pointer hover:opacity-80" : ""
                         }`}
                         onError={(e) =>
-                          (((e.currentTarget as HTMLImageElement).src =
-                            "/avatar-placeholder.png") as any)
-                        }
+                   ((e.currentTarget as HTMLImageElement).src =
+                  asset("avatars/default.webp"))
+                       }
                       />
                       {m.user?.id ? (
                         <OnlineIndicator online={onlineUsers.includes(m.user.id)} />
@@ -1888,9 +1889,9 @@ function insertEmoji(e: AvailableEmoji) {
                       src={avatarSrc(u.avatar)}
                       className="w-9 h-9 rounded-full object-cover"
                       onError={(e) =>
-                        (((e.currentTarget as HTMLImageElement).src =
-                          "/avatar-placeholder.png") as any)
-                      }
+                   ((e.currentTarget as HTMLImageElement).src =
+                  asset("avatars/default.webp"))
+                       }
                     />
                     <div className="text-left min-w-0">
                       <div className="font-semibold truncate">

@@ -6,6 +6,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  
   async rewrites() {
     return [
       {
@@ -16,6 +17,7 @@ const nextConfig = {
         source: "/avatars/:path*",
         destination: "https://networkking.app/avatars/:path*",
       },
+      
     ];
   },
 };

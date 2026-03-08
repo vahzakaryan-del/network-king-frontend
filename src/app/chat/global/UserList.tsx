@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
+import { asset } from "@/lib/assets";
 
 // CDN-based flag renderer
 const FlagIcon = ({ code }: { code?: string | null }) => {
@@ -111,7 +112,7 @@ export default function UserList({ channel }: { channel: string }) {
   }, []);
 
   const avatarSrc = (a?: string | null) =>
-    a ? `/avatars/${a}` : "/avatar-placeholder.png";
+  a ? asset(`avatars/${a}`) : asset("avatars/default.webp");
 
   return (
     <aside className="w-56 bg-[#1e1f22] border-l border-white/10 p-3 flex flex-col">
@@ -129,9 +130,9 @@ export default function UserList({ channel }: { channel: string }) {
                 onClick={() => router.push(`/profile/${u.id}`)}
                 className="w-8 h-8 rounded-full object-cover cursor-pointer hover:opacity-80"
                 onError={(e) =>
-                  ((e.currentTarget as HTMLImageElement).src =
-                    "/avatar-placeholder.png")
-                }
+  ((e.currentTarget as HTMLImageElement).src =
+    asset("avatars/default.webp"))
+}
               />
               <span
                 className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#1e1f22] animate-pulse"

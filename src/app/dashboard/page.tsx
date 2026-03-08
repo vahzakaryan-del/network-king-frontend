@@ -275,7 +275,7 @@ useEffect(() => {
                 className="w-full text-left flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-md px-2 py-1 transition"
               >
                 <img
-                 src={m.user.avatar ? asset(`avatars/${m.user.avatar}`) : asset("avatars/default.png")}
+                 src={m.user.avatar ? asset(`avatars/${m.user.avatar}`) : asset("avatars/default.webp")}
                   alt={m.user.name}
                   className="w-6 h-6 rounded-full object-cover border border-white/20"
                 />
@@ -442,7 +442,7 @@ function FriendsPreview({ limit = 4 }: { limit?: number }) {
         >
           <div className="relative">
             <img
-              src={asset(`avatars/${f.avatar || "default.png"}`)}
+              src={asset(`avatars/${f.avatar || "default.webp"}`)}
               alt={f.name}
               className="w-10 h-10 rounded-full object-cover border border-white/30"
             />
@@ -1549,7 +1549,7 @@ const data = await res.json();
     title="Change Avatar"
   >
     <img
-  src={user.avatar ? asset(`avatars/${user.avatar}`) : asset("avatars/default.png")}
+  src={user.avatar ? asset(`avatars/${user.avatar}`) : asset("avatars/default.webp")}
   alt="User Avatar"
   className="w-20 h-20 rounded-full border-[4px] border-amber-400 shadow-lg"
 />
@@ -1802,7 +1802,7 @@ const data = await res.json();
                     title="Change Avatar"
                   >
                    <img
-  src={user.avatar ? asset(`avatars/${user.avatar}`) : asset("avatars/default.png")}
+  src={user.avatar ? asset(`avatars/${user.avatar}`) : asset("avatars/default.webp")}
   alt="User Avatar"
   className="w-24 h-24 rounded-full border-[4px] border-amber-400 shadow-lg transition-transform group-hover:scale-105"
 />
