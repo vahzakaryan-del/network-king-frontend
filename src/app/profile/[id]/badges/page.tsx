@@ -36,6 +36,18 @@ export default function AllBadgesPage() {
   // (optional) modal
   const [openBadge, setOpenBadge] = useState<BadgeItem | null>(null);
 
+  const handleBadgeClick = (badge: BadgeItem) => {
+  const fullIconUrl = badge.icon?.startsWith("/badges/")
+    ? `${process.env.NEXT_PUBLIC_API_URL}${badge.icon}`  // Prepend backend URL
+    : `${process.env.NEXT_PUBLIC_API_URL}/badges/${badge.icon || "default.png"}`;  // Fallback to default image
+
+  // Set the openBadge state with the full URL
+  setOpenBadge({
+    ...badge,
+    icon: fullIconUrl,  // Update the icon with the full URL
+  });
+};
+
   const rarityWeight: Record<string, number> = {
     unique: 5,
     legendary: 4,
@@ -274,7 +286,7 @@ const displayedBadges = useMemo(() => {
                   exit={{ opacity: 0 }}
                   whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.25 }}
-                  onClick={() => setOpenBadge(b)}
+                  onClick={() => handleBadgeClick(b)}
                   className={`relative rounded-2xl bg-white/10 border ${
                     rarityGlow[b.rarity] || "border-white/10"
                   } p-3 md:p-4 flex flex-col items-center justify-between text-center hover:bg-white/15 transition outline-none`}
@@ -370,7 +382,7 @@ const displayedBadges = useMemo(() => {
                   <img
                     src={openBadge.icon}
                     alt={openBadge.name}
-                    className="w-14 h-14 object-contain"
+                    className="w-16 h-16 object-contain"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src = asset("badges/default.png");
                     }}
