@@ -3,20 +3,23 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function Home() {
   const router = useRouter();
 
   const [showToast, setShowToast] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Auth check
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify`, {
-  headers: { Authorization: `Bearer ${token}` },
-})
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then(async (res) => {
         if (res.ok) {
           setShowToast(true);
@@ -30,14 +33,23 @@ export default function Home() {
       });
   }, [router]);
 
+  // Delay video playback for 1.5s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowVideo(true);
+      videoRef.current?.play();
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white font-sans">
       {/* soft light overlay */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
 
-      {/* Page content wrapper */}
       <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14 text-center">
-        {/* 🔔 Toast: center on mobile, top-right on larger screens */}
+        {/* 🔔 Toast */}
         {showToast && (
           <motion.div
             initial={{ opacity: 0, y: -12 }}
@@ -49,7 +61,6 @@ export default function Home() {
             <p className="font-semibold text-white">
               You are already logged in • Redirecting…
             </p>
-
             <div className="mt-1 flex justify-center space-x-1 sm:justify-start">
               <span className="h-2 w-2 animate-bounce rounded-full bg-white/90" />
               <span className="h-2 w-2 animate-bounce rounded-full bg-white/70 [animation-delay:0.15s]" />
@@ -77,17 +88,31 @@ export default function Home() {
           Meet driven people, share ideas, and build projects that matter.
         </motion.p>
 
-        {/* Video: slightly smaller on mobile to reduce vertical stretch */}
+        {/* Video Section */}
         <motion.div
-          className="mb-7 w-full max-w-xl overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-sm sm:mb-10 sm:max-w-2xl"
+          className="mb-7 w-full max-w-xl overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-sm sm:mb-10 sm:max-w-2xl relative"
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.55, duration: 0.8 }}
         >
+          {/* Thumbnail + shimmer effect */}
+          {!showVideo && (
+            <>
+              <img
+                src="/thumbnail.webp"
+                alt="Video thumbnail"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
+                <div className="absolute top-0 left-full h-full w-32 bg-white/20 blur-xl animate-shimmer" />
+              </div>
+            </>
+          )}
+
           <video
-            className="h-auto w-full"
+            ref={videoRef}
+            className={`h-auto w-full transition-opacity duration-500 ${showVideo ? "opacity-100" : "opacity-0"}`}
             controls
-            autoPlay
             muted
             loop
             playsInline
@@ -98,7 +123,7 @@ export default function Home() {
           </video>
         </motion.div>
 
-        {/* Buttons: stack on mobile, row on larger screens */}
+        {/* Buttons */}
         <div className="z-10 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center sm:gap-6">
           <Link
             href="/register"
@@ -115,7 +140,7 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Footer: normal flow on mobile so it never overlaps content */}
+        {/* Footer */}
         <motion.footer
           className="mt-10 text-xs text-gray-200/90 sm:mt-14 sm:text-sm md:absolute md:bottom-6 md:mt-0"
           initial={{ opacity: 0 }}
@@ -125,6 +150,17 @@ export default function Home() {
           © {new Date().getFullYear()} Networ.King – Connect. Collaborate. Grow.
         </motion.footer>
       </div>
+
+      {/* Shimmer animation keyframes */}
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { left: 100%; }
+          100% { left: -40%; }
+        }
+        .animate-shimmer {
+          animation: shimmer 1.5s ease-in-out infinite;
+        }
+      `}</style>
     </main>
   );
 }
