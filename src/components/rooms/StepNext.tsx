@@ -463,7 +463,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
           className="
             w-28 md:w-32 h-44 md:h-48 rounded-md overflow-hidden
             border-[3px] border-black/40 shadow-lg
-            bg-[url('/rooms/door-wood.png')] bg-cover bg-center
+            bg-[url('/rooms/door-wood.webp')] bg-cover bg-center
           "
           style={{
             opacity: unlocked ? 1 : 0.6,
@@ -475,7 +475,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
 
         {!unlocked && (
           <motion.img
-            src="/rooms/padlock-red.png"
+            src="/rooms/padlock-red.webp"
             alt="Locked"
             className="
               absolute -top-4 left-1/2 -translate-x-1/2 w-10 md:w-12

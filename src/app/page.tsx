@@ -91,7 +91,7 @@ export default function Home() {
             muted
             loop
             playsInline
-            poster="/thumbnail.jpg"
+            poster="/thumbnail.webp"
           >
             <source src="/intro.mp4" type="video/mp4" />
             Your browser does not support the video tag.
