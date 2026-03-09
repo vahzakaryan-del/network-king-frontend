@@ -205,22 +205,25 @@ const [showAchievements, setShowAchievements] = useState(false);
       });
       const data = await r.json();
       if (data.user?.avatar) {
-        setSelectedAvatar(asset(`avatars/${data.user.avatar}`))
-      } else {
-        setSelectedAvatar(null);
-      }
+  setSelectedAvatar(data.user.avatar);
+} else {
+  setSelectedAvatar(null);
+}
       return { ok: true as const, avatarFileName: data.user?.avatar ?? null };
     } catch {
       return { ok: false as const };
     }
   }, [router]);
 
-  const normalizeSelection = useCallback((currentSelected: string | null, nextAvailable: AvatarRow[]) => {
-    if (!nextAvailable || nextAvailable.length === 0) return null;
-    const set = new Set(nextAvailable.map((a) => asset(`avatars/${a.fileName}`)));
-    if (currentSelected && set.has(currentSelected)) return currentSelected;
-    return asset(`avatars/${nextAvailable[0].fileName}`);
-  }, []);
+ const normalizeSelection = useCallback((currentSelected: string | null, nextAvailable: AvatarRow[]) => {
+  if (!nextAvailable || nextAvailable.length === 0) return null;
+
+  const set = new Set(nextAvailable.map(a => a.fileName));
+
+  if (currentSelected && set.has(currentSelected)) return currentSelected;
+
+  return nextAvailable[0].fileName;
+}, []);
 
   useEffect(() => {
     (async () => {
@@ -244,10 +247,6 @@ const [showAchievements, setShowAchievements] = useState(false);
     })();
   }, [router, fetchProfile, fetchAvatars, fetchEntitlements, normalizeSelection]);
 
-  const availablePaths = useMemo(
-  () => new Set(available.map((a) => asset(`avatars/${a.fileName}`))),
-  [available]
-);
 
   const handleSave = useCallback(async () => {
     const token = localStorage.getItem("token");
@@ -258,14 +257,14 @@ const [showAchievements, setShowAchievements] = useState(false);
       return;
     }
 
-    if (!availablePaths.has(selectedAvatar)) {
-      showToast("⚠️ This avatar is locked. Choose an available one.");
-      return;
-    }
+    if (!available.some(a => a.fileName === selectedAvatar)) {
+  showToast("⚠️ This avatar is locked. Choose an available one.");
+  return;
+}
 
     setSaving(true);
 
-    const avatarFile = selectedAvatar.split("/").pop();
+    const avatarFile = selectedAvatar;
 
     try {
       const res = await fetch(`${API}/profile`, {
@@ -290,7 +289,7 @@ const [showAchievements, setShowAchievements] = useState(false);
     }
 
     setSaving(false);
-  }, [availablePaths, router, selectedAvatar, showToast]);
+  }, [router, selectedAvatar, showToast]);
 
   const handleBuy = useCallback(
     async (avatarId: number) => {
@@ -509,17 +508,16 @@ const [showAchievements, setShowAchievements] = useState(false);
               <>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-5">
                   {visibleAvailable.map((a) => {
-                    const imgPath = asset(`avatars/${a.fileName}`);
                     return (
-                      <AvatarBubble
-                        key={a.id}
-                        a={a}
-                        clickable={true}
-                        selected={selectedAvatar === imgPath}
-                        onClick={() => setSelectedAvatar(imgPath)}
-                        badgeText={a.isFree ? "FREE" : "UNLOCKED"}
-                      />
-                    );
+  <AvatarBubble
+    key={a.id}
+    a={a}
+    clickable={true}
+    selected={selectedAvatar === a.fileName}
+    onClick={() => setSelectedAvatar(a.fileName)}
+    badgeText={a.isFree ? "FREE" : "UNLOCKED"}
+  />
+);
                   })}
                 </div>
 
