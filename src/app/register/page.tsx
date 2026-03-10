@@ -51,40 +51,6 @@ const cooldownSecondsLeft = useMemo(() => {
 
 const isCoolingDown = cooldownSecondsLeft > 0;
 
-  useEffect(() => {
-
-  if (!waitingVerification) return;
-
-  const interval = setInterval(async () => {
-
-    try {
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-  const data = await res.json()
-
-if (res.status === 403) {
- return
-}
-
-if (res.ok) {
- router.push("/login")
-}
-
-    } catch {}
-
-  }, 5000);
-
-  return () => clearInterval(interval);
-
-}, [waitingVerification]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, type, value, checked } = e.target;
