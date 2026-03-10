@@ -37,6 +37,33 @@ const [nowMs, setNowMs] = useState(Date.now());
       localStorage.setItem("ref", refFromUrl);
     }
   }, [refFromUrl]);
+  useEffect(() => {
+
+  if (!waitingVerification) return;
+
+  const interval = setInterval(async () => {
+
+    try {
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/email-status?email=${encodeURIComponent(formData.email)}`
+      );
+
+      const data = await res.json();
+
+      if (data.verified) {
+        router.push("/login?verified=1");
+      }
+
+    } catch (err) {
+      console.error("Verification check failed:", err);
+    }
+
+  }, 5000);
+
+  return () => clearInterval(interval);
+
+}, [waitingVerification, formData.email]);
  
   useEffect(() => {
   const id = setInterval(() => setNowMs(Date.now()), 1000);
