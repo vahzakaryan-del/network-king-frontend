@@ -68,9 +68,15 @@ const isCoolingDown = cooldownSecondsLeft > 0;
         }),
       });
 
-      if (res.ok) {
-        router.push("/login");
-      }
+  const data = await res.json()
+
+if (res.status === 403) {
+ return
+}
+
+if (res.ok) {
+ router.push("/login")
+}
 
     } catch {}
 
