@@ -1,6 +1,14 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+function formatSeconds(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+
+  if (m === 0) return `${s}s`;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+import { Suspense, useEffect,  useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -14,6 +22,9 @@ function RegisterPageContent() {
   });
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [waitingVerification, setWaitingVerification] = useState(false);
+  const [cooldownUntilMs, setCooldownUntilMs] = useState<number | null>(null);
+const [nowMs, setNowMs] = useState(Date.now());
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,6 +37,48 @@ function RegisterPageContent() {
       localStorage.setItem("ref", refFromUrl);
     }
   }, [refFromUrl]);
+ 
+  useEffect(() => {
+  const id = setInterval(() => setNowMs(Date.now()), 1000);
+  return () => clearInterval(id);
+}, []);
+  
+const cooldownSecondsLeft = useMemo(() => {
+  if (!cooldownUntilMs) return 0;
+  const diff = Math.ceil((cooldownUntilMs - nowMs) / 1000);
+  return Math.max(0, diff);
+}, [cooldownUntilMs, nowMs]);
+
+const isCoolingDown = cooldownSecondsLeft > 0;
+
+  useEffect(() => {
+
+  if (!waitingVerification) return;
+
+  const interval = setInterval(async () => {
+
+    try {
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (res.ok) {
+        router.push("/login");
+      }
+
+    } catch {}
+
+  }, 5000);
+
+  return () => clearInterval(interval);
+
+}, [waitingVerification]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, type, value, checked } = e.target;
@@ -46,6 +99,27 @@ function RegisterPageContent() {
     }));
   };
 
+  const resendVerification = async () => {
+
+  if (isCoolingDown) return;
+
+  try {
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: formData.email }),
+    });
+
+    if (res.ok) {
+      setCooldownUntilMs(Date.now() + 60000); // start 60s timer
+    }
+
+  } catch (err) {
+    console.error("Resend verification failed:", err);
+  }
+
+};
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -72,11 +146,22 @@ function RegisterPageContent() {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.removeItem("ref");
+  localStorage.removeItem("ref");
 
-        setMessage("✅ Registration successful! Redirecting to login...");
-        setTimeout(() => router.push("/login"), 1200);
-      } else {
+  setWaitingVerification(true);
+  setMessage("");
+
+  // send verification email immediately
+  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: formData.email }),
+  });
+  setCooldownUntilMs(Date.now() + 60000);
+}
+
+      
+      else {
         setMessage(`❌ ${data?.error ?? "Registration failed."}`);
       }
     } catch (err) {
@@ -116,6 +201,7 @@ function RegisterPageContent() {
             )}
           </div>
 
+          {!waitingVerification && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
               type="text"
@@ -191,6 +277,45 @@ function RegisterPageContent() {
               {isSubmitting ? "Registering..." : "Register"}
             </button>
           </form>
+          )}
+
+          {waitingVerification && (
+
+  <div className="space-y-4 text-center">
+
+    <div className="rounded-xl border border-white/40 bg-white/10 backdrop-blur-md p-5 text-gray-100 shadow-lg">
+
+      <div className="text-lg font-semibold text-white mb-2">
+        Verify your email
+      </div>
+
+      <div className="text-sm text-gray-200">
+        We sent a verification link to:
+      </div>
+
+      <div className="text-sm font-semibold text-amber-300 mt-1">
+        {formData.email}
+      </div>
+
+      <div className="text-xs text-gray-300 mt-3 flex items-center justify-center gap-2">
+        <span className="animate-pulse">Checking verification...</span>
+      </div>
+
+    </div>
+
+   <button
+  onClick={resendVerification}
+  disabled={isCoolingDown}
+  className="w-full rounded-lg bg-amber-400 py-3 font-semibold text-gray-900 disabled:opacity-60"
+>
+  {isCoolingDown
+    ? `Resend in ${formatSeconds(cooldownSecondsLeft)}`
+    : "Resend verification email"}
+</button>
+
+  </div>
+
+)}
 
           {message && (
             <p className="mt-4 text-center text-sm text-gray-100">{message}</p>

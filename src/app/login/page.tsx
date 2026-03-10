@@ -1,15 +1,111 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
+type NoticeKind = "success" | "warning" | "error" | "info";
+
+function formatSeconds(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(sec).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+function NoticeBox({
+  kind,
+  title,
+  children,
+}: {
+  kind: NoticeKind;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  const styles = useMemo(() => {
+    switch (kind) {
+      case "success":
+        return "border-emerald-400/40 bg-emerald-400/10 text-emerald-100";
+      case "warning":
+        return "border-amber-400/40 bg-amber-400/10 text-amber-100";
+      case "error":
+        return "border-rose-400/40 bg-rose-400/10 text-rose-100";
+      default:
+        return "border-white/15 bg-white/10 text-gray-100";
+    }
+  }, [kind]);
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 text-sm ${styles}`}>
+      {title && <div className="mb-1 font-semibold">{title}</div>}
+      <div className="leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+const COOLDOWN_KEY = "verificationCooldownUntilMs";
+const COOLDOWN_SECONDS = 60;
+
 export default function LoginPage() {
+
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+
+  const [notice, setNotice] = useState<{
+    kind: NoticeKind;
+    title?: string;
+    text: string;
+  } | null>(null);
+
+  const [cooldownUntilMs, setCooldownUntilMs] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(Date.now());
+
   const router = useRouter();
+
+  // tick timer
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // load cooldown from storage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(COOLDOWN_KEY);
+      if (!raw) return;
+      const until = Number(raw);
+      if (until > Date.now()) setCooldownUntilMs(until);
+    } catch {}
+  }, []);
+
+  const cooldownSecondsLeft = useMemo(() => {
+    if (!cooldownUntilMs) return 0;
+    const diff = Math.ceil((cooldownUntilMs - nowMs) / 1000);
+    return Math.max(0, diff);
+  }, [cooldownUntilMs, nowMs]);
+
+  const isCoolingDown = cooldownSecondsLeft > 0;
+
+  const startCooldown = () => {
+    const until = Date.now() + COOLDOWN_SECONDS * 1000;
+    setCooldownUntilMs(until);
+    localStorage.setItem(COOLDOWN_KEY, String(until));
+  };
+
+  const clearCooldown = () => {
+    setCooldownUntilMs(null);
+    localStorage.removeItem(COOLDOWN_KEY);
+  };
+
+  useEffect(() => {
+    if (cooldownUntilMs && cooldownSecondsLeft === 0) {
+      clearCooldown();
+    }
+  }, [cooldownSecondsLeft]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -21,106 +117,268 @@ export default function LoginPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const attemptLogin = async () => {
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+
+      if (data?.error?.toLowerCase().includes("verify")) {
+        setEmailNotVerified(true);
+       setNotice(null);
+
+        return false;
+      }
+
+      setNotice({
+        kind: "error",
+        title: "Login failed",
+        text: data?.error ?? "Invalid credentials.",
+      });
+
+      return false;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("userId", String(data.user?.id ?? ""));
+    localStorage.setItem("userName", String(data.user?.name ?? ""));
+    localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+
+    setNotice({
+      kind: "success",
+      title: "Login successful",
+      text: "Redirecting to dashboard...",
+    });
+
+    setTimeout(() => router.push("/dashboard"), 900);
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setMessage("Logging in...");
+    setNotice(null);
+    await attemptLogin();
+    setIsSubmitting(false);
+  };
+
+  const resendVerification = async () => {
+
+    if (isCoolingDown) return;
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(formData),
-});
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (res.status === 429) {
+        startCooldown();
+
+        setNotice( null);  return;
+      }
 
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage(`❌ ${data?.error ?? "Login failed."}`);
+        setNotice({
+          kind: "error",
+          title: "Error",
+          text: data?.error ?? "Failed to resend verification email.",
+        });
         return;
       }
 
-      // Store auth/session values once
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", String(data.user?.id ?? ""));
-      localStorage.setItem("userName", String(data.user?.name ?? ""));
-      localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+      startCooldown();
 
-      setMessage("✅ Login successful! Redirecting...");
-      setTimeout(() => router.push("/dashboard"), 900);
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Network error. Check server.");
-    } finally {
-      setIsSubmitting(false);
+      setNotice({
+        kind: "success",
+        title: "Verification email sent",
+        text: "Please check your inbox and spam folder.",
+      });
+
+    } catch {
+      setNotice({
+        kind: "error",
+        title: "Network error",
+        text: "Failed to resend email.",
+      });
     }
   };
 
-  return (
-    <main className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white font-sans">
-      {/* Overlay gradient */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+  // 🔥 automatic verification detection
+  useEffect(() => {
 
-      {/* Wrapper: padding + safe mobile height */}
+    if (!emailNotVerified) return;
+
+    const interval = setInterval(async () => {
+
+      const ok = await attemptLogin();
+
+      if (ok) clearInterval(interval);
+
+    }, 5000);
+
+    return () => clearInterval(interval);
+
+  }, [emailNotVerified]);
+
+  useEffect(() => {
+
+  if (!emailNotVerified) return;
+
+  const sendInitialEmail = async () => {
+
+    try {
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (res.ok) {
+        startCooldown();
+      }
+
+    } catch (err) {
+      console.error("Auto verification email failed:", err);
+    }
+
+  };
+
+  sendInitialEmail();
+
+}, [emailNotVerified]);
+
+ return (
+  <main
+  className={`relative overflow-hidden bg-gradient-to-br text-white font-sans ${
+    emailNotVerified
+      ? "from-red-900 via-red-800 to-amber-400"
+      : "from-blue-900 via-indigo-900 to-amber-400"
+  }`}
+>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+
       <div className="relative mx-auto flex min-h-[100svh] max-w-5xl flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14">
+
         <motion.div
           className="w-full max-w-md rounded-2xl bg-white/10 p-6 shadow-2xl backdrop-blur-md sm:p-8"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
         >
+
           <div className="mb-6 text-center">
             <h2 className="text-base font-medium text-gray-200 sm:text-lg">
               Welcome back to
             </h2>
+
             <h1 className="mt-1 text-3xl font-extrabold text-amber-300 drop-shadow-md sm:text-4xl">
               Networ.King 👑
             </h1>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              autoComplete="email"
-              inputMode="email"
-              className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
-            />
+          {!emailNotVerified && (
 
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              autoComplete="current-password"
-              className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
-            />
+            <form onSubmit={handleSubmit} className="space-y-4">
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-lg bg-amber-400 py-3 font-semibold text-gray-900 transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 sm:hover:scale-105 sm:hover:bg-amber-300"
-            >
-              {isSubmitting ? "Logging in..." : "Log In"}
-            </button>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300"
+              />
 
-            <Link
-  href="/forgot-password"
-  className="block text-center text-sm text-amber-300 hover:underline"
->
-  Forgot your password?
-</Link>
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300"
+              />
 
-          </form>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-lg bg-amber-400 py-3 font-semibold text-gray-900"
+              >
+                {isSubmitting ? "Logging in..." : "Log In"}
+              </button>
 
-          {message && (
-            <p className="mt-4 text-center text-sm text-gray-100">{message}</p>
+              <Link
+                href="/forgot-password"
+                className="block text-center text-sm text-amber-300 hover:underline"
+              >
+                Forgot your password?
+              </Link>
+
+            </form>
+
+          )}
+
+          {emailNotVerified && (
+
+            <div className="space-y-4 text-center">
+
+            <div className="rounded-xl border border-white/40 bg-white/10 backdrop-blur-md p-5 text-gray-100 shadow-lg">
+  
+  <div className="text-lg font-semibold text-white mb-2">
+    Email not verified
+  </div>
+
+  <div className="text-sm text-gray-200 leading-relaxed">
+    Please check your inbox and click the verification link.
+  </div>
+
+  <div className="text-m text-grey mt-4 flex items-center justify-center gap-2">
+  <span className="animate-pulse">Checking verification...</span>
+</div>
+
+</div>
+
+
+              <button
+                onClick={resendVerification}
+                disabled={isCoolingDown}
+                className="w-full rounded-lg bg-amber-400 py-3 font-semibold text-gray-900 disabled:opacity-60"
+              >
+                {isCoolingDown
+                  ? `Resend in ${formatSeconds(cooldownSecondsLeft)}`
+                  : "Resend verification email"}
+              </button>
+
+              <button
+                onClick={() => setEmailNotVerified(false)}
+                className="text-sm text-amber-300 hover:underline"
+              >
+                Back to login
+              </button>
+
+            </div>
+
+          )}
+
+          {notice && (
+            <div className="mt-4">
+              <NoticeBox kind={notice.kind} title={notice.title}>
+                {notice.text}
+              </NoticeBox>
+            </div>
           )}
 
           <p className="mt-6 text-center text-sm text-gray-200/90">
@@ -129,12 +387,13 @@ export default function LoginPage() {
               Register here
             </Link>
           </p>
+
         </motion.div>
 
-        {/* Footer: flow on mobile, no overlap */}
         <footer className="mt-8 text-center text-xs text-gray-200/80 sm:mt-10 sm:text-sm md:absolute md:bottom-6 md:mt-0">
           © {new Date().getFullYear()} Networ.King
         </footer>
+
       </div>
     </main>
   );
