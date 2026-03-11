@@ -8,11 +8,12 @@ function formatSeconds(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-import { GoogleLogin } from "@react-oauth/google";
+
 import { Suspense, useEffect,  useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { GoogleLogin } from "@react-oauth/google";
 
 
 
@@ -32,29 +33,6 @@ const [nowMs, setNowMs] = useState(Date.now());
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  <GoogleLogin
-  onSuccess={async (credentialResponse) => {
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: credentialResponse.credential
-        }),
-      }
-    );
-
-    const data = await res.json();
-
-    localStorage.setItem("token", data.token);
-    router.push("/dashboard");
-
-  }}
-  onError={() => console.log("Google Login Failed")}
-/>
-
   // referral from /register?ref=XXXX
   const refFromUrl = searchParams.get("ref");
 
@@ -67,25 +45,36 @@ const [nowMs, setNowMs] = useState(Date.now());
 
   if (!waitingVerification) return;
 
-  const interval = setInterval(async () => {
+  let attempts = 0;
 
-    try {
+const interval = setInterval(async () => {
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/email-status?email=${encodeURIComponent(formData.email)}`
-      );
+  attempts++;
 
-      const data = await res.json();
+  if (attempts > 60) { // stop after ~5 minutes
+    clearInterval(interval);
+    console.log("Stopped verification polling");
+    return;
+  }
 
-      if (data.verified) {
-        router.push("/login?verified=1");
-      }
+  try {
 
-    } catch (err) {
-      console.error("Verification check failed:", err);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/email-status?email=${encodeURIComponent(formData.email)}`
+    );
+
+    const data = await res.json();
+
+    if (data.verified) {
+      clearInterval(interval);
+      router.push("/login?verified=1");
     }
 
-  }, 5000);
+  } catch (err) {
+    console.error("Verification check failed:", err);
+  }
+
+}, 5000);
 
   return () => clearInterval(interval);
 
@@ -109,7 +98,7 @@ const isCoolingDown = cooldownSecondsLeft > 0;
     const { name, type, value, checked } = e.target;
 
     if (name === "name") {
-      const sanitized = value.replace(/[^A-Za-z\s]/g, "").slice(0, 24);
+      const sanitized = value.replace(/[^\p{L}\s]/gu, "").slice(0, 24);
 
       setFormData((prev) => ({
         ...prev,
@@ -231,7 +220,7 @@ const isCoolingDown = cooldownSecondsLeft > 0;
               required
               autoComplete="name"
               maxLength={24}
-              pattern="^[A-Za-z\s]{1,24}$"
+              pattern="^[\p{L}\s]{1,24}$"
               title="Name must contain only letters and spaces (max 24 characters)"
               className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
             />
@@ -254,13 +243,15 @@ const isCoolingDown = cooldownSecondsLeft > 0;
 </p>
 
             <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              autoComplete="new-password"
+            type="password"
+           name="password"
+           placeholder="Password"
+           value={formData.password}
+           onChange={handleChange}
+           required
+           minLength={8}
+           title="Password must be at least 6 characters"
+           autoComplete="new-password"
               className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
             />
 
@@ -302,6 +293,63 @@ const isCoolingDown = cooldownSecondsLeft > 0;
             </button>
           </form>
           )}
+{!waitingVerification && (
+  <>
+<div className="my-4 text-center text-sm text-gray-300">
+  or continue with
+</div>
+
+<div className="flex flex-col items-center gap-2">
+
+  <GoogleLogin
+    theme="filled_black"
+    shape="pill"
+    size="large"
+    onSuccess={async (credentialResponse) => {
+      try {
+
+        const ref = refFromUrl || localStorage.getItem("ref") || "";
+
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: credentialResponse.credential ?? "",
+              ref: ref || undefined,
+            }),
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("Google login failed");
+          return;
+        }
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", String(data.user?.id ?? ""));
+        localStorage.setItem("userName", String(data.user?.name ?? ""));
+        localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+        localStorage.removeItem("ref");
+
+        router.push("/dashboard");
+
+      } catch (err) {
+        console.error("Google auth error", err);
+      }
+    }}
+    onError={() => console.log("Google Login Failed")}
+  />
+
+  <p className="text-xs text-gray-300 text-center">
+    No password needed — create one later if you want.
+  </p>
+
+</div>
+</> )}
 
           {waitingVerification && (
 

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { GoogleLogin } from "@react-oauth/google";
+import { Eye, EyeOff } from "lucide-react";
 
 type NoticeKind = "success" | "warning" | "error" | "info";
 
@@ -52,6 +54,8 @@ export default function LoginPage() {
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   const [emailNotVerified, setEmailNotVerified] = useState(false);
 
@@ -101,23 +105,27 @@ export default function LoginPage() {
     localStorage.removeItem(COOLDOWN_KEY);
   };
 
-  useEffect(() => {
-    if (cooldownUntilMs && cooldownSecondsLeft === 0) {
-      clearCooldown();
-    }
-  }, [cooldownSecondsLeft]);
+ useEffect(() => {
+  if (cooldownUntilMs && cooldownSecondsLeft === 0) {
+    clearCooldown();
+  }
+}, [cooldownSecondsLeft, cooldownUntilMs]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) router.push("/dashboard");
-  }, [router]);
+  const token = localStorage.getItem("token");
+  if (token) router.replace("/dashboard");
+}, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const attemptLogin = async () => {
+const attemptLogin = async () => {
+
+    if (!formData.email || !formData.password) {
+      return false;
+    }
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
       method: "POST",
@@ -125,7 +133,13 @@ export default function LoginPage() {
       body: JSON.stringify(formData),
     });
 
-    const data = await res.json();
+    let data;
+
+try {
+  data = await res.json();
+} catch {
+  data = {};
+}
 
     if (!res.ok) {
 
@@ -151,12 +165,14 @@ export default function LoginPage() {
     localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
 
     setNotice({
-      kind: "success",
-      title: "Login successful",
-      text: "Redirecting to dashboard...",
-    });
+  kind: "success",
+  title: "Login successful",
+  text: "Redirecting to dashboard...",
+});
 
-    setTimeout(() => router.push("/dashboard"), 900);
+setIsLeaving(true);
+
+setTimeout(() => router.push("/dashboard"), 600);
 
     return true;
   };
@@ -184,10 +200,17 @@ export default function LoginPage() {
       if (res.status === 429) {
         startCooldown();
 
-        setNotice( null);  return;
+        setNotice(null);
+return;
       }
 
-      const data = await res.json();
+      let data;
+
+try {
+  data = await res.json();
+} catch {
+  data = {};
+}
 
       if (!res.ok) {
         setNotice({
@@ -216,21 +239,27 @@ export default function LoginPage() {
   };
 
   // 🔥 automatic verification detection
-  useEffect(() => {
+ useEffect(() => {
 
-    if (!emailNotVerified) return;
+  if (!emailNotVerified) return;
 
-    const interval = setInterval(async () => {
+  let tries = 0;
 
-      const ok = await attemptLogin();
+  const interval = setInterval(async () => {
 
-      if (ok) clearInterval(interval);
+    tries++;
 
-    }, 5000);
+    const ok = await attemptLogin();
 
-    return () => clearInterval(interval);
+    if (ok || tries > 60) {
+      clearInterval(interval);
+    }
 
-  }, [emailNotVerified]);
+  }, 5000);
+
+  return () => clearInterval(interval);
+
+}, [emailNotVerified]);
 
   useEffect(() => {
 
@@ -273,10 +302,11 @@ export default function LoginPage() {
       <div className="relative mx-auto flex min-h-[100svh] max-w-5xl flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14">
 
         <motion.div
-          className="w-full max-w-md rounded-2xl bg-white/10 p-6 shadow-2xl backdrop-blur-md sm:p-8"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+  className="w-full max-w-md rounded-2xl bg-white/10 p-6 shadow-2xl backdrop-blur-md sm:p-8"
+  initial={{ opacity: 0, y: 24 }}
+  animate={isLeaving ? { opacity: 0, y: -20 } : { opacity: 1, y: 0 }}
+  transition={{ duration: 0.4 }}
+>
 
           <div className="mb-6 text-center">
             <h2 className="text-base font-medium text-gray-200 sm:text-lg">
@@ -293,32 +323,52 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
 
               <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300"
-              />
+ autoFocus
+ type="email"
+ name="email"
+ placeholder="Email"
+ value={formData.email}
+ onChange={handleChange}
+ required
+ autoComplete="email"
+ inputMode="email"
+ className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300"
+/>
 
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300"
-              />
+              <div className="relative">
+
+<input
+ type={showPassword ? "text" : "password"}
+ name="password"
+ placeholder="Password"
+ value={formData.password}
+ onChange={handleChange}
+ required
+ autoComplete="current-password"
+ className="w-full rounded-lg bg-white/20 p-3 pr-14 text-white placeholder-gray-300"
+/>
+
+<button
+  type="button"
+  onClick={() => setShowPassword(!showPassword)}
+  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white"
+>
+  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+</button>
+
+</div>
 
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-lg bg-amber-400 py-3 font-semibold text-gray-900"
-              >
-                {isSubmitting ? "Logging in..." : "Log In"}
-              </button>
+  type="submit"
+  disabled={isSubmitting}
+  className="w-full rounded-lg bg-amber-400 py-3 font-semibold text-gray-900 flex items-center justify-center gap-2"
+>
+  {isSubmitting && (
+    <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-900 border-t-transparent"></span>
+  )}
+
+  {isSubmitting ? "Logging in..." : "Log In"}
+</button>
 
               <Link
                 href="/forgot-password"
@@ -329,7 +379,64 @@ export default function LoginPage() {
 
             </form>
 
+            
+
           )}
+
+        {!emailNotVerified && (
+  <>
+    <div className="my-4 text-center text-sm text-gray-300">
+      or
+    </div>
+
+    <div className="flex justify-center">
+      <GoogleLogin
+        theme="filled_black"
+        shape="pill"
+        size="large"
+        onSuccess={async (credentialResponse) => {
+
+          try {
+
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  token: credentialResponse.credential,
+                }),
+              }
+            );
+
+            let data;
+
+try {
+  data = await res.json();
+} catch {
+  data = {};
+}
+
+            if (!res.ok) return;
+
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("userId", String(data.user?.id ?? ""));
+            localStorage.setItem("userName", String(data.user?.name ?? ""));
+            localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+
+            setIsLeaving(true);
+            setTimeout(() => router.push("/dashboard"), 600);
+
+          } catch (err) {
+            console.error("Google login error", err);
+          }
+
+        }}
+        onError={() => console.log("Google Login Failed")}
+      />
+    </div>
+  </>
+)}
 
           {emailNotVerified && (
 
