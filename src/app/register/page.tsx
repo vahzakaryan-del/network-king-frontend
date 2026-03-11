@@ -28,7 +28,9 @@ function RegisterPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [waitingVerification, setWaitingVerification] = useState(false);
   const [cooldownUntilMs, setCooldownUntilMs] = useState<number | null>(null);
-const [nowMs, setNowMs] = useState(Date.now());
+  const [nowMs, setNowMs] = useState(Date.now());
+
+  const [emailStarted, setEmailStarted] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,23 +97,33 @@ const isCoolingDown = cooldownSecondsLeft > 0;
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, type, value, checked } = e.target;
+  const { name, type, value, checked } = e.target;
 
-    if (name === "name") {
-      const sanitized = value.replace(/[^\p{L}\s]/gu, "").slice(0, 24);
-
-      setFormData((prev) => ({
-        ...prev,
-        name: sanitized,
-      }));
-      return;
-    }
+  if (name === "name") {
+    const sanitized = value.replace(/[^\p{L}\s]/gu, "").slice(0, 24);
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      name: sanitized,
     }));
-  };
+    return;
+  }
+
+ if (name === "email") {
+  setEmailStarted(value.length > 0);
+
+  setFormData((prev) => ({
+    ...prev,
+    email: value,
+  }));
+  return;
+}
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: type === "checkbox" ? checked : value,
+  }));
+};
 
   const resendVerification = async () => {
 
@@ -236,11 +248,12 @@ const isCoolingDown = cooldownSecondsLeft > 0;
               inputMode="email"
               className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
             />
-
-            <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
-  Please enter your real email address. You will not be able to change it later,
-  and email verification will be required to activate your account.
-</p>
+{emailStarted && (
+  <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
+    Please enter your real email address. You will not be able to change it later,
+    and email verification will be required to activate your account.
+  </p>
+)}
 
             <input
             type="password"
