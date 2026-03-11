@@ -1,10 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect,  useState } from "react";
 import { motion } from "framer-motion";
 
 export default function EmailVerifiedPage() {
   const router = useRouter();
+  const [countdown, setCountdown] = useState(4);
+
+ useEffect(() => {
+  if (countdown === 0) {
+    router.push("/login?verified=1");
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    setCountdown((c) => c - 1);
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [countdown, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-zinc-900 text-white p-6">
@@ -18,9 +33,13 @@ export default function EmailVerifiedPage() {
           ✅ Email Verified
         </h1>
 
-        <p className="text-zinc-300 mb-6">
-          Your account has been successfully verified.
-        </p>
+      <p className="text-zinc-300 mb-6">
+  Your account has been successfully verified.
+</p>
+
+<p className="text-sm text-zinc-400 mb-6">
+  Redirecting to login in <span className="font-bold text-white">{countdown}</span>...
+</p>
 
         <button
           onClick={() => router.push("/login")}

@@ -150,12 +150,6 @@ const isCoolingDown = cooldownSecondsLeft > 0;
   setWaitingVerification(true);
   setMessage("");
 
-  // send verification email immediately
-  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: formData.email }),
-  });
   setCooldownUntilMs(Date.now() + 60000);
 }
 
@@ -227,6 +221,11 @@ const isCoolingDown = cooldownSecondsLeft > 0;
               inputMode="email"
               className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
             />
+
+            <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
+  Please enter your real email address. You will not be able to change it later,
+  and email verification will be required to activate your account.
+</p>
 
             <input
               type="password"
