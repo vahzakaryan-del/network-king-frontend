@@ -8,10 +8,13 @@ function formatSeconds(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+import { GoogleLogin } from "@react-oauth/google";
 import { Suspense, useEffect,  useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
+
+
 
 function RegisterPageContent() {
   const [formData, setFormData] = useState({
@@ -28,6 +31,29 @@ const [nowMs, setNowMs] = useState(Date.now());
 
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  <GoogleLogin
+  onSuccess={async (credentialResponse) => {
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: credentialResponse.credential
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    localStorage.setItem("token", data.token);
+    router.push("/dashboard");
+
+  }}
+  onError={() => console.log("Google Login Failed")}
+/>
 
   // referral from /register?ref=XXXX
   const refFromUrl = searchParams.get("ref");
