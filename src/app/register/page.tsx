@@ -308,6 +308,7 @@ const isCoolingDown = cooldownSecondsLeft > 0;
           )}
 {!waitingVerification && (
   <>
+  <div className="h-px mt-4 flex-1 bg-white/20" />
 <div className="my-4 text-center text-sm text-gray-300">
   or continue with
 </div>
@@ -409,9 +410,10 @@ By continuing, you agree to our
           {message && (
             <p className="mt-4 text-center text-sm text-gray-100">{message}</p>
           )}
-
+          
+           <div className="h-px mt-3 flex-1 bg-white/20" />
           <p className="mt-6 text-center text-sm text-gray-200/90">
-            Already have an account?{" "}
+            Already have an account ? {" "}
             <Link
               href="/login"
               className="font-semibold text-amber-300 hover:underline"

@@ -385,9 +385,11 @@ try {
 
         {!emailNotVerified && (
   <>
-    <div className="my-4 text-center text-sm text-gray-300">
-      or
-    </div>
+<div className="my-5 flex items-center gap-3 text-sm text-gray-300">
+  <div className="h-px flex-1 bg-white/20" />
+  <span className="whitespace-nowrap">or</span>
+  <div className="h-px flex-1 bg-white/20" />
+</div>
 
     <div className="flex justify-center">
       <GoogleLogin
@@ -437,13 +439,14 @@ try {
 
       
     </div>
-    <p className="text-xs mt-3 text-gray-300 text-center leading-relaxed">
+    <p className="text-xs mt-3 mb-3 text-gray-300 text-center leading-relaxed">
  
 By continuing, you agree to our
 <Link href="/terms" className="text-amber-300 hover:underline"> Terms </Link>
 and
 <Link href="/privacy" className="text-amber-300 hover:underline"> Privacy Policy</Link>.
 </p>
+
   </>
 )}
 
@@ -496,8 +499,8 @@ and
               </NoticeBox>
             </div>
           )}
-
-          <p className="mt-6 text-center text-sm text-gray-200/90">
+          <div className="h-px mt-3 flex-1 bg-white/20" />
+          <p className="mt-5 text-center text-sm text-gray-200/90">
             Don’t have an account?{" "}
             <Link href="/register" className="font-semibold text-amber-300 hover:underline">
               Register here
