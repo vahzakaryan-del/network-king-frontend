@@ -434,7 +434,16 @@ try {
         }}
         onError={() => console.log("Google Login Failed")}
       />
+
+      
     </div>
+    <p className="text-xs mt-3 text-gray-300 text-center leading-relaxed">
+ 
+By continuing, you agree to our
+<Link href="/terms" className="text-amber-300 hover:underline"> Terms </Link>
+and
+<Link href="/privacy" className="text-amber-300 hover:underline"> Privacy Policy</Link>.
+</p>
   </>
 )}
 

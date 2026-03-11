@@ -357,9 +357,13 @@ const isCoolingDown = cooldownSecondsLeft > 0;
     onError={() => console.log("Google Login Failed")}
   />
 
-  <p className="text-xs text-gray-300 text-center">
-    No password needed — create one later if you want.
-  </p>
+  <p className="text-xs text-gray-300 text-center leading-relaxed">
+
+By continuing, you agree to our
+<Link href="/terms" className="text-amber-300 hover:underline"> Terms </Link>
+ and 
+<Link href="/privacy" className="text-amber-300 hover:underline"> Privacy Policy</Link>.
+</p>
 
 </div>
 </> )}
