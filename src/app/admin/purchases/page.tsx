@@ -241,7 +241,9 @@ export default function AdminPurchasesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.purchases.map((p) => (
+                    {[...data.purchases]
+  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  .map((p) => (
                       <tr key={p.id} className="text-sm">
                         <td className="p-2 border">{p.id}</td>
                         <td className="p-2 border">{p.kind}</td>
@@ -252,9 +254,34 @@ export default function AdminPurchasesPage() {
                           {!["AVATAR", "LEVEL_KEY", "COOLDOWN_TOKEN_PACK"].includes(p.kind) && "—"}
                         </td>
                         <td className="p-2 border">{euro(p.amountCents)}</td>
-                        <td className="p-2 border">{p.status}</td>
+                        <td className="p-2 border">
+  <span
+    className={`px-2 py-1 rounded text-xs font-bold ${
+      p.status === "paid"
+        ? "bg-green-200 text-green-900"
+        : p.status === "pending"
+        ? "bg-yellow-200 text-yellow-900"
+        : "bg-gray-200 text-gray-800"
+    }`}
+  >
+    {p.status}
+  </span>
+</td>
                         <td className="p-2 border">{p.provider}</td>
-                        <td className="p-2 border">{p.providerPaymentId || "—"}</td>
+                        <td className="p-2 border">
+  {p.provider === "stripe" && p.providerPaymentId ? (
+    <a
+      href={`https://dashboard.stripe.com/payments/${p.providerPaymentId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-blue-600 underline"
+    >
+      {p.providerPaymentId}
+    </a>
+  ) : (
+    p.providerPaymentId || "—"
+  )}
+</td>
                         <td className="p-2 border">{fmtDate(p.createdAt)}</td>
                       </tr>
                     ))}

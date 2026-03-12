@@ -1291,7 +1291,7 @@ const SectionEmojis = () => {
 
         {/* Dev Payments Button */}
         <button
-          onClick={() => router.push("/dev/payments")}
+          onClick={() => router.push("/admin/payments")}
           className="hidden md:flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl px-3 py-2"
         >
           Dev Payments
