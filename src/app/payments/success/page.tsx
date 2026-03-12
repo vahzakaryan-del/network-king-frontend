@@ -21,7 +21,7 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     if (seconds <= 0) {
-      router.push("/avatars");
+      router.push("/avatar");
       return;
     }
 
@@ -61,7 +61,7 @@ function PaymentSuccessContent() {
         )}
 
         <p className="text-sm opacity-80">
-          Redirecting to your avatars in {seconds}s...
+          Redirecting to Networ.King in {seconds}s...
         </p>
       </motion.div>
     </main>
