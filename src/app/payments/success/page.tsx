@@ -1,10 +1,18 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<p className="text-white text-center mt-20">Loading...</p>}>
+      <PaymentSuccessContent />
+    </Suspense>
+  );
+}
+
+function PaymentSuccessContent() {
   const params = useSearchParams();
   const router = useRouter();
   const purchaseId = params.get("purchaseId");
@@ -18,7 +26,6 @@ export default function PaymentSuccessPage() {
     }
 
     const timer = setTimeout(() => setSeconds(seconds - 1), 1000);
-
     return () => clearTimeout(timer);
   }, [seconds, router]);
 
@@ -30,7 +37,6 @@ export default function PaymentSuccessPage() {
         transition={{ type: "spring", stiffness: 180, damping: 12 }}
         className="text-center"
       >
-        {/* Celebration Emoji with bounce animation */}
         <motion.div
           initial={{ y: -20 }}
           animate={{ y: 0 }}
