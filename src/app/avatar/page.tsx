@@ -375,9 +375,14 @@ return;
       if (!token) return;
 
       if (!entitlements?.isPremium) {
-        showToast("⭐ Premium required. (Later: open subscribe page)");
-        return;
-      }
+  showToast("⭐ Premium required. Redirecting to subscription...");
+  
+  setTimeout(() => {
+    router.push("/Subscription");
+  }, 1400);
+
+  return;
+}
 
       setPremiumUnlocking(true);
 
@@ -394,10 +399,15 @@ return;
         const data = await res.json();
 
         if (!res.ok) {
-          if (data?.error === "premium_required") {
-            showToast("⭐ Premium required. (Later: open subscribe page)");
-            return;
-          }
+          if (!entitlements?.isPremium) {
+  showToast("⭐ Premium required. Redirecting to subscription...");
+  
+  setTimeout(() => {
+    router.push("/Subscription");
+  }, 1400);
+
+  return;
+}
           showToast(`❌ ${data.error || "Unlock failed"}`);
           return;
         }

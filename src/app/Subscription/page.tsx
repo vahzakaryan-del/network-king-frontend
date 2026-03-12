@@ -13,9 +13,9 @@ type Entitlements = {
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
-// ✅ Change these if your dev endpoints are named differently
-const DEV_ACTIVATE_ENDPOINT = `${API}/dev/premium/activate`;
-const DEV_CANCEL_ENDPOINT = `${API}/dev/premium/cancel`;
+const STRIPE_SUBSCRIPTION_ENDPOINT = `${API}/stripe/create-subscription`;
+const STRIPE_SUB_STATUS_ENDPOINT = `${API}/stripe/subscription-status`;
+const STRIPE_PORTAL_ENDPOINT = `${API}/stripe/billing-portal`;
 
 
 export default function PremiumPage() {
@@ -26,8 +26,7 @@ export default function PremiumPage() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  // ✅ set your price here for now (later fetch from server/Stripe)
-  const premiumPriceLabel = useMemo(() => "€X / month", []);
+  const premiumPriceLabel = useMemo(() => "€4.99 / month", []);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -35,31 +34,42 @@ export default function PremiumPage() {
   }, []);
 
   const fetchEntitlements = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.replace("/login");
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    router.replace("/login");
+    return { ok: false as const };
+  }
+
+  try {
+
+    // Step 1: resync subscription with Stripe
+    await fetch(STRIPE_SUB_STATUS_ENDPOINT, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+
+    // Step 2: load entitlements
+    const res = await fetch(`${API}/me/entitlements`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      showToast(`❌ ${data?.error || "Failed to load entitlements"}`);
       return { ok: false as const };
     }
 
-    try {
-      const res = await fetch(`${API}/me/entitlements`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    setEnt(data);
 
-      const data = await res.json().catch(() => ({}));
+    return { ok: true as const, data };
 
-      if (!res.ok) {
-        showToast(`❌ ${data?.error || "Failed to load entitlements"}`);
-        return { ok: false as const };
-      }
+  } catch {
+    showToast("❌ Failed to load entitlements");
+    return { ok: false as const };
+  }
 
-      setEnt(data);
-      return { ok: true as const, data };
-    } catch {
-      showToast("❌ Failed to load entitlements");
-      return { ok: false as const };
-    }
-  }, [router, showToast]);
+}, [router, showToast]);
 
   useEffect(() => {
     (async () => {
@@ -69,6 +79,14 @@ export default function PremiumPage() {
     })();
   }, [fetchEntitlements]);
 
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get("success")) {
+    fetchEntitlements();
+  }
+}, [fetchEntitlements]);
+
   const fmtDateTime = (iso: string | null) => {
     if (!iso) return "—";
     const d = new Date(iso);
@@ -76,64 +94,74 @@ export default function PremiumPage() {
     return d.toLocaleString();
   };
 
-  // ✅ DEV activate premium (temporary)
-  const devActivate = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return router.replace("/login");
+ const startRealCheckout = useCallback(async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return router.replace("/login");
 
-    setBusy(true);
-    try {
-      const res = await fetch(DEV_ACTIVATE_ENDPOINT, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => ({}));
+  setBusy(true);
 
-      if (!res.ok) {
-        showToast(`❌ ${data?.error || "Activate failed"}`);
-        return;
-      }
+  try {
+    const res = await fetch(STRIPE_SUBSCRIPTION_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      showToast("✅ Premium activated (dev)");
-      await fetchEntitlements();
-    } catch {
-      showToast("❌ Network error");
-    } finally {
-      setBusy(false);
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      showToast(data?.error || "Failed to start subscription checkout");
+      return;
     }
-  }, [router, fetchEntitlements, showToast]);
 
-  // ✅ DEV cancel premium (temporary)
-  const devCancel = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return router.replace("/login");
-
-    setBusy(true);
-    try {
-      const res = await fetch(DEV_CANCEL_ENDPOINT, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        showToast(`❌ ${data?.error || "Cancel failed"}`);
-        return;
-      }
-
-      showToast("✅ Premium canceled (dev)");
-      await fetchEntitlements();
-    } catch {
-      showToast("❌ Network error");
-    } finally {
-      setBusy(false);
+    if (!data?.checkoutUrl) {
+      showToast("Stripe checkout URL missing");
+      return;
     }
-  }, [router, fetchEntitlements, showToast]);
 
-  // Later: replace with Stripe checkout
-  const startRealCheckout = useCallback(async () => {
-    showToast("🧪 Later: Stripe checkout session");
-  }, [showToast]);
+    // Redirect to Stripe Checkout
+    window.location.href = data.checkoutUrl;
+
+  } catch {
+    showToast("Network error");
+  } finally {
+    setBusy(false);
+  }
+}, [router, showToast]);
+
+const openBillingPortal = useCallback(async () => {
+
+  const token = localStorage.getItem("token");
+  if (!token) return router.replace("/login");
+
+  setBusy(true);
+
+  try {
+
+    const res = await fetch(STRIPE_PORTAL_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      showToast(data?.error || "Failed to open billing portal");
+      return;
+    }
+
+    window.location.href = data.url;
+
+  } catch {
+    showToast("Network error");
+  } finally {
+    setBusy(false);
+  }
+
+}, [router, showToast]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white relative">
@@ -215,8 +243,8 @@ export default function PremiumPage() {
               </div>
 
               <div className="px-3 py-1 rounded-full bg-black/25 border border-white/15 text-xs">
-                DEV UI
-              </div>
+  Stripe Subscription
+</div>
             </div>
 
             <ul className="mt-5 space-y-2 text-sm text-white/90">
@@ -226,48 +254,33 @@ export default function PremiumPage() {
               <li>✅ +1 tombola turn per day</li>
             </ul>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              {/* Real checkout later */}
-              <button
-                onClick={startRealCheckout}
-                disabled={busy}
-                className={`px-5 py-3 rounded-xl font-bold shadow-lg border transition ${
-                  busy
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-yellow-400 text-gray-900 border-yellow-300 hover:bg-yellow-300"
-                }`}
-              >
-                Buy Premium (coming soon)
-              </button>
+           <div className="mt-6 flex flex-col sm:flex-row gap-3">
 
-              {/* Dev activate */}
-              <button
-                onClick={devActivate}
-                disabled={busy}
-                className={`px-5 py-3 rounded-xl font-bold shadow-lg border transition ${
-                  busy
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-emerald-400 text-gray-900 border-emerald-300 hover:bg-emerald-300"
-                }`}
-                title="DEV only: sets your premium on for testing"
-              >
-                Activate (dev)
-              </button>
+{!ent?.isPremium && (
+  <button
+    onClick={startRealCheckout}
+    disabled={busy}
+    className={`px-5 py-3 rounded-xl font-bold shadow-lg border transition ${
+      busy
+        ? "bg-gray-400 text-white cursor-not-allowed"
+        : "bg-yellow-400 text-gray-900 border-yellow-300 hover:bg-yellow-300"
+    }`}
+  >
+    Subscribe with Stripe
+  </button>
+)}
 
-              {/* Dev cancel */}
-              <button
-                onClick={devCancel}
-                disabled={busy}
-                className={`px-5 py-3 rounded-xl font-bold shadow-lg border transition ${
-                  busy
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-white/10 text-white border-white/20 hover:bg-white/20"
-                }`}
-                title="DEV only: cancel premium for testing"
-              >
-                Cancel (dev)
-              </button>
-            </div>
+{ent?.isPremium && (
+  <button
+    onClick={openBillingPortal}
+    disabled={busy}
+    className="px-5 py-3 rounded-xl font-bold shadow-lg border bg-white/10 border-white/20 hover:bg-white/20"
+  >
+    Manage Subscription
+  </button>
+)}
+
+</div>
 
             <p className="mt-4 text-xs text-white/70">
               Later, “Activate (dev)” becomes “Stripe Checkout”, and “Cancel (dev)”
