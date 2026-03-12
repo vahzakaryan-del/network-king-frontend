@@ -13,6 +13,8 @@ import BadgeScore from "@/components/BadgeScore";
 import CountryPicker from "@/components/CountryPicker";
 
 import { asset } from "@/lib/assets";
+import { startStripeCheckout } from "@/lib/startStripeCheckout";
+
 
 // ---------------------------------------------
 // Small helper to render a flag via CDN
@@ -530,6 +532,10 @@ const createTokenPurchase = async (quantity: number) => {
       setBuyTokensError("Checkout did not return purchase id.");
       return;
     }
+
+    await startStripeCheckout(p.id, token);
+return;
+
 
     // ✅ now we have a pending purchase to validate
     setPendingPurchase({

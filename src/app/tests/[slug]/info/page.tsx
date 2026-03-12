@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { startStripeCheckout } from "@/lib/startStripeCheckout";
+
 
 type TestInfoApi = {
   id: number;
@@ -180,10 +182,14 @@ export default function TestInfoPage() {
 
       const cData = await checkout.json().catch(() => ({}));
 
-      if (!checkout.ok) {
-        showToast(cData?.error || "Failed to create token pack purchase");
-        return;
-      }
+if (!checkout.ok) {
+  showToast(cData?.error || "Failed to create token pack purchase");
+  return;
+}
+
+await startStripeCheckout(cData.purchase.id, token);
+return;
+
 
       showToast("🧾 Token pack purchase created (pending). Mark it PAID in /dev/payments.");
       setBuyModalOpen(false);
