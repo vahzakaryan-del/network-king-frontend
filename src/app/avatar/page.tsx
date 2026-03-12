@@ -242,7 +242,7 @@ const [showAchievements, setShowAchievements] = useState(false);
       setLoading(false);
 
       if (result.ok) {
-        setSelectedAvatar((prev) => normalizeSelection(prev, result.data.available || []));
+        setSelectedAvatar((prev) => normalizeSelection(prev, result.data?.available || []));
       }
     })();
   }, [router, fetchProfile, fetchAvatars, fetchEntitlements, normalizeSelection]);
@@ -310,6 +310,29 @@ const [showAchievements, setShowAchievements] = useState(false);
 
         const data: CheckoutResponse = await res.json();
 
+        // 🚀 Create Stripe checkout session
+const checkoutRes = await fetch(
+  `${API}/stripe/create-checkout/${data.purchase?.id}`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
+const checkoutData = await checkoutRes.json();
+
+if (!checkoutRes.ok) {
+  showToast("❌ Failed to start Stripe checkout");
+  return;
+}
+
+// redirect user to Stripe
+window.location.href = checkoutData.checkoutUrl;
+return;
+
+
         if (!res.ok) {
           showToast(`❌ ${data.error || "Failed to create purchase"}`);
           return;
@@ -319,7 +342,7 @@ const [showAchievements, setShowAchievements] = useState(false);
           showToast("✅ You already own this avatar!");
           const result = await fetchAvatars();
           if (result.ok) {
-            setSelectedAvatar((prev) => normalizeSelection(prev, result.data.available || []));
+            setSelectedAvatar((prev) => normalizeSelection(prev, result.data?.available || []));
           }
           return;
         }
@@ -335,7 +358,7 @@ const [showAchievements, setShowAchievements] = useState(false);
 
         const result = await fetchAvatars();
         if (result.ok) {
-          setSelectedAvatar((prev) => normalizeSelection(prev, result.data.available || []));
+          setSelectedAvatar((prev) => normalizeSelection(prev, result.data?.available || []));
         }
       } catch {
         showToast("❌ Network error");
@@ -382,7 +405,7 @@ const [showAchievements, setShowAchievements] = useState(false);
         showToast("✅ Monthly avatar unlocked!");
         const result = await fetchAvatars();
         if (result.ok) {
-          setSelectedAvatar((prev) => normalizeSelection(prev, result.data.available || []));
+          setSelectedAvatar((prev) => normalizeSelection(prev, result.data?.available || []));
         }
       } catch {
         showToast("❌ Network error");
