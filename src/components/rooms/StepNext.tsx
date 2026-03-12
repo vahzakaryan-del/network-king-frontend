@@ -107,7 +107,7 @@ export default function StepNext({
     e.stopPropagation();
     if (!canBuyKey || busy || enterAnim) return;
 
-    const okConfirm = confirm(`Buy key for ${priceLabel || "this level"}?`);
+    const okConfirm = confirm(`Buy key for ${priceLabel} and unlock this room?`);
     if (!okConfirm) return;
 
     setBusy(true);
@@ -120,9 +120,6 @@ export default function StepNext({
     setKeyAnim(true);
     setTimeout(() => setKeyAnim(false), 700);
 
-    alert(
-      "🧾 Key purchase created (pending).\n\nDev: mark it PAID in /dev/payments.\nThen press Unlock & Enter."
-    );
   };
 
   // ✅ Render pretty per-rule progress lines from "details" (with OR grouping)
