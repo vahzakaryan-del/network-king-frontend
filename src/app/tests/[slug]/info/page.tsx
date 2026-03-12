@@ -165,6 +165,8 @@ export default function TestInfoPage() {
 
   // ✅ ADDED: nice token pack purchase (same as index page)
   const createTokenPackPurchase = async (quantity = 5) => {
+  if (buyingPack) return;
+
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -190,12 +192,6 @@ if (!checkout.ok) {
 await startStripeCheckout(cData.purchase.id, token);
 return;
 
-
-      showToast("🧾 Token pack purchase created (pending). Mark it PAID in /dev/payments.");
-      setBuyModalOpen(false);
-
-      // refresh entitlements after purchase is marked paid (optional)
-      await refreshEntitlements();
     } finally {
       setBuyingPack(false);
     }
@@ -299,12 +295,6 @@ return;
     const remain = (t.cooldownDays ?? 0) - diffDays;
     return remain > 0 ? remain : 0;
   };
-
-  const startHref = useMemo(() => {
-    if (!test) return "/tests";
-    if (test.mode === "external") return `/tests/${test.slug}/external`;
-    return `/tests/${test.slug}`;
-  }, [test]);
 
   // ✅ ADDED: start handler that blocks on cooldown and optionally offers tokens
   const handleStartFromInfo = async () => {
@@ -722,8 +712,8 @@ return;
                     <div className="text-sm font-semibold text-gray-700">Cooldown Token Pack</div>
                     <div className="text-2xl font-extrabold mt-0.5">5 tokens</div>
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="text-sm line-through text-gray-600/70">$9.99</span>
-                      <span className="text-2xl font-extrabold text-emerald-700">$4.99</span>
+                      <span className="text-sm line-through text-gray-600/70">€9.99</span>
+                      <span className="text-2xl font-extrabold text-emerald-700">€4.99</span>
                       <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-sm">
                         -50% DEAL
                       </span>
@@ -732,16 +722,12 @@ return;
 
                   <div className="shrink-0 rounded-2xl bg-gradient-to-br from-emerald-200 to-emerald-100 border border-emerald-300/60 px-3 py-2 text-center shadow-sm">
                     <div className="text-[11px] font-semibold text-emerald-800/80">Best value</div>
-                    <div className="text-lg font-extrabold text-emerald-800">$0.99</div>
+                    <div className="text-lg font-extrabold text-emerald-800">€0.99</div>
                     <div className="text-[11px] font-semibold text-emerald-800/80">per token</div>
                   </div>
                 </div>
 
-                <div className="mt-3 text-xs text-gray-700/80">
-                  Dev mode: purchase will be created as <span className="font-semibold">pending</span>{" "}
-                  and you’ll mark it <span className="font-semibold">PAID</span> in{" "}
-                  <span className="font-semibold">/dev/payments</span>.
-                </div>
+                
               </div>
 
               {/* actions */}

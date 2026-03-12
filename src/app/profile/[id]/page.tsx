@@ -536,51 +536,12 @@ const createTokenPurchase = async (quantity: number) => {
     await startStripeCheckout(p.id, token);
 return;
 
-
-    // ✅ now we have a pending purchase to validate
-    setPendingPurchase({
-      id: p.id,
-      quantity: p.quantity,
-      amountCents: p.amountCents,
-      currency: p.currency || "EUR",
-    });
   } finally {
     setBuyTokensBusy(false);
   }
 };
 
-const confirmDevPayment = async () => {
-  const token = localStorage.getItem("token");
-  if (!token || !pendingPurchase) return;
 
-  setConfirmBusy(true);
-  setBuyTokensError(null);
-
-  try {
-    const fulfillRes = await fetch(
-  `${process.env.NEXT_PUBLIC_API_URL}/dev/purchases/${pendingPurchase.id}/mark-paid`,
-  {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    const fulfillData = await fulfillRes.json().catch(() => ({}));
-    if (!fulfillRes.ok) {
-      setBuyTokensError(fulfillData?.error || "Failed to confirm payment (dev).");
-      return;
-    }
-
-    await refreshEntitlements();
-    setBuyTokensOpen(false);
-setSelectedPack(null);
-setPendingPurchase(null);
-setBuyTokensError(null);
-
-  } finally {
-    setConfirmBusy(false);
-  }
-};
 const fmtMoney = (cents: number, currency = "EUR") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
     (cents || 0) / 100
@@ -2635,15 +2596,7 @@ setBuyTokensOpen(true);
             </span>
           </div>
 
-          <button
-            onClick={confirmDevPayment}
-            disabled={confirmBusy}
-            className="mt-3 w-full py-2 rounded-xl bg-gradient-to-r from-emerald-400/30 to-amber-300/25
-                       border border-emerald-300/30 hover:from-emerald-400/40 hover:to-amber-300/35
-                       text-white font-extrabold disabled:opacity-60 transition"
-          >
-            {confirmBusy ? "Confirming..." : "Confirm payment (DEV) ✅"}
-          </button>
+    
         </div>
       )}
 
@@ -2654,9 +2607,10 @@ setBuyTokensOpen(true);
       )}
     </div>
 
-    <div className="mt-4 text-[11px] text-white/60">
-      No Stripe yet? This button can call your mock “store” route for now.
-    </div>
+   <div className="mt-4 text-[11px] text-white/60">
+  Payments are processed securely via Stripe.
+</div>
+
   </div>
 </div>
 

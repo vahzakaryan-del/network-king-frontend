@@ -69,8 +69,6 @@ const API = process.env.NEXT_PUBLIC_API_URL!;
 
 export default function TestsIndexPage() {
   const router = useRouter();
-
-  const [me, setMe] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
@@ -115,6 +113,8 @@ export default function TestsIndexPage() {
 
   // ✅ NEW helper: creates pending purchase for token pack
   const createTokenPackPurchase = async (quantity = 5) => {
+  if (buyingPack) return;
+
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -137,12 +137,6 @@ if (!checkout.ok) {
   return;
 }
 
-await startStripeCheckout(cData.purchase.id, token);
-return;
-
-
-      showToast("🧾 Token pack purchase created (pending). Mark it PAID in /dev/payments.");
-      setBuyModalTest(null);
     } finally {
       setBuyingPack(false);
     }
@@ -222,7 +216,7 @@ return;
         });
         const pData = await p.json().catch(() => ({}));
         if (!p.ok || !pData?.user) throw new Error("Profile fetch failed");
-        setMe(pData.user);
+      
 
         const t = await fetch(`${API}/tests`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -801,10 +795,10 @@ const funTests = useMemo(
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <span className="text-sm line-through text-gray-600/70">
-                        $9.99
+                        €9.99
                       </span>
                       <span className="text-2xl font-extrabold text-emerald-700">
-                        $4.99
+                        €4.99
                       </span>
                       <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-sm">
                         -50% DEAL
@@ -817,7 +811,7 @@ const funTests = useMemo(
                       Best value
                     </div>
                     <div className="text-lg font-extrabold text-emerald-800">
-                      $0.99
+                      €0.99
                     </div>
                     <div className="text-[11px] font-semibold text-emerald-800/80">
                       per token
@@ -825,10 +819,6 @@ const funTests = useMemo(
                   </div>
                 </div>
 
-                <div className="mt-3 text-xs text-gray-700/80">
-                  Dev mode: purchase will be created as <span className="font-semibold">pending</span> and you’ll mark it{" "}
-                  <span className="font-semibold">PAID</span> in <span className="font-semibold">/dev/payments</span>.
-                </div>
               </div>
 
               {/* actions */}
@@ -1310,10 +1300,6 @@ const funTests = useMemo(
                   </div>
                 </div>
 
-                <div className="mt-3 text-xs text-gray-700/80">
-                  Dev mode: purchase will be created as <span className="font-semibold">pending</span> and you’ll mark it{" "}
-                  <span className="font-semibold">PAID</span> in <span className="font-semibold">/dev/payments</span>.
-                </div>
               </div>
 
               {/* actions */}

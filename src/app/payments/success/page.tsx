@@ -21,7 +21,7 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     if (seconds <= 0) {
-      router.push("/avatar");
+      router.push("/dashboard");
       return;
     }
 
