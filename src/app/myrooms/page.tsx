@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import RoomsLayout from "@/components/rooms/RoomsLayout";
 import PyramidIntro from "@/components/rooms/PyramidIntro";
+import { startStripeCheckout } from "@/lib/startStripeCheckout";
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -68,11 +69,10 @@ export default function MyRoomsPage() {
         return true;
       }
 
-      // Purchase created, but still pending until you mark paid in /dev/payments
-      alert(
-        "🧾 Key purchase created (pending).\n\nDev: go to /dev/payments and mark it PAID.\nThen come back and unlock the level."
-      );
-      return true;
+     if (data?.purchase?.id) {
+  await startStripeCheckout(data.purchase.id, token);
+  return true;
+}
     }
 
     alert(data?.error || "Key checkout failed");
