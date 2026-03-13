@@ -238,7 +238,7 @@ const openBillingPortal = useCallback(async () => {
                   Premium — {premiumPriceLabel}
                 </h2>
                 <p className="text-white/80 text-sm mt-1">
-                  Monthly subscription. Cancel anytime (later with Stripe).
+                  Monthly subscription. Cancel anytime.
                 </p>
               </div>
 
@@ -248,10 +248,10 @@ const openBillingPortal = useCallback(async () => {
             </div>
 
             <ul className="mt-5 space-y-2 text-sm text-white/90">
-              <li>✅ 2 free cooldown skips / month (tokens)</li>
+              <li>✅ 2 free cooldown skips per month </li>
               <li>✅ Premium badge</li>
-              <li>✅ 1 monthly premium avatar unlock (current month only)</li>
-              <li>✅ +1 tombola turn per day</li>
+              <li>✅ 1 monthly premium avatar unlock (current month)</li>
+              <li>✅ +1 Tombola turn per day</li>
             </ul>
 
            <div className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -283,8 +283,7 @@ const openBillingPortal = useCallback(async () => {
 </div>
 
             <p className="mt-4 text-xs text-white/70">
-              Later, “Activate (dev)” becomes “Stripe Checkout”, and “Cancel (dev)”
-              becomes “Manage subscription”.
+              Don't miss the opportunity to become a Premium member today!
             </p>
           </motion.div>
         </div>
