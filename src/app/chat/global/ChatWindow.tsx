@@ -72,9 +72,11 @@ type LevelMessage = {
     name: string;
     avatar?: string | null;
     mainCountry?: string | null;
+    isPremium?: boolean;
     currentLevel?: number | null;
   } | null;
   levelNumber?: number;
+   
   subChannelId?: number;
 };
 
@@ -96,9 +98,11 @@ type GlobalMessage = {
     avatar?: string | null;
     mainCountry?: string | null;
     currentLevel?: number | null;
+     isPremium?: boolean;
   } | null;
   content: string;
   createdAt: string;
+  
   channel?: string | null;
 };
 
@@ -120,6 +124,15 @@ const LevelBadge = ({ lvl }: { lvl: number }) => (
     style={levelColor(lvl)}
   >
     lvl {lvl}
+  </span>
+);
+
+const PremiumBadge = () => (
+  <span
+    className="ml-1 text-[11px] px-2 py-0.5 rounded-full border font-bold bg-yellow-500/20 border-yellow-400/40 text-yellow-300"
+    title="Premium member"
+  >
+    👑
   </span>
 );
 
@@ -613,12 +626,16 @@ useEffect(() => {
 
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1 font-semibold text-sm">
-                  {m.user?.name || "User"}
-                  {typeof m.user?.currentLevel === "number" && (
-                    <LevelBadge lvl={m.user.currentLevel} />
-                  )}
-                  {m.user?.mainCountry && <FlagIcon code={m.user.mainCountry} />}
-                </span>
+  {m.user?.name || "User"}
+
+  {typeof m.user?.currentLevel === "number" && (
+    <LevelBadge lvl={m.user.currentLevel} />
+  )}
+
+  {m.user?.isPremium && <PremiumBadge />}
+
+  {m.user?.mainCountry && <FlagIcon code={m.user.mainCountry} />}
+</span>
 
                 <span className="text-xs text-gray-400">
                   {formatTs(m.createdAt)}
@@ -786,7 +803,7 @@ function LevelChat({
 
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
   const [onlineUsersFull, setOnlineUsersFull] = useState<
-    { id: number; name: string; avatar?: string | null; mainCountry?: string | null }[]
+    { id: number; name: string; avatar?: string | null; mainCountry?: string | null;  }[]
   >([]);
   const [membersOpen, setMembersOpen] = useState(false);
 
@@ -1587,12 +1604,16 @@ function insertEmoji(e: AvailableEmoji) {
 
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1 font-semibold text-sm">
-                        {m.user?.name || "System"}
-                        {typeof m.user?.currentLevel === "number" && (
-                          <LevelBadge lvl={m.user.currentLevel} />
-                        )}
-                        {m.user?.mainCountry && <FlagIcon code={m.user.mainCountry} />}
-                      </span>
+  {m.user?.name || "System"}
+
+  {typeof m.user?.currentLevel === "number" && (
+    <LevelBadge lvl={m.user.currentLevel} />
+  )}
+
+  {m.user?.isPremium && <PremiumBadge />}
+
+  {m.user?.mainCountry && <FlagIcon code={m.user.mainCountry} />}
+</span>
                       <span className="text-xs text-gray-400">
                         {formatTs(m.createdAt)}
                       </span>
@@ -1737,14 +1758,16 @@ function insertEmoji(e: AvailableEmoji) {
 
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1 font-semibold text-sm">
-                          {m.user?.name || "System"}
-                          {typeof m.user?.currentLevel === "number" && (
-                            <LevelBadge lvl={m.user.currentLevel} />
-                          )}
-                          {m.user?.mainCountry && (
-                            <FlagIcon code={m.user.mainCountry} />
-                          )}
-                        </span>
+  {m.user?.name || "System"}
+
+  {typeof m.user?.currentLevel === "number" && (
+    <LevelBadge lvl={m.user.currentLevel} />
+  )}
+
+  {m.user?.isPremium && <PremiumBadge />}
+
+  {m.user?.mainCountry && <FlagIcon code={m.user.mainCountry} />}
+</span>
 
                         <span className="text-xs text-gray-400">
                           {formatTs(m.createdAt)}
