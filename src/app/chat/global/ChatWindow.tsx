@@ -610,8 +610,8 @@ useEffect(() => {
                 alt={m.user?.name || "User"}
                 onClick={() => m.user?.id && router.push(`/profile/${m.user.id}`)}
                 className={`w-8 h-8 rounded-full shrink-0 object-cover ${
-                  m.user?.id ? "cursor-pointer hover:opacity-80" : ""
-                }`}
+  m.user?.isPremium ? "ring-2 ring-yellow-400" : ""
+} ${m.user?.id ? "cursor-pointer hover:opacity-80" : ""}`}
                 onError={(e) =>
                    ((e.currentTarget as HTMLImageElement).src =
                   asset("avatars/default.webp"))
@@ -1588,8 +1588,8 @@ function insertEmoji(e: AvailableEmoji) {
                         m.user?.id && router.push(`/profile/${m.user.id}`)
                       }
                       className={`w-8 h-8 rounded-full shrink-0 object-cover ${
-                        m.user?.id ? "cursor-pointer hover:opacity-80" : ""
-                      }`}
+  m.user?.isPremium ? "ring-2 ring-yellow-400" : ""
+} ${m.user?.id ? "cursor-pointer hover:opacity-80" : ""}`}
                       onError={(e) =>
                    ((e.currentTarget as HTMLImageElement).src =
                   asset("avatars/default.webp"))
@@ -1742,8 +1742,8 @@ function insertEmoji(e: AvailableEmoji) {
                           m.user?.id && router.push(`/profile/${m.user.id}`)
                         }
                         className={`w-8 h-8 rounded-full shrink-0 object-cover ${
-                          m.user?.id ? "cursor-pointer hover:opacity-80" : ""
-                        }`}
+  m.user?.isPremium ? "ring-2 ring-yellow-400" : ""
+} ${m.user?.id ? "cursor-pointer hover:opacity-80" : ""}`}
                         onError={(e) =>
                    ((e.currentTarget as HTMLImageElement).src =
                   asset("avatars/default.webp"))
