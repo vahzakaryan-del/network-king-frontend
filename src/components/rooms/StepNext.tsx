@@ -61,18 +61,24 @@ export default function StepNext({
   const [busy, setBusy] = useState(false);
   const [keyAnim, setKeyAnim] = useState(false);
 
-  useEffect(() => {
-  if (justUnlocked) {
-    setKeyAnim(true);
+ useEffect(() => {
+  if (!justUnlocked) return;
 
-    // optional delay reset
-    const t = setTimeout(() => setKeyAnim(false), 1200);
-    return () => clearTimeout(t);
-  }
+  setKeyAnim(true);
+
+  // 🔑 play animation, then enter room
+  const t1 = setTimeout(() => {
+    setKeyAnim(false);
+    enterRoom(); // 🚪 auto-enter
+  }, 1200);
+
+  return () => clearTimeout(t1);
 }, [justUnlocked]);
 
   
   const [enterAnim, setEnterAnim] = useState(false);
+
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const pct =
     progress && progress.total > 0
@@ -123,18 +129,10 @@ export default function StepNext({
     e.stopPropagation();
     if (!canBuyKey || busy || enterAnim) return;
 
-    const okConfirm = confirm(`Buy key for ${priceLabel} and unlock this room?`);
-    if (!okConfirm) return;
+    setShowConfirm(true);
+return;
 
-    setBusy(true);
-    const ok = await onBuyKey!(level);
-    setBusy(false);
-
-    if (!ok) return;
-
-    // ✅ key purchase is pending (dev) — we do NOT enter room
-    setKeyAnim(true);
-    setTimeout(() => setKeyAnim(false), 700);
+    
 
   };
 
@@ -616,6 +614,43 @@ mx-auto py-8 max-sm:py-6 rounded-xl
           className="absolute inset-0 bg-black z-50 rounded-xl"
         />
       )}
+      {showConfirm && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="bg-[#111] border border-white/20 rounded-2xl p-6 w-[90%] max-w-sm text-center">
+      <h2 className="text-lg font-bold mb-3 text-white">
+        Confirm Purchase
+      </h2>
+
+      <p className="text-sm text-white/80 mb-6">
+        Buy key for {priceLabel} and unlock this room?
+      </p>
+
+      <div className="flex gap-3 justify-center">
+        <button
+          onClick={() => setShowConfirm(false)}
+          className="px-4 py-2 rounded-lg bg-white/10 text-white"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={async () => {
+            setShowConfirm(false);
+            setBusy(true);
+            const ok = await onBuyKey!(level);
+            setBusy(false);
+
+            
+          }}
+          className="px-4 py-2 rounded-lg bg-green-500 text-white font-bold"
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </motion.div>
   );
 }

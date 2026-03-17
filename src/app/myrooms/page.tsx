@@ -45,6 +45,13 @@ function MyRoomsInner() {
   }
 
   useEffect(() => {
+  if (justUnlocked) {
+    const t = setTimeout(() => setJustUnlocked(false), 2500);
+    return () => clearTimeout(t);
+  }
+}, [justUnlocked]);
+
+  useEffect(() => {
     void loadData();
   }, []);
 

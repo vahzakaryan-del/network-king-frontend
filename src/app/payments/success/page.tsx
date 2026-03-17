@@ -50,56 +50,66 @@ const isSubscription = params.get("subscription") === "1";
   return () => clearTimeout(timer);
 }, [seconds, router, purchaseId, kind, isSubscription]);
 
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 px-6">
+ return (
+  <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 px-4">
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0, y: 30 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 120, damping: 14 }}
+      className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-10 text-center border border-white/20"
+    >
+      {/* Emoji */}
       <motion.div
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 180, damping: 12 }}
-        className="text-center"
+        initial={{ y: -10 }}
+        animate={{ y: 10 }}
+        transition={{
+          repeat: Infinity,
+          repeatType: "reverse",
+          duration: 0.8,
+        }}
+        className="text-6xl mb-6"
       >
-        <motion.div
-          initial={{ y: -20 }}
-          animate={{ y: 0 }}
-          transition={{
-            repeat: Infinity,
-            repeatType: "reverse",
-            duration: 0.6,
-          }}
-          className="text-7xl mb-6"
-        >
-          🎉
-        </motion.div>
-
-        <h1 className="text-4xl font-extrabold mb-4">Payment Successful</h1>
-
-       
-
-<p className="text-lg opacity-90 mb-3">
-  {kind === "LEVEL_KEY"
-    ? "🔑 Your key is being activated..."
-    : kind === "AVATAR"
-    ? "🧑‍🎨 Your avatar is being unlocked..."
-    : kind === "COOLDOWN_TOKEN_PACK"
-    ? "⚡ Your tokens are being added..."
-    : isSubscription
-    ? "⭐ Your premium is being activated..."
-    : "Your purchase has been completed successfully."}
-</p>
-
-        {purchaseId && (
-          <p className="text-sm opacity-70 mb-6">Purchase ID: {purchaseId}</p>
-        )}
-
-        <p className="text-sm opacity-80 flex items-center gap-1">
-  Redirecting
-  <span className="flex gap-0.5">
-    <span className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:-0.2s]" />
-    <span className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:-0.1s]" />
-    <span className="w-1 h-1 bg-current rounded-full animate-bounce" />
-  </span>
-</p>
+        🎉
       </motion.div>
-    </main>
-  );
-}
+
+      {/* Title */}
+      <h1 className="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">
+        Payment Successful
+      </h1>
+
+      {/* Description */}
+      <p className="text-base sm:text-lg opacity-90 mb-4 leading-relaxed">
+        {kind === "LEVEL_KEY"
+          ? "🔑 Your key is being activated..."
+          : kind === "AVATAR"
+          ? "🧑‍🎨 Your avatar is being unlocked..."
+          : kind === "COOLDOWN_TOKEN_PACK"
+          ? "⚡ Your tokens are being added..."
+          : isSubscription
+          ? "⭐ Your premium is being activated..."
+          : "Your purchase has been completed successfully."}
+      </p>
+
+      {/* Purchase ID */}
+      {purchaseId && (
+        <p className="text-xs opacity-60 mb-6 break-all">
+          Purchase ID: {purchaseId}
+        </p>
+      )}
+
+      {/* Divider */}
+      <div className="h-px bg-white/20 my-6" />
+
+      {/* Redirect */}
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-sm opacity-80">Redirecting</p>
+
+        <div className="flex gap-1">
+          <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.2s]" />
+          <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.1s]" />
+          <span className="w-2 h-2 bg-white rounded-full animate-bounce" />
+        </div>
+      </div>
+    </motion.div>
+  </main>
+); }
