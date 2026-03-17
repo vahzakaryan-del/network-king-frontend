@@ -7,6 +7,8 @@ import Portal from "@/components/Portal";
 import { getSocket } from "@/lib/socket";
 import BadgeScore from "@/components/BadgeScore";
 import "@fortawesome/fontawesome-free/css/all.min.css";
+import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
+import { onboardingSteps } from "@/lib/onboardingSteps";
 
 import { asset } from "@/lib/assets";
 const API = process.env.NEXT_PUBLIC_API_URL!;
@@ -481,6 +483,7 @@ export default function DashboardPage() {
 
   // Core page state
   const [user, setUser] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [message, setMessage] = useState("Loading...");
   const [rooms] = useState<any[]>([]);
   const [friends] = useState<SimpleFriend[]>([]);
@@ -568,6 +571,26 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
       .then((d) => setCurrentLevel(d.level || 1))
       .catch(() => {});
   }, []);
+
+  //onboarding useeffect
+
+  async function completeOnboarding() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    await fetch(`${API}/me/onboarding-complete`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to save onboarding", err);
+  }
+
+  setShowOnboarding(false);
+}
 
   // Close dropdown when clicking outside
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -931,9 +954,16 @@ const data = await res.json();
         return res.json();
       })
       .then((data) => {
-        setUser(data.user);
-        setMessage("");
-      })
+  setUser(data.user);
+  setMessage("");
+
+  // ✅ Onboarding trigger
+  if (!data.user?.hasSeenOnboarding) {
+    setTimeout(() => {
+      setShowOnboarding(true);
+    }, 500); // small delay so UI renders first
+  }
+})
       .catch((err) => {
         setMessage(`❌ ${err.message}`);
         setTimeout(() => router.push("/login"), 1200);
@@ -1528,6 +1558,7 @@ const data = await res.json();
         <div className="md:hidden mt-5 space-y-4">
           {/* 2) ID Card (mobile) */}
           <motion.div
+          id="onboarding-profile"
             {...fastFade}
             transition={{ duration: 0.45 }}
             className="relative overflow-hidden rounded-2xl p-4 bg-white/10 backdrop-blur-md shadow-2xl border border-amber-300/40"
@@ -1592,6 +1623,7 @@ const data = await res.json();
 
           {/* 3) My Rooms (thin) */}
           <motion.div
+            id="onboarding-rooms"
             {...fastFade}
             transition={{ delay: 0.05, duration: 0.45 }}
             className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-4 flex flex-col"
@@ -1637,6 +1669,7 @@ const data = await res.json();
 
           {/* 4) Global Chat (thin + 1 message preview) */}
           <motion.div
+          id="onboarding-chat"
             {...fastFade}
             transition={{ delay: 0.08, duration: 0.45 }}
             className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-4 flex flex-col"
@@ -1658,6 +1691,7 @@ const data = await res.json();
 
           {/* 5) Tests & Badges (thin + 4 tests) */}
           <motion.div
+          id="onboarding-tests"
             {...fastFade}
             transition={{ delay: 0.1, duration: 0.45 }}
             className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-4 flex flex-col"
@@ -1700,6 +1734,7 @@ const data = await res.json();
 
  {/* 6) My Friends (thin + 2 preview) */}
           <motion.div
+          id="onboarding-friends"
             {...fastFade}
             transition={{ delay: 0.14, duration: 0.45 }}
             className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-4 flex flex-col"
@@ -1789,6 +1824,7 @@ const data = await res.json();
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: ID Card */}
             <motion.div
+            id="onboarding-profile"
               {...fastFade}
               transition={{ duration: 0.5 }}
               className="lg:col-span-2 relative overflow-hidden rounded-2xl p-6 bg-white/10 backdrop-blur-md shadow-2xl border border-amber-300/40"
@@ -1892,6 +1928,7 @@ const data = await res.json();
           {/* ===== Row 2 ===== */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <motion.div
+              id="onboarding-chat"
               {...fastFade}
               transition={{ delay: 0.1, duration: 0.5 }}
               className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-6 min-h-[280px] flex flex-col"
@@ -1909,6 +1946,7 @@ const data = await res.json();
             </motion.div>
 
             <motion.div
+              id="onboarding-rooms"
               {...fastFade}
               transition={{ delay: 0.12, duration: 0.5 }}
               className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-6 min-h-[280px] flex flex-col"
@@ -1965,6 +2003,7 @@ const data = await res.json();
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 flex flex-col gap-6">
               <motion.div
+               id="onboarding-friends"
                 {...fastFade}
                 transition={{ delay: 0.16, duration: 0.5 }}
                 className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-6 min-h-[180px] flex flex-col"
@@ -2056,6 +2095,7 @@ const data = await res.json();
             </div>
 
             <motion.div
+              id="onboarding-tests"
               {...fastFade}
               transition={{ delay: 0.22, duration: 0.5 }}
               className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-6 min-h-[560px] flex flex-col"
@@ -2385,6 +2425,12 @@ style={{
           {message}
         </div>
       )}
+      <OnboardingOverlay
+  steps={onboardingSteps}
+  isOpen={showOnboarding}
+  onClose={completeOnboarding}
+  onFinish={completeOnboarding}
+/>
     </main>
   );
 }
