@@ -440,6 +440,26 @@ export default function AdminPage() {
                   >
                     Register
                   </button>
+
+                  <button
+  onClick={async () => {
+    if (!confirm(`Delete ${f}?`)) return;
+
+    const res = await fetch(`${API_BASE}/admin/avatars/${f}`, {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || "Delete failed");
+
+    pushNotify("Avatar deleted");
+    await loadAll(); // reload list
+  }}
+  className="w-full mt-2 bg-red-500 text-white rounded-lg text-xs py-1"
+>
+  Delete from system too
+</button>
                 </div>
               ))}
             </div>
