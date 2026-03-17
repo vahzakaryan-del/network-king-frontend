@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect  } from "react";
 
 type KeyInfo = {
   enabled: boolean;
@@ -29,6 +29,7 @@ export default function StepNext({
   title,
   onClickInfo,
   unlocked = false,
+   justUnlocked = false,
 
   // requirements path
   canUnlock = false,
@@ -45,6 +46,7 @@ export default function StepNext({
   title: string;
   onClickInfo: () => void;
   unlocked?: boolean;
+  justUnlocked?: boolean;
 
   canUnlock?: boolean;
   progress?: { done: number; total: number } | null;
@@ -58,6 +60,18 @@ export default function StepNext({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [keyAnim, setKeyAnim] = useState(false);
+
+  useEffect(() => {
+  if (justUnlocked) {
+    setKeyAnim(true);
+
+    // optional delay reset
+    const t = setTimeout(() => setKeyAnim(false), 1200);
+    return () => clearTimeout(t);
+  }
+}, [justUnlocked]);
+
+  
   const [enterAnim, setEnterAnim] = useState(false);
 
   const pct =
@@ -82,6 +96,8 @@ export default function StepNext({
       router.push(`/chat/global?channel=level-${level}`);
     }, 2200);
   };
+
+  
 
   const handleEnterRoom = async () => {
     if (busy || enterAnim) return;

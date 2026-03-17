@@ -17,17 +17,38 @@ function PaymentSuccessContent() {
   const router = useRouter();
   const purchaseId = params.get("purchaseId");
 
-  const [seconds, setSeconds] = useState(5);
+  const kind = params.get("kind");
+const isSubscription = params.get("subscription") === "1";
+
+  const [seconds, setSeconds] = useState(2);
 
   useEffect(() => {
-    if (seconds <= 0) {
-      router.push("/dashboard");
-      return;
+  if (seconds <= 0) {
+    const hasPurchase = !!purchaseId && !!kind;
+    
+
+   if (hasPurchase) {
+  if (kind === "LEVEL_KEY") {
+    router.replace(`/myrooms?purchase=success&kind=LEVEL_KEY`);
+  } else if (kind === "AVATAR") {
+    router.replace(`/avatar?purchase=success`);
+  } else if (kind === "COOLDOWN_TOKEN_PACK") {
+    router.replace(`/dashboard?purchase=success`);
+  } else {
+    router.replace("/dashboard");
+  }
+} else if (isSubscription) {
+      router.replace("/subscription");
+    } else {
+      router.replace("/dashboard");
     }
 
-    const timer = setTimeout(() => setSeconds(seconds - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [seconds, router]);
+    return;
+  }
+
+  const timer = setTimeout(() => setSeconds(seconds - 1), 1000);
+  return () => clearTimeout(timer);
+}, [seconds, router, purchaseId, kind, isSubscription]);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 px-6">
@@ -52,17 +73,32 @@ function PaymentSuccessContent() {
 
         <h1 className="text-4xl font-extrabold mb-4">Payment Successful</h1>
 
-        <p className="text-lg opacity-90 mb-3">
-          Your purchase has been completed successfully.
-        </p>
+       
+
+<p className="text-lg opacity-90 mb-3">
+  {kind === "LEVEL_KEY"
+    ? "🔑 Your key is being activated..."
+    : kind === "AVATAR"
+    ? "🧑‍🎨 Your avatar is being unlocked..."
+    : kind === "COOLDOWN_TOKEN_PACK"
+    ? "⚡ Your tokens are being added..."
+    : isSubscription
+    ? "⭐ Your premium is being activated..."
+    : "Your purchase has been completed successfully."}
+</p>
 
         {purchaseId && (
           <p className="text-sm opacity-70 mb-6">Purchase ID: {purchaseId}</p>
         )}
 
-        <p className="text-sm opacity-80">
-          Redirecting to Networ.King in {seconds}s...
-        </p>
+        <p className="text-sm opacity-80 flex items-center gap-1">
+  Redirecting
+  <span className="flex gap-0.5">
+    <span className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:-0.2s]" />
+    <span className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:-0.1s]" />
+    <span className="w-1 h-1 bg-current rounded-full animate-bounce" />
+  </span>
+</p>
       </motion.div>
     </main>
   );

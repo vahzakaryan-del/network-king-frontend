@@ -35,11 +35,13 @@ export default function RoomsLayout({
   currentLevel,
   unlockLevel,
   buyKey,
+   justUnlocked,
 }: {
   levels: any[];
   currentLevel: number;
   unlockLevel: (level: number) => Promise<boolean>;
   buyKey: (level: number) => Promise<boolean>;
+  justUnlocked: boolean; 
 }) {
   const router = useRouter();
   const [infoOpen, setInfoOpen] = useState(false);
@@ -192,6 +194,7 @@ export default function RoomsLayout({
               setInfoData(next);
               setInfoOpen(true);
             }}
+          justUnlocked={justUnlocked}
           />
         )}
 

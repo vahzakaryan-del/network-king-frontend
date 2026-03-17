@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import RoomsLayout from "@/components/rooms/RoomsLayout";
 import PyramidIntro from "@/components/rooms/PyramidIntro";
 import { startStripeCheckout } from "@/lib/startStripeCheckout";
+import { useSearchParams } from "next/navigation";
+import ToastContainer from "@/components/ui/ToastContainer";
+import { showToast } from "@/lib/toast";
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
 export default function MyRoomsPage() {
   const [levels, setLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number | null>(null);
+
+  const searchParams = useSearchParams();
+  
+
+  const [justUnlocked, setJustUnlocked] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
@@ -38,9 +46,21 @@ export default function MyRoomsPage() {
     }
   }
 
-  useEffect(() => {
-    loadData();
-  }, []);
+useEffect(() => {
+  void loadData();
+}, []);
+
+useEffect(() => {
+  const purchase = searchParams.get("purchase");
+  const kind = searchParams.get("kind");
+
+  if (purchase === "success") {
+  if (kind === "LEVEL_KEY") {
+    setJustUnlocked(true);
+    showToast("🔑 Key unlocked! Welcome to the next level.", "success");
+  } 
+}
+}, [searchParams]);
 
   // ✅ NEW: create pending purchase for a level key
   async function buyKey(level: number) {
@@ -65,7 +85,7 @@ export default function MyRoomsPage() {
 
     if (res.ok) {
       if (data?.alreadyOwned) {
-        alert("✅ You already own this key.");
+        showToast("You already own this key.", "info");
         return true;
       }
 
@@ -75,7 +95,7 @@ export default function MyRoomsPage() {
 }
     }
 
-    alert(data?.error || "Key checkout failed");
+    showToast(data?.error || "Key checkout failed", "error");
     return false;
   }
 
@@ -112,13 +132,13 @@ export default function MyRoomsPage() {
           ? `\nProgress: ${progress.done}/${progress.total}`
           : "";
 
-      const reasonText = reasons.length ? `\n\nMissing:\n- ${reasons.join("\n- ")}` : "";
-      alert(`🔒 Level locked.${progressText}${reasonText}`);
+      
+      showToast(`🔒 Level locked`, "error");
       return false;
     }
 
     // Other errors
-    alert(data?.error || "Cannot unlock this level");
+    showToast(data?.error || "Cannot unlock this level", "error");
     return false;
   }
 
@@ -131,17 +151,22 @@ export default function MyRoomsPage() {
   }
 
   return (
+  <>
+    <ToastContainer />
+
     <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0f]">
       {showIntro ? (
         <PyramidIntro onFinish={() => setShowIntro(false)} />
       ) : (
         <RoomsLayout
           levels={levels}
-          currentLevel={currentLevel!}
+          currentLevel={currentLevel ?? 1}
           unlockLevel={unlockLevel}
           buyKey={buyKey}
+          justUnlocked={justUnlocked}
         />
       )}
     </div>
-  );
+  </>
+);
 }
