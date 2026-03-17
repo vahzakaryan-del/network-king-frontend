@@ -56,15 +56,18 @@ function MyRoomsInner() {
   }, []);
 
   useEffect(() => {
-    const purchase = searchParams.get("purchase");
-    const kind = searchParams.get("kind");
+  const purchase = searchParams.get("purchase");
+  const kind = searchParams.get("kind");
 
-    if (purchase === "success" && kind === "LEVEL_KEY") {
-      setJustUnlocked(true);
-      showToast("🔑 Key unlocked! Welcome to the next level.", "success");
-       window.history.replaceState({}, "", "/myrooms");
-      }
-  }, [searchParams]);
+  if (purchase === "success" && kind === "LEVEL_KEY") {
+    setJustUnlocked(true);
+    setShowIntro(false); // ✅ IMPORTANT FIX
+
+    showToast("🔑 Key unlocked! Welcome to the next level.", "success");
+
+    window.history.replaceState({}, "", "/myrooms");
+  }
+}, [searchParams]);
 
   async function buyKey(level: number) {
     const token = localStorage.getItem("token");

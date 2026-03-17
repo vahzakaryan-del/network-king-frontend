@@ -634,7 +634,9 @@ mx-auto py-8 max-sm:py-6 rounded-xl
         </button>
 
         <button
-          onClick={async () => {
+  disabled={busy}
+  onClick={async () => {
+    if (busy) return;
             setShowConfirm(false);
             setBusy(true);
             const ok = await onBuyKey!(level);
