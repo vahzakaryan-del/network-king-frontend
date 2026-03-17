@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import RoomsLayout from "@/components/rooms/RoomsLayout";
 import PyramidIntro from "@/components/rooms/PyramidIntro";
 import { startStripeCheckout } from "@/lib/startStripeCheckout";
@@ -10,17 +10,15 @@ import { showToast } from "@/lib/toast";
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
-export default function MyRoomsPage() {
+// 👇 MOVE your existing logic into this inner component
+function MyRoomsInner() {
   const [levels, setLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number | null>(null);
-
-  const searchParams = useSearchParams();
-  
-
   const [justUnlocked, setJustUnlocked] = useState(false);
-
   const [loading, setLoading] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
+
+  const searchParams = useSearchParams();
 
   async function loadData() {
     try {
@@ -46,23 +44,21 @@ export default function MyRoomsPage() {
     }
   }
 
-useEffect(() => {
-  void loadData();
-}, []);
+  useEffect(() => {
+    void loadData();
+  }, []);
 
-useEffect(() => {
-  const purchase = searchParams.get("purchase");
-  const kind = searchParams.get("kind");
+  useEffect(() => {
+    const purchase = searchParams.get("purchase");
+    const kind = searchParams.get("kind");
 
-  if (purchase === "success") {
-  if (kind === "LEVEL_KEY") {
-    setJustUnlocked(true);
-    showToast("🔑 Key unlocked! Welcome to the next level.", "success");
-  } 
-}
-}, [searchParams]);
+    if (purchase === "success" && kind === "LEVEL_KEY") {
+      setJustUnlocked(true);
+      showToast("🔑 Key unlocked! Welcome to the next level.", "success");
+       window.history.replaceState({}, "", "/myrooms");
+      }
+  }, [searchParams]);
 
-  // ✅ NEW: create pending purchase for a level key
   async function buyKey(level: number) {
     const token = localStorage.getItem("token");
     if (!token) return false;
@@ -89,17 +85,16 @@ useEffect(() => {
         return true;
       }
 
-     if (data?.purchase?.id) {
-  await startStripeCheckout(data.purchase.id, token);
-  return true;
-}
+      if (data?.purchase?.id) {
+        await startStripeCheckout(data.purchase.id, token);
+        return true;
+      }
     }
 
     showToast(data?.error || "Key checkout failed", "error");
     return false;
   }
 
-  // ✅ Unlock logic (handles 403 requirements-not-met cleanly)
   async function unlockLevel(level: number) {
     const token = localStorage.getItem("token");
     if (!token) return false;
@@ -116,28 +111,16 @@ useEffect(() => {
       data = null;
     }
 
-    // Success
     if (res.ok && data?.success) {
       setCurrentLevel(level);
       return true;
     }
 
-    // Requirements not met (403 + reasons/progress)
     if (res.status === 403) {
-      const reasons: string[] = Array.isArray(data?.reasons) ? data.reasons : [];
-      const progress = data?.progress;
-
-      const progressText =
-        progress && typeof progress.done === "number" && typeof progress.total === "number"
-          ? `\nProgress: ${progress.done}/${progress.total}`
-          : "";
-
-      
       showToast(`🔒 Level locked`, "error");
       return false;
     }
 
-    // Other errors
     showToast(data?.error || "Cannot unlock this level", "error");
     return false;
   }
@@ -151,22 +134,31 @@ useEffect(() => {
   }
 
   return (
-  <>
-    <ToastContainer />
+    <>
+      <ToastContainer />
 
-    <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0f]">
-      {showIntro ? (
-        <PyramidIntro onFinish={() => setShowIntro(false)} />
-      ) : (
-        <RoomsLayout
-          levels={levels}
-          currentLevel={currentLevel ?? 1}
-          unlockLevel={unlockLevel}
-          buyKey={buyKey}
-          justUnlocked={justUnlocked}
-        />
-      )}
-    </div>
-  </>
-);
+      <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0f]">
+        {showIntro ? (
+          <PyramidIntro onFinish={() => setShowIntro(false)} />
+        ) : (
+          <RoomsLayout
+            levels={levels}
+            currentLevel={currentLevel ?? 1}
+            unlockLevel={unlockLevel}
+            buyKey={buyKey}
+            justUnlocked={justUnlocked}
+          />
+        )}
+      </div>
+    </>
+  );
+}
+
+// 👇 OUTER component = Suspense wrapper
+export default function MyRoomsPage() {
+  return (
+    <Suspense fallback={<div className="text-white">Loading...</div>}>
+      <MyRoomsInner />
+    </Suspense>
+  );
 }

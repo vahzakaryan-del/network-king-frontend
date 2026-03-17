@@ -51,7 +51,7 @@ export default function StepCurrent({
         className="
           w-36 md:w-44 h-56 md:h-64 rounded-md overflow-hidden
           border-[3px] border-black/40 shadow-xl
-          bg-[url('/rooms/door-wood.png')] bg-cover bg-center
+          bg-[url('/rooms/door-wood.webp')] bg-cover bg-center
           cursor-pointer
         "
         aria-label={`Enter Level ${level} chat`}
