@@ -441,6 +441,25 @@ export default function AdminPage() {
                     Register
                   </button>
 
+<button
+  onClick={async () => {
+    if (!confirm(`Delete ${f}?`)) return;
+
+    const res = await fetch(`${API_BASE}/admin/badges/file/${f}`, {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || "Delete failed");
+
+    pushNotify("Badge deleted");
+    await loadAll();
+  }}
+  className="w-full mt-2 bg-red-500 text-white rounded-lg text-xs py-1"
+>
+  Delete from system too
+</button>
                 
                 </div>
               ))}
@@ -1110,7 +1129,7 @@ const SectionEmojis = () => {
                       setUploadIsFree(true);
                       setUploadPriceCents("");
                     }}
-                    className="px-3 py-1 bg-amber-400 text-xs text-gray-900 rounded-lg font-semibold"
+                    className=" w-full px-3 py-1 bg-amber-400 text-xs text-gray-900 rounded-lg font-semibold"
                   >
                     Register
                   </button>
