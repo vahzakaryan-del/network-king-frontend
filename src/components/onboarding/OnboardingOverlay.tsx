@@ -44,9 +44,13 @@ useEffect(() => {
 let hasScrolled = false;
 
   const findAndMeasure = () => {
-    const el =
-      document.getElementById(step.targetId) ||
-      document.querySelector(`[id^="${step.targetId}"]`);
+   const candidates = Array.from(
+  document.querySelectorAll(`[id^="${step.targetId}"]`)
+) as HTMLElement[];
+
+const el = candidates.find(
+  (el) => el.offsetWidth > 0 && el.offsetHeight > 0
+);
 
     if (!el || !(el instanceof HTMLElement)) {
       console.warn("Onboarding target not found:", step.targetId);
@@ -102,7 +106,24 @@ let hasScrolled = false;
   return (
     <>
       {/* 🔲 Dark overlay */}
-     <div className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm" />
+     <div
+  className="fixed inset-0 z-[10000] pointer-events-none"
+  style={{
+    backdropFilter: "blur(6px)",
+    WebkitBackdropFilter: "blur(6px)",
+    background: "rgba(0,0,0,0.6)",
+    maskImage: `radial-gradient(
+      circle at ${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px,
+      transparent ${Math.max(rect.width, rect.height) / 1.5}px,
+      black ${Math.max(rect.width, rect.height) / 1.2}px
+    )`,
+    WebkitMaskImage: `radial-gradient(
+      circle at ${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px,
+      transparent ${Math.max(rect.width, rect.height) / 1.5}px,
+      black ${Math.max(rect.width, rect.height) / 1.2}px
+    )`,
+  }}
+/>
 
       {/* 🔆 Highlight box */}
       <div
