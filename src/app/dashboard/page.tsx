@@ -579,7 +579,7 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
   if (!token) return;
 
   try {
-    await fetch(`${API}/me/onboarding-complete`, {
+    await fetch(`${API}/profile/me/onboarding-complete`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
