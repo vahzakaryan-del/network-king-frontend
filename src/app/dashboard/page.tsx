@@ -575,11 +575,12 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
   //onboarding useeffect
 
   async function completeOnboarding() {
+    
   const token = localStorage.getItem("token");
   if (!token) return;
 
   try {
-    await fetch(`${API}/profile/me/onboarding-complete`, {
+    await fetch(`${API}/me/onboarding-complete`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
