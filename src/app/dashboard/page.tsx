@@ -575,19 +575,24 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
   //onboarding useeffect
 
   async function completeOnboarding() {
-    
+  console.log("🔥 onboarding clicked");
+
   const token = localStorage.getItem("token");
   if (!token) return;
 
   try {
-    await fetch(`${API}/me/onboarding-complete`, {
+    const res = await fetch(`${API}/me/onboarding-complete`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
     });
+
+    const data = await res.json();
+    console.log("✅ onboarding response:", data);
   } catch (err) {
-    console.error("Failed to save onboarding", err);
+    console.error("❌ onboarding failed:", err);
   }
 
   setShowOnboarding(false);
