@@ -483,6 +483,19 @@ export default function DashboardPage() {
 
   // Core page state
   const [user, setUser] = useState<any>(null);
+
+  const showHelpButton = (() => {
+  if (!user?.createdAt) return false;
+
+  const created = new Date(user.createdAt).getTime();
+  const now = Date.now();
+
+  const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+
+  return now - created < THREE_DAYS;
+})();
+
+
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [message, setMessage] = useState("Loading...");
   const [rooms] = useState<any[]>([]);
@@ -1203,6 +1216,27 @@ const data = await res.json();
         )}
 
         <div className="flex items-center gap-3">
+
+          {showHelpButton && (
+  <>
+    <button
+      onClick={() => setShowOnboarding(true)}
+      className="
+        px-5 py-2 rounded-lg
+        bg-white/10 hover:bg-white/20
+        border border-silver
+        transition
+      "
+      title="Quick guide (available for a few days)"
+    >
+      💡❓
+    </button>
+
+    {/* ✨ Vertical Separator */}
+    <div className="h-14 w-[2px] bg-gradient-to-b from-white/10 via-white/60 to-white/10 opacity-70" />
+  </>
+)}
+
           <button
             onClick={() => router.push("/Subscription")}
             className={`px-5 py-3 rounded-xl font-bold transition-all ${
@@ -1469,6 +1503,20 @@ const data = await res.json();
   "
 >
   ⚙️ Settings
+</button>
+
+<button
+  
+  onClick={() => {
+    setShowOnboarding(true);
+    setDropdownOpen(false); // if inside dropdown
+    setMobileMenuOpen(false)
+  }}
+   className="w-full mb-5 px-4 py-3 rounded-xl bg-amber-400 text-gray-900 font-semibold"
+               
+>
+  
+  🧭 Replay onboarding
 </button>
 
 

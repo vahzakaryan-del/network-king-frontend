@@ -101,27 +101,52 @@ const el = candidates.find(
 
   const isBottomOverflow = rect.bottom + 160 > window.innerHeight;
 
-  const padding = 8;
+   const padding = rect.width * 0.02;
 
   return (
     <>
       {/* 🔲 Dark overlay */}
-     <div
-  className="fixed inset-0 z-[10000] pointer-events-none"
+     {/* 🔲 TOP */}
+<div
+  className="fixed z-[10000] bg-black/70 backdrop-blur-sm"
   style={{
-    backdropFilter: "blur(6px)",
-    WebkitBackdropFilter: "blur(6px)",
-    background: "rgba(0,0,0,0.6)",
-    maskImage: `radial-gradient(
-      circle at ${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px,
-      transparent ${Math.max(rect.width, rect.height) / 1.5}px,
-      black ${Math.max(rect.width, rect.height) / 1.2}px
-    )`,
-    WebkitMaskImage: `radial-gradient(
-      circle at ${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px,
-      transparent ${Math.max(rect.width, rect.height) / 1.5}px,
-      black ${Math.max(rect.width, rect.height) / 1.2}px
-    )`,
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: rect.top,
+  }}
+/>
+
+{/* 🔲 BOTTOM */}
+<div
+  className="fixed z-[10000] bg-black/70 backdrop-blur-sm"
+  style={{
+    top: rect.bottom,
+    left: 0,
+    width: "100%",
+    height: `calc(100% - ${rect.bottom}px)`,
+  }}
+/>
+
+{/* 🔲 LEFT */}
+<div
+  className="fixed z-[10000] bg-black/70 backdrop-blur-sm"
+  style={{
+    top: rect.top,
+    left: 0,
+    width: rect.left,
+    height: rect.height,
+  }}
+/>
+
+{/* 🔲 RIGHT */}
+<div
+  className="fixed z-[10000] bg-black/70 backdrop-blur-sm"
+  style={{
+    top: rect.top,
+    left: rect.right,
+    width: `calc(100% - ${rect.right}px)`,
+    height: rect.height,
   }}
 />
 
@@ -143,7 +168,7 @@ const el = candidates.find(
   exit={{ opacity: 0 }}
   transition={{ duration: 0.25 }}
        className="
-fixed z-[10002] max-w-xs w-[90vw] sm:w-80
+fixed z-[10002] mt-1 max-w-s w-[90vw] sm:w-[400px]
 rounded-2xl
 bg-gradient-to-b from-white/15 to-white/5
 backdrop-blur-xl
