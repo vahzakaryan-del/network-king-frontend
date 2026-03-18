@@ -32,39 +32,66 @@ export default function OnboardingOverlay({
   if (isOpen) setCurrentStep(0);
 }, [isOpen]);
 
+useEffect(() => {
+  setRect(null);
+}, [step]);
+
   // 🔍 Find target position
   useEffect(() => {
-    if (!isOpen || !step) return;
+  if (!isOpen || !step) return;
 
+  let attempts = 0;
+let hasScrolled = false;
+
+  const findAndMeasure = () => {
     const el =
-  document.getElementById(step.targetId) ||
-  document.querySelector(`[id^="${step.targetId}"]`);
-   
-  if (!el || !(el instanceof HTMLElement)) {
-  console.warn("Onboarding target not found:", step.targetId);
-  return;
+      document.getElementById(step.targetId) ||
+      document.querySelector(`[id^="${step.targetId}"]`);
+
+    if (!el || !(el instanceof HTMLElement)) {
+      console.warn("Onboarding target not found:", step.targetId);
+      return false;
+    }
+
+    const r = el.getBoundingClientRect();
+
+    // ❗ Ignore invalid rects
+    if (r.width === 0 || r.height === 0) return false;
+
+    setRect(r);
+
+
+    // 👇 scroll AFTER valid rect
+    if (!hasScrolled) {
+  el.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+  hasScrolled = true;
 }
 
-el.scrollIntoView({
-  behavior: "smooth",
-  block: "nearest",
-});
+    return true;
+  };
 
-    const update = () => {
-      const r = el.getBoundingClientRect();
-      setRect(r);
-    };
+  const tryMeasure = () => {
+    const success = findAndMeasure();
 
-    update();
+    if (!success && attempts < 10) {
+      attempts++;
+      setTimeout(tryMeasure, 80); // retry
+    }
+  };
 
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update);
+  tryMeasure();
 
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update);
-    };
-  }, [step, isOpen]);
+  window.addEventListener("resize", tryMeasure);
+  window.addEventListener("scroll", tryMeasure);
+
+  return () => {
+    window.removeEventListener("resize", tryMeasure);
+    window.removeEventListener("scroll", tryMeasure);
+  };
+}, [step, isOpen]);
 
   if (!isOpen || !step || !rect) return null;
 
@@ -79,7 +106,13 @@ el.scrollIntoView({
 
       {/* 🔆 Highlight box */}
       <div
-  className="fixed z-[10001] pointer-events-none border-2 border-amber-300 rounded-2xl shadow-[0_0_30px_rgba(251,191,36,0.7)] animate-pulse"
+  className="fixed z-[10001] pointer-events-none border-2 border-amber-300 rounded-2xl shadow-[0_0_30px_rgba(251,191,36,0.7)] animate-[pulse_3s_ease-in-out_infinite]"
+  style={{
+    top: rect.top - padding,
+    left: rect.left - padding,
+    width: rect.width + padding * 2,
+    height: rect.height + padding * 2,
+  }}
 />
 
       {/* 💬 Tooltip */}
@@ -99,52 +132,61 @@ text-white
 p-5
 "
  style={{
-  top: isBottomOverflow ? rect.top - 160 : rect.bottom + 12,
-  left: Math.max(12, Math.min(rect.left, window.innerWidth - 340)),
+  position: "fixed",
+  top: Math.max(
+  12,
+  isBottomOverflow ? rect.top - 160 : rect.bottom + 12
+),
+  left: Math.max(
+  12,
+  Math.min(rect.left, window.innerWidth - 320)
+),
 }}
       >
         <h3 className="font-bold text-lg mb-1">{step.title}</h3>
         <p className="text-sm text-gray-200 mb-3">{step.description}</p>
 
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-2">
+  <div className="flex justify-between items-center">
+    <p className="text-xs text-gray-400">
+      Step {currentStep + 1} of {steps.length}
+    </p>
 
-          <p className="text-xs text-gray-400 mb-2">
-  Step {currentStep + 1} of {steps.length}
-</p>
-          <button
-            onClick={onClose}
-            className="text-xs text-gray-500 hover:underline"
-          >
-            Skip
-          </button>
+    <button
+      onClick={onClose}
+      className="text-xs text-gray-500 hover:underline"
+    >
+      Skip
+    </button>
+  </div>
 
-          <div className="flex gap-2">
-            {currentStep > 0 && (
-              <button
-                onClick={() => setCurrentStep((s) => s - 1)}
-               className="px-3 py-1 text-sm rounded bg-white/10 border border-white/20 text-white"
-              >
-                Back
-              </button>
-            )}
+  <div className="flex justify-end gap-2">
+    {currentStep > 0 && (
+      <button
+        onClick={() => setCurrentStep((s) => s - 1)}
+        className="px-3 py-1 text-sm rounded bg-white/10 border border-white/20 text-white"
+      >
+        Back
+      </button>
+    )}
 
-            {currentStep < steps.length - 1 ? (
-              <button
-                onClick={() => setCurrentStep((s) => s + 1)}
-                className="px-3 py-1 text-sm rounded bg-amber-400 hover:bg-amber-300 text-gray-900 font-semibold shadow-lg"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={onFinish}
-                className="px-3 py-1 text-sm rounded bg-gradient-to-r from-amber-400 to-yellow-300 text-gray-900 shadow-lg font-semibold"
-              >
-                Finish
-              </button>
-            )}
-          </div>
-        </div>
+    {currentStep < steps.length - 1 ? (
+      <button
+        onClick={() => setCurrentStep((s) => s + 1)}
+        className="px-3 py-1 text-sm rounded bg-amber-400 hover:bg-amber-300 text-gray-900 font-semibold shadow-lg"
+      >
+        Next
+      </button>
+    ) : (
+      <button
+        onClick={onFinish}
+        className="px-3 py-1 text-sm rounded bg-gradient-to-r from-amber-400 to-yellow-300 text-gray-900 shadow-lg font-semibold"
+      >
+        Finish
+      </button>
+    )}
+  </div>
+</div>
       </motion.div>
     </>
   );
