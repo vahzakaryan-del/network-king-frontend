@@ -156,8 +156,8 @@ try {
 
     setNotice({
       kind: "info",
-      title: "Use Google Sign-In",
-      text: "This account was created with Google. Please continue with Google.",
+      title: "This account uses a different sign-in method",
+      text: "Please continue with Google  Sign-In.",
     });
   }
 
