@@ -2,31 +2,31 @@ export const onboardingSteps = [
   {
     id: "profile",
     title: "👤 Your Identity",
-    description: "This is your profile ID card. You can customize your avatar here and showcase your rarest badges on it. You can modify it by clicking 'My Profile'",
+    description: "This is your profile ID card where you can customize your Avatar, display your earned Badges, and manage your identity. Access editing mode through 'My Profile' button.",
     targetId: "onboarding-profile",
   },
   {
     id: "rooms",
     title: "🏰 Your Progress",
-    description: "Here you can find the Castle's rooms, you can only access rooms up to your Lvl. You can level up by meeting each Room's requirements",
+    description: "Here you can explore NetworKing's 36 unique rooms, each with its own entry requirements. Rooms unlock progressively as you level up, giving you access to new and more advanced communities step by step.",
     targetId: "onboarding-rooms",
   },
   {
     id: "chat",
     title: "💬 Global Chat",
-    description: "Here you can connect with people, share ideas, and build your network. You can only access chats based on your Lvl, the higher is your lvl - higher Networking opportunities you have",
+    description: "Here, you can connect with others, share ideas, and grow your network. Each chat level has its own subchannels, community and topics. You can access chats based on your level—the higher your level, the greater your networking opportunities become.",
     targetId: "onboarding-chat",
   },
   {
     id: "tests",
     title: "🎖️ Tests & Badges",
-    description: "Here you can take tests to test your mind sharpness, challenge your own skills and earn badges to improve your reputation.",
+    description: "Challenge yourself with a variety of tests designed to assess skills like IQ, EQ & Financial literacy... Here you can earn badges and progress faster. You can try 'Achievement' and 'Fun' modes at the same time.",
     targetId: "onboarding-tests",
   },
   {
     id: "friends",
     title: "🤝 Your Network",
-    description: "Your friends and connections live here. Grow your network with ease.",
+    description: "Your friends and connections are here. Grow your network with ease. The more friends you have, the more your resources grow. Good luck!",
     targetId: "onboarding-friends",
   },
 ];
