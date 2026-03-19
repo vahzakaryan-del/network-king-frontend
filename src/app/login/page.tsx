@@ -59,6 +59,8 @@ export default function LoginPage() {
 
   const [emailNotVerified, setEmailNotVerified] = useState(false);
 
+  const [useGoogleHint, setUseGoogleHint] = useState(false);
+
   const [notice, setNotice] = useState<{
     kind: NoticeKind;
     title?: string;
@@ -117,11 +119,14 @@ export default function LoginPage() {
 }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const { name, value } = e.target;
 
-const attemptLogin = async () => {
+  setUseGoogleHint(false); // 🔥 reset hint
+
+  setFormData((prev) => ({ ...prev, [name]: value }));
+};
+
+const attemptLogin = async (silent = false) => {
 
     if (!formData.email || !formData.password) {
       return false;
@@ -143,21 +148,41 @@ try {
 
     if (!res.ok) {
 
-      if (data?.error?.toLowerCase().includes("verify")) {
-        setEmailNotVerified(true);
-       setNotice(null);
+  // 🔥 NEW: Google account detection
+  if (data?.code === "USE_GOOGLE") {
 
-        return false;
-      }
+  if (!silent) {
+    setUseGoogleHint(true);
 
-      setNotice({
-        kind: "error",
-        title: "Login failed",
-        text: data?.error ?? "Invalid credentials.",
-      });
+    setNotice({
+      kind: "info",
+      title: "Use Google Sign-In",
+      text: "This account was created with Google. Please continue with Google.",
+    });
+  }
 
-      return false;
-    }
+  return false;
+}
+
+  // existing verification logic
+  if (data?.error?.toLowerCase().includes("verify")) {
+    setEmailNotVerified(true);
+    setNotice(null);
+    return false;
+  }
+
+ if (!silent) {
+  setUseGoogleHint(false);
+
+  setNotice({
+    kind: "error",
+    title: "Login failed",
+    text: data?.error ?? "Invalid credentials.",
+  });
+}
+
+  return false;
+}
 
     localStorage.setItem("token", data.token);
     localStorage.setItem("userId", String(data.user?.id ?? ""));
@@ -249,7 +274,7 @@ try {
 
     tries++;
 
-    const ok = await attemptLogin();
+    const ok = await attemptLogin(true); // 🔥 silent mode
 
     if (ok || tries > 60) {
       clearInterval(interval);
@@ -391,54 +416,56 @@ try {
   <div className="h-px flex-1 bg-white/20" />
 </div>
 
-    <div className="flex justify-center">
-      <GoogleLogin
-        theme="filled_black"
-        shape="pill"
-        size="large"
-        onSuccess={async (credentialResponse) => {
+    <div className="flex flex-col items-center gap-3">
 
-          try {
-
-            const res = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  token: credentialResponse.credential,
-                }),
-              }
-            );
-
-            let data;
-
-try {
-  data = await res.json();
-} catch {
-  data = {};
-}
-
-            if (!res.ok) return;
-
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("userId", String(data.user?.id ?? ""));
-            localStorage.setItem("userName", String(data.user?.name ?? ""));
-            localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
-
-            setIsLeaving(true);
-            setTimeout(() => router.push("/dashboard"), 600);
-
-          } catch (err) {
-            console.error("Google login error", err);
-          }
-
-        }}
-        onError={() => console.log("Google Login Failed")}
-      />
-
-      
+  {useGoogleHint && (
+    <div className="text-sm text-amber-200 text-center">
+      👉 Continue with Google to access your account
     </div>
+  )}
+
+  <GoogleLogin
+    theme="filled_black"
+    shape="pill"
+    size="large"
+    onSuccess={async (credentialResponse) => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: credentialResponse.credential,
+            }),
+          }
+        );
+
+        let data;
+
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+
+        if (!res.ok) return;
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", String(data.user?.id ?? ""));
+        localStorage.setItem("userName", String(data.user?.name ?? ""));
+        localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+
+        setIsLeaving(true);
+        setTimeout(() => router.push("/dashboard"), 600);
+
+      } catch (err) {
+        console.error("Google login error", err);
+      }
+    }}
+    onError={() => console.log("Google Login Failed")}
+  />
+</div>
     <p className="text-xs mt-3 mb-3 text-gray-300 text-center leading-relaxed">
  
 By continuing, you agree to our

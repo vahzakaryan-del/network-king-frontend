@@ -334,6 +334,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<TabKey>("account");
 
   const [me, setMe] = useState<MeUser | null>(null);
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [ent, setEnt] = useState<Entitlements | null>(null);
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [invited, setInvited] = useState<InvitedRow[]>([]);
@@ -381,11 +382,12 @@ export default function SettingsPage() {
 
     setLoading(true);
     try {
-      const [rProfile, rEnt, rInvite] = await Promise.all([
-        fetch(`${API_BASE}/profile`, { headers }),
-        fetch(`${API_BASE}/me/entitlements`, { headers }),
-        fetch(`${API_BASE}/auth/invite`, { headers }),
-      ]);
+      const [rProfile, rEnt, rInvite, rPassword] = await Promise.all([
+  fetch(`${API_BASE}/profile`, { headers }),
+  fetch(`${API_BASE}/me/entitlements`, { headers }),
+  fetch(`${API_BASE}/auth/invite`, { headers }),
+  fetch(`${API_BASE}/auth/password-status`, { headers }), // 👈 NEW
+]);
 
       if (!rProfile.ok) {
         localStorage.removeItem("token");
@@ -394,12 +396,14 @@ export default function SettingsPage() {
       }
 
       const dProfile = await rProfile.json().catch(() => ({}));
+      const dPassword = await rPassword.json().catch(() => ({}));
       const dEnt = await rEnt.json().catch(() => ({}));
       const dInvite = await rInvite.json().catch(() => ({}));
 
       setMe(dProfile?.user ?? null);
       setEnt(dEnt ?? null);
       setInvite(dInvite ?? null);
+      setHasPassword(dPassword?.hasPassword ?? null);
 
       const [rInvited, rPurchases] = await Promise.all([
         fetch(`${API_BASE}/auth/invited?limit=50`, { headers }),
@@ -425,7 +429,11 @@ export default function SettingsPage() {
 
   async function changePassword() {
     setPwMsg("");
-    if (!pwCurrent || !pwNext || !pwNext2) return setPwMsg("Please fill all fields.");
+    if (!pwNext || !pwNext2)
+  return setPwMsg("Please fill all fields.");
+
+if (hasPassword && !pwCurrent)
+  return setPwMsg("Current password required.");
     if (pwNext !== pwNext2) return setPwMsg("New passwords do not match.");
 
     const headers = getAuthHeaders();
@@ -436,7 +444,10 @@ export default function SettingsPage() {
       const res = await fetch(`${API_BASE}/auth/password`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNext }),
+        body: JSON.stringify({
+  currentPassword: hasPassword ? pwCurrent : undefined,
+  newPassword: pwNext,
+}),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return setPwMsg(data?.error || "Failed to change password.");
@@ -642,18 +653,20 @@ export default function SettingsPage() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="text-sm font-semibold text-slate-900">
-                            Change password
-                          </div>
+  {hasPassword ? "Change password" : "Set password"}
+</div>
 
                           <div className="grid grid-cols-1 gap-3">
-                            <Field label="Current password">
-                              <Input
-                                type="password"
-                                value={pwCurrent}
-                                onChange={(e) => setPwCurrent(e.target.value)}
-                                placeholder="••••••••"
-                              />
-                            </Field>
+                           {hasPassword && (
+  <Field label="Current password">
+    <Input
+      type="password"
+      value={pwCurrent}
+      onChange={(e) => setPwCurrent(e.target.value)}
+      placeholder="••••••••"
+    />
+  </Field>
+)}
                             <Field label="New password">
                               <Input
                                 type="password"
