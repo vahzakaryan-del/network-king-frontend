@@ -39,16 +39,31 @@ export default function PrivacyPage() {
         </div>
       ),
     },
+
+    // NEW
     {
-      title: "2. Authentication and Session Data",
+      title: "2. Legal Basis for Processing",
+      content: (
+        <div className="space-y-3">
+          <p>We process personal data only where necessary and in accordance with applicable laws.</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>To perform our contract with you (providing the platform)</li>
+            <li>To comply with legal obligations</li>
+            <li>For legitimate interests such as maintaining security and improving the service</li>
+          </ul>
+        </div>
+      ),
+    },
+
+    {
+      title: "3. Authentication and Session Data",
       content: (
         <div className="space-y-3">
           <p>
-            To keep you logged in and maintain secure sessions, we use secure
-            tokens stored in your browser storage (such as localStorage or
-            similar technologies).
+            To keep you logged in and maintain secure sessions, we use browser
+            storage technologies (such as localStorage or similar mechanisms).
           </p>
-          <p>These tokens are required for authentication and platform functionality.</p>
+          <p>These are required for authentication and platform functionality.</p>
           <p>
             We may introduce cookie-based session handling in the future as the
             platform evolves.
@@ -56,8 +71,9 @@ export default function PrivacyPage() {
         </div>
       ),
     },
+
     {
-      title: "3. How We Use Your Information",
+      title: "4. How We Use Your Information",
       content: (
         <div className="space-y-3">
           <p>We use collected information to:</p>
@@ -74,21 +90,22 @@ export default function PrivacyPage() {
         </div>
       ),
     },
+
     {
-      title: "4. Data Storage",
+      title: "5. Data Storage",
       content: (
         <div className="space-y-3">
           <p>
-            User data is stored in our application database infrastructure
-            managed through Prisma ORM and its underlying database provider.
+            User data is stored in our application database infrastructure.
           </p>
           <p>We take reasonable technical and organizational measures to protect stored data.</p>
           <p>Access to production data is restricted to authorized personnel only.</p>
         </div>
       ),
     },
+
     {
-      title: "5. Email Communications",
+      title: "6. Email Communications",
       content: (
         <div className="space-y-3">
           <p>Currently, we do not send regular user emails.</p>
@@ -106,42 +123,41 @@ export default function PrivacyPage() {
         </div>
       ),
     },
+
     {
-      title: "6. Analytics",
+      title: "7. Analytics",
       content: (
         <div className="space-y-3">
           <p>We do not currently use third-party analytics or tracking systems.</p>
           <p>
-            We may introduce privacy-respecting analytics tools in the future to
-            understand platform performance and usage. This policy will be
-            updated if that happens.
+            We may introduce privacy-respecting analytics tools in the future.
           </p>
         </div>
       ),
     },
+
+    // UPDATED
     {
-      title: "7. Third-Party Service Providers",
+      title: "8. Third-Party Service Providers",
       content: (
         <div className="space-y-3">
-          <p>
-            We may use trusted third-party providers to operate the platform
-            infrastructure, such as:
-          </p>
+          <p>We may use trusted third-party providers to operate the platform, including:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Hosting providers</li>
-            <li>Database providers</li>
-            <li>Email delivery services (for contact or transactional emails)</li>
+            <li>Hosting and infrastructure providers</li>
+            <li>Authentication providers (such as Google)</li>
+            <li>Payment processors (such as Stripe)</li>
+            <li>Email delivery services</li>
           </ul>
           <p>
             These providers process data only as necessary to deliver their
-            services and are contractually restricted from using data for
-            unrelated purposes.
+            services and are not permitted to use it for unrelated purposes.
           </p>
         </div>
       ),
     },
+
     {
-      title: "8. Data Sharing",
+      title: "9. Data Sharing",
       content: (
         <div className="space-y-3">
           <p>We do not sell or rent personal information.</p>
@@ -155,8 +171,9 @@ export default function PrivacyPage() {
         </div>
       ),
     },
+
     {
-      title: "9. Data Retention",
+      title: "10. Data Retention",
       content: (
         <div className="space-y-3">
           <p>
@@ -164,8 +181,7 @@ export default function PrivacyPage() {
             necessary to provide platform services.
           </p>
           <p>
-            Users may request deletion of their account and associated personal
-            data (see Section 12).
+            Users may delete their account, which removes associated personal data.
           </p>
           <p>
             Some minimal records may be retained where legally required or
@@ -174,78 +190,92 @@ export default function PrivacyPage() {
         </div>
       ),
     },
+
     {
-      title: "10. Security Measures",
+      title: "11. Security Measures",
       content: (
         <div className="space-y-3">
-          <p>
-            We implement reasonable safeguards to protect user data, including:
-          </p>
+          <p>We implement reasonable safeguards to protect user data.</p>
+          <p>No system can guarantee absolute security.</p>
+        </div>
+      ),
+    },
+
+    {
+      title: "12. Children’s Privacy",
+      content: (
+        <div className="space-y-3">
+          <p>The platform is not intended for users under 16 years of age.</p>
+        </div>
+      ),
+    },
+
+    // UPDATED (important)
+    {
+      title: "13. Your Rights",
+      content: (
+        <div className="space-y-3">
+          <p>You have the right to:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Access controls</li>
-            <li>Encrypted connections (HTTPS)</li>
-            <li>Restricted administrative access</li>
-            <li>Infrastructure security practices</li>
+            <li>Access your personal data</li>
+            <li>Request correction of inaccurate data</li>
+            <li>Request deletion of your data</li>
+            <li>Request a copy of your data</li>
+            <li>Object to certain types of processing</li>
           </ul>
           <p>
-            No system can guarantee absolute security, but we continuously
-            improve protections.
+            You may exercise these rights by contacting us through the Contact page.
           </p>
         </div>
       ),
     },
+
     {
-      title: "11. Children’s Privacy",
-      content: (
-        <div className="space-y-3">
-          <p>The platform is not intended for children under 16.</p>
-          <p>We do not knowingly collect personal data from children.</p>
-        </div>
-      ),
-    },
-    {
-      title: "12. Your Rights (GDPR-Style Rights)",
-      content: (
-        <div className="space-y-3">
-          <p>Depending on your jurisdiction, you may have the right to:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Request access to your data</li>
-            <li>Request correction</li>
-            <li>Request deletion</li>
-            <li>Request data portability</li>
-            <li>Object to certain processing</li>
-          </ul>
-          <p>Requests can be made through the Contact page.</p>
-        </div>
-      ),
-    },
-    {
-      title: "13. International Processing",
+      title: "14. International Processing",
       content: (
         <div className="space-y-3">
           <p>
-            Infrastructure providers may process data in different countries. We
-            select reputable providers with appropriate safeguards.
+            Data may be processed by infrastructure providers in different countries.
+            We select reputable providers with appropriate safeguards.
           </p>
         </div>
       ),
     },
+
     {
-      title: "14. Changes to This Policy",
+      title: "15. Changes to This Policy",
       content: (
         <div className="space-y-3">
           <p>
-            We may update this Privacy Policy as the platform evolves. Updates
-            will be posted on this page with a revised “Last updated” date.
+            We may update this Privacy Policy. Updates will be posted with a revised date.
           </p>
         </div>
       ),
     },
+
+    // NEW (important)
     {
-      title: "15. Contact",
+      title: "16. Data Controller",
       content: (
         <div className="space-y-3">
-          <p>For privacy questions or data requests, please contact us via the Contact page.</p>
+          <p>
+            Networ.King is operated by its owner based in Belgium and acts as the data controller
+            for personal data processed through the platform.
+          </p>
+        </div>
+      ),
+    },
+
+    {
+      title: "17. Contact",
+      content: (
+        <div className="space-y-3">
+          <p>
+            For privacy questions or data requests, please use our{" "}
+            <Link href="/contact" className="underline">
+              Contact page
+            </Link>.
+          </p>
         </div>
       ),
     },
@@ -256,10 +286,7 @@ export default function PrivacyPage() {
   return (
     <div className="space-y-6 sm:space-y-10">
       <header className="space-y-3">
-        <Link
-          href="/dashboard"
-          className="text-sm text-zinc-300 hover:text-zinc-400"
-        >
+        <Link href="/dashboard" className="text-sm text-zinc-300 hover:text-zinc-400">
           ← Back to dashboard
         </Link>
 
@@ -267,7 +294,6 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
 
-        {/* Bright accent header (same vibe as your highlight cards) */}
         <div className="rounded-2xl border border-rose-200/70 bg-gradient-to-br from-rose-50 to-amber-50 p-4 sm:p-5">
           <p className="text-sm sm:text-base text-zinc-900 font-medium">
             This Privacy Policy explains how Networ.King collects, uses, and protects your data.
@@ -282,10 +308,7 @@ export default function PrivacyPage() {
         {sections.map((s, idx) => {
           const isOpen = openIndex === idx;
           return (
-            <div
-              key={idx}
-              className="border border-amber-200/30 rounded-xl bg-white/5 overflow-hidden"
-            >
+            <div key={idx} className="border border-amber-200/30 rounded-xl bg-white/5 overflow-hidden">
               <button
                 type="button"
                 onClick={() => setOpenIndex(isOpen ? null : idx)}

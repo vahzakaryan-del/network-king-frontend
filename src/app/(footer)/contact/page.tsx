@@ -48,7 +48,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-10 ">
+    <div className="space-y-6 sm:space-y-10">
       <header className="space-y-2">
         <Link
           href="/dashboard"
@@ -61,19 +61,22 @@ export default function ContactPage() {
           Contact
         </h1>
 
-        
-
         <p className="text-sm sm:text-base text-zinc-300">
-          Send us a message — we usually reply within 1–2 business days.
+          For support, account issues, or data requests, please use the form below.
+        </p>
+
+        <p className="text-xs text-zinc-400">
+          We usually respond within 1–2 business days.
         </p>
       </header>
-      
-   {/* Separator */}
-        <div className="pt-2">
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
-        </div>
+
+      {/* Separator */}
+      <div className="pt-2">
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-        {/* Honeypot field (hidden bot trap) */}
+        {/* Honeypot (bot trap) */}
         <input
           name="company"
           tabIndex={-1}
@@ -118,25 +121,29 @@ export default function ContactPage() {
             : "Send message"}
         </button>
 
-        {/* Status messages */}
+        {/* Success */}
+        {status === "sent" && (
+          <div className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+            Your message has been sent successfully. We’ll get back to you soon.
+          </div>
+        )}
+
+        {/* Error */}
         {status === "error" && (
           <div className="rounded-xl border border-rose-400/40 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
             {error}
           </div>
         )}
 
-        {status === "sent" && (
-          <div className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-            Your message has been delivered successfully.
-          </div>
-        )}
-
         <p className="text-xs text-zinc-400 leading-relaxed">
-          Tip: If you&apos;re reporting a bug, please include  steps for us to reproduce it.
+          Tip: If you&apos;re reporting a bug, please include steps for us to reproduce it.
+        </p>
+
+        {/* GDPR note */}
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          This form can also be used to request access to or deletion of your personal data.
         </p>
       </form>
-
-      
     </div>
   );
 }

@@ -27,6 +27,7 @@ export default function TermsPage() {
         </p>
 
         <div className="space-y-6 text-gray-100 leading-relaxed max-h-[60vh] overflow-y-auto pr-4">
+
           <section>
             <h2 className="text-amber-300 text-xl font-semibold mb-2">
               1. Acceptance of Terms
@@ -101,6 +102,7 @@ export default function TermsPage() {
               By submitting content, you grant us a limited license to store,
               display, and process it solely for operating and improving the service.
               You are responsible for ensuring you have the right to submit any content you provide.
+              We are not responsible for user-generated content.
             </p>
           </section>
 
@@ -139,6 +141,57 @@ export default function TermsPage() {
             </p>
           </section>
 
+          {/* NEW: User interactions */}
+          <section>
+            <h2 className="text-amber-300 text-xl font-semibold mb-2">
+              9.1 User Interactions
+            </h2>
+            <p>
+              Networ.King enables interactions between users. We do not control,
+              verify, or guarantee the identity, intentions, or behavior of any user.
+              Any interactions, communications, or transactions with other users
+              are at your own risk. We are not responsible for disputes, losses,
+              scams, fraud, or misleading behavior between users.
+            </p>
+          </section>
+
+          {/* NEW: External links */}
+          <section>
+            <h2 className="text-amber-300 text-xl font-semibold mb-2">
+              9.2 External Links
+            </h2>
+            <p>
+              The platform may contain links to third-party websites or services.
+              We are not responsible for the content, accuracy, or practices of
+              these external sites. Accessing third-party links is done at your own risk.
+            </p>
+          </section>
+
+          {/* NEW: Content moderation */}
+          <section>
+            <h2 className="text-amber-300 text-xl font-semibold mb-2">
+              9.3 Platform Control
+            </h2>
+            <p>
+              We reserve the right (but are not obligated) to monitor, review,
+              remove, or restrict content or accounts at our sole discretion,
+              especially if they violate these Terms or pose risks to users or the platform.
+            </p>
+          </section>
+
+          {/* NEW: Payments */}
+          <section>
+            <h2 className="text-amber-300 text-xl font-semibold mb-2">
+              9.4 Purchases and Payments
+            </h2>
+            <p>
+              Certain features of the platform may require payment. Payments are
+              processed through third-party providers such as Stripe. We do not
+              store full payment details. All purchases are final unless otherwise
+              required by law. We reserve the right to modify pricing at any time.
+            </p>
+          </section>
+
           <section>
             <h2 className="text-amber-300 text-xl font-semibold mb-2">
               10. Termination
@@ -146,13 +199,26 @@ export default function TermsPage() {
             <p>
               We reserve the right to suspend or terminate accounts that violate
               these Terms or that pose a risk to the platform or other users.
+              We may terminate accounts at our sole discretion.
               You may stop using the platform at any time by discontinuing access.
             </p>
           </section>
 
+          {/* NEW: Age */}
           <section>
             <h2 className="text-amber-300 text-xl font-semibold mb-2">
-              11. Changes to Terms
+              11. Minimum Age
+            </h2>
+            <p>
+              You must be at least 16 years old to use this platform.
+              By creating an account, you confirm that you meet this requirement.
+            </p>
+          </section>
+
+          {/* Renumbered */}
+          <section>
+            <h2 className="text-amber-300 text-xl font-semibold mb-2">
+              12. Changes to Terms
             </h2>
             <p>
               We may update these Terms periodically. Updated versions will be
@@ -160,6 +226,31 @@ export default function TermsPage() {
               platform after updates constitutes acceptance of the revised Terms.
             </p>
           </section>
+
+          {/* NEW: Governing law */}
+          <section>
+            <h2 className="text-amber-300 text-xl font-semibold mb-2">
+              13. Governing Law
+            </h2>
+            <p>
+              These Terms are governed by the laws of Belgium. Any disputes shall
+              be subject to the jurisdiction of Belgian courts.
+            </p>
+          </section>
+
+          {/* NEW: Contact */}
+          <section>
+            <h2 className="text-amber-300 text-xl font-semibold mb-2">
+              14. Contact
+            </h2>
+            <p>
+              For any questions regarding these Terms, please contact us via our{" "}
+              <Link href="/contact" className="text-amber-300 underline">
+                Contact page
+              </Link>.
+            </p>
+          </section>
+
         </div>
 
         <div className="text-center mt-8">
