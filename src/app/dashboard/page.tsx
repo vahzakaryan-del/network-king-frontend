@@ -151,6 +151,10 @@ function BadgeStack({
 }) {
   const top3 = isFeatured ? (badges || []).slice(0, 3) : pickTop3Badges(badges);
 
+  
+ const isOnlyDefaultBadge =
+  top3.length === 1 && top3[0]?.id === 8;
+
   if (top3.length === 0) {
     return (
       <>
@@ -170,32 +174,48 @@ function BadgeStack({
   return (
     <>
       {/* ✅ Mobile compact row */}
-      <div className="flex md:hidden items-center justify-end gap-2">
-        {top3.slice(0, 3).map((b, i) => (
-          <BadgeMedallion key={i} badge={b} size={60} />
-        ))}
-      </div>
+    <div className="flex md:hidden flex-col items-end gap-1">
+  <div className="flex items-center gap-2">
+    {top3.slice(0, 3).map((b, i) => (
+      <BadgeMedallion key={i} badge={b} size={60} />
+    ))}
+  </div>
+
+  {isOnlyDefaultBadge && (
+    <div className="text-[10px] text-white/60 italic text-right">
+      This is your first badge ✨
+    </div>
+  )}
+</div>
 
       {/* Desktop big stack */}
       <div className="hidden md:flex relative flex-1 justify-center items-center min-h-[150px]">
         <div className="absolute inset-0 blur-3xl opacity-20 pointer-events-none bg-gradient-to-tr from-amber-300/40 via-purple-500/30 to-transparent" />
-        <div className="relative flex justify-center items-center gap-8">
-          {top3[0] && (
-            <div className="scale-110 relative">
-              <BadgeMedallion badge={top3[0]} size={88} glow />
-            </div>
-          )}
-          {top3[1] && (
-            <div className="scale-100 relative">
-              <BadgeMedallion badge={top3[1]} size={74} />
-            </div>
-          )}
-          {top3[2] && (
-            <div className="scale-90 relative">
-              <BadgeMedallion badge={top3[2]} size={58} />
-            </div>
-          )}
-        </div>
+        <div className="relative flex flex-col items-center gap-2">
+  <div className="flex justify-center items-center gap-8">
+    {top3[0] && (
+      <div className="scale-110 relative">
+        <BadgeMedallion badge={top3[0]} size={88} glow />
+      </div>
+    )}
+    {top3[1] && (
+      <div className="scale-100 relative">
+        <BadgeMedallion badge={top3[1]} size={74} />
+      </div>
+    )}
+    {top3[2] && (
+      <div className="scale-90 relative">
+        <BadgeMedallion badge={top3[2]} size={58} />
+      </div>
+    )}
+  </div>
+
+  {isOnlyDefaultBadge && (
+    <div className="text-xs text-white/60 italic text-center">
+      This is your first badge!  ✨
+    </div>
+  )}
+</div>
       </div>
     </>
   );
