@@ -56,8 +56,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35 }}
-            className="fixed left-1/2 top-4 z-50 w-[92%] -translate-x-1/2 rounded-xl border border-white/30 bg-white/20 px-4 py-3 text-sm shadow-lg backdrop-blur-xl sm:left-auto sm:right-6 sm:top-6 sm:w-auto sm:translate-x-0"
-          >
+           className="fixed inset-x-3 top-4 z-50 rounded-xl border border-white/30 bg-white/20 px-3 py-2 text-sm shadow-lg backdrop-blur-xl sm:inset-x-auto sm:right-6 sm:top-6 sm:max-w-sm"  >
             <p className="font-semibold text-white">
               You are already logged in • Redirecting…
             </p>
