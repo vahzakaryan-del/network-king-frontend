@@ -15,14 +15,12 @@ type RateEntry = { count: number; resetAt: number };
 const rateMap = new Map<string, RateEntry>();
 
 function getClientIp(req: Request) {
-  // Common proxies / Vercel headers:
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
 
   const xrip = req.headers.get("x-real-ip");
   if (xrip) return xrip.trim();
 
-  // Fallback key if IP is not available:
   return "unknown";
 }
 
@@ -42,7 +40,6 @@ function isRateLimited(key: string, limit: number, windowMs: number) {
   return false;
 }
 
-// Optional: occasional cleanup so map doesn't grow forever
 function cleanupRateMap() {
   const now = Date.now();
   for (const [k, v] of rateMap.entries()) {
@@ -56,7 +53,6 @@ export async function POST(req: Request) {
 
     const ip = getClientIp(req);
 
-    // Example limit: 5 requests per 10 minutes per IP
     const LIMIT = 5;
     const WINDOW_MS = 10 * 60 * 1000;
 
@@ -73,16 +69,15 @@ export async function POST(req: Request) {
     const email = String(body?.email ?? "").trim();
     const message = String(body?.message ?? "").trim();
 
-    // NEW: sanitize name for subject (prevent long/abuse input)
-const safeName = name.slice(0, 80);
+    // sanitize name for subject
+    const safeName = name.slice(0, 80);
 
-// NEW: timestamp for debugging/logging
-const timestamp = new Date().toISOString();
+    // timestamp
+    const timestamp = new Date().toISOString();
 
-    // Honeypot: bots often fill hidden fields
+    // Honeypot
     const company = String(body?.company ?? "").trim();
     if (company) {
-      // Pretend it's ok (or return 400). Pretending ok reduces bot learning.
       return NextResponse.json({ ok: true });
     }
 
@@ -107,7 +102,6 @@ const timestamp = new Date().toISOString();
       );
     }
 
-    // Basic length caps to reduce abuse
     if (name.length > 120 || email.length > 200 || message.length > 5000) {
       return NextResponse.json(
         { ok: false, error: "Message too long." },
@@ -124,32 +118,58 @@ const timestamp = new Date().toISOString();
         { status: 500 }
       );
     }
-const result = await resend.emails.send({
-  from,
-  to,
-  subject: `Networ.King Contact — ${safeName}`,
-  replyTo: email,
-  text: [
-  `Name: ${name}`,
-  `Email: ${email}`,
-  `IP: ${ip}`,
-  `Time: ${timestamp}`, // NEW
-  "",
-  "Message:",
-  message,
-].join("\n"),
-});
 
-console.log("RESEND_RESULT:", result);
+    const result = await resend.emails.send({
+      from,
+      to,
+      subject: `Networ.King Contact — ${safeName}`,
+      replyTo: email,
 
-if ((result as any)?.error) {
-  console.error("Resend error:", (result as any).error);
-  return NextResponse.json(
-    { ok: false, error: "Email provider error." },
-    { status: 502 }
-  );
-}
+      // ✅ improved TEXT version (less spammy)
+      text: `
+New contact message from Networ.King
 
+Name: ${name}
+Email: ${email}
+Time: ${timestamp}
+
+Message:
+${message}
+
+Reply directly to this email to respond.
+`,
+
+      // ✅ HTML version (VERY IMPORTANT)
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>📩 New Contact Message</h2>
+
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Time:</strong> ${timestamp}</p>
+
+          <p><strong>Message:</strong></p>
+          <div style="padding:10px; border:1px solid #ddd; border-radius:6px; white-space: pre-line;">
+            ${message}
+          </div>
+
+          <hr />
+          <p style="font-size:12px;color:#888;">
+            Sent via Networ.King contact form
+          </p>
+        </div>
+      `,
+    });
+
+    console.log("RESEND_RESULT:", result);
+
+    if ((result as any)?.error) {
+      console.error("Resend error:", (result as any).error);
+      return NextResponse.json(
+        { ok: false, error: "Email provider error." },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch {
