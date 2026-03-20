@@ -73,6 +73,12 @@ export async function POST(req: Request) {
     const email = String(body?.email ?? "").trim();
     const message = String(body?.message ?? "").trim();
 
+    // NEW: sanitize name for subject (prevent long/abuse input)
+const safeName = name.slice(0, 80);
+
+// NEW: timestamp for debugging/logging
+const timestamp = new Date().toISOString();
+
     // Honeypot: bots often fill hidden fields
     const company = String(body?.company ?? "").trim();
     if (company) {
@@ -121,16 +127,17 @@ export async function POST(req: Request) {
 const result = await resend.emails.send({
   from,
   to,
-  subject: `Networ.King Contact — ${name}`,
+  subject: `Networ.King Contact — ${safeName}`,
   replyTo: email,
   text: [
-    `Name: ${name}`,
-    `Email: ${email}`,
-    `IP: ${ip}`,
-    "",
-    "Message:",
-    message,
-  ].join("\n"),
+  `Name: ${name}`,
+  `Email: ${email}`,
+  `IP: ${ip}`,
+  `Time: ${timestamp}`, // NEW
+  "",
+  "Message:",
+  message,
+].join("\n"),
 });
 
 console.log("RESEND_RESULT:", result);
