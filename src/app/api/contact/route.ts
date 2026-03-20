@@ -127,38 +127,40 @@ export async function POST(req: Request) {
 
       // ✅ improved TEXT version (less spammy)
       text: `
-New contact message from Networ.King
+You have received a new message from your website contact form (Networ.King).
 
-Name: ${name}
-Email: ${email}
-Time: ${timestamp}
+Sender Name: ${name}
+Sender Email: ${email}
 
 Message:
 ${message}
 
-Reply directly to this email to respond.
+This message was submitted via https://networkking.app/contact
+
+Reply directly to respond.
 `,
 
       // ✅ HTML version (VERY IMPORTANT)
       html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2>📩 New Contact Message</h2>
+<div style="font-family: Arial, sans-serif; line-height: 1.6;">
+  <h2>📩 New Contact Form Submission</h2>
 
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Time:</strong> ${timestamp}</p>
+  <p>This message was submitted via your website contact form.</p>
 
-          <p><strong>Message:</strong></p>
-          <div style="padding:10px; border:1px solid #ddd; border-radius:6px; white-space: pre-line;">
-            ${message}
-          </div>
+  <p><strong>Name:</strong> ${name}</p>
+  <p><strong>Email:</strong> ${email}</p>
 
-          <hr />
-          <p style="font-size:12px;color:#888;">
-            Sent via Networ.King contact form
-          </p>
-        </div>
-      `,
+  <p><strong>Message:</strong></p>
+  <div style="padding:10px; border:1px solid #ddd; border-radius:6px; white-space: pre-line;">
+    ${message}
+  </div>
+
+  <hr />
+  <p style="font-size:12px;color:#888;">
+    Source: https://networkking.app/contact
+  </p>
+</div>
+`,
     });
 
     console.log("RESEND_RESULT:", result);
