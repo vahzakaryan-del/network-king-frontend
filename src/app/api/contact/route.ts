@@ -7,6 +7,10 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/**
+ * Best-effort in-memory rate limit (works well on a single server;
+ * on serverless it still helps but may reset between invocations).
+ */
 type RateEntry = { count: number; resetAt: number };
 const rateMap = new Map<string, RateEntry>();
 
@@ -49,7 +53,10 @@ export async function POST(req: Request) {
 
     const ip = getClientIp(req);
 
-    if (isRateLimited(ip, 5, 10 * 60 * 1000)) {
+    const LIMIT = 5;
+    const WINDOW_MS = 10 * 60 * 1000;
+
+    if (isRateLimited(ip, LIMIT, WINDOW_MS)) {
       return NextResponse.json(
         { ok: false, error: "Too many requests. Please try again later." },
         { status: 429 }
@@ -62,6 +69,13 @@ export async function POST(req: Request) {
     const email = String(body?.email ?? "").trim();
     const message = String(body?.message ?? "").trim();
 
+    // sanitize name for subject
+    const safeName = name.slice(0, 80);
+
+    // timestamp
+    const timestamp = new Date().toISOString();
+
+    // Honeypot
     const company = String(body?.company ?? "").trim();
     if (company) {
       return NextResponse.json({ ok: true });
@@ -88,9 +102,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const to = process.env.CONTACT_TO_EMAIL;
+    if (name.length > 120 || email.length > 200 || message.length > 5000) {
+      return NextResponse.json(
+        { ok: false, error: "Message too long." },
+        { status: 400 }
+      );
+    }
 
-    if (!to) {
+    const to = process.env.CONTACT_TO_EMAIL;
+    const from = process.env.CONTACT_FROM_EMAIL;
+
+    if (!to || !from) {
       return NextResponse.json(
         { ok: false, error: "Server email config missing." },
         { status: 500 }
@@ -98,28 +120,53 @@ export async function POST(req: Request) {
     }
 
     const result = await resend.emails.send({
-      // ✅ FIX: use safe sender (Resend requires verified or Gmail-like)
-      from: "NetworKing <onboarding@resend.dev>",
-
+      from,
       to,
-
-      // ✅ FIX: static subject (no user content)
-      subject: "New Contact Message",
-
-      // ✅ FIX: safe reply
+      subject: `Networ.King Contact — ${safeName}`,
       replyTo: email,
 
-      // ✅ FIX: SIMPLE TEXT ONLY (no HTML)
-      text: `New contact message
+      // ✅ improved TEXT version (less spammy)
+      text: `
+You have received a new message from your website contact form (Networ.King).
 
-Name: ${name}
-Email: ${email}
+Sender Name: ${name}
+Sender Email: ${email}
 
 Message:
-${message}`,
+${message}
+
+This message was submitted via https://networkking.app/contact
+
+Reply directly to respond.
+`,
+
+      // ✅ HTML version (VERY IMPORTANT)
+      html: `
+<div style="font-family: Arial, sans-serif; line-height: 1.6;">
+  <h2>📩 New Contact Form Submission</h2>
+
+  <p>This message was submitted via your website contact form.</p>
+
+  <p><strong>Name:</strong> ${name}</p>
+  <p><strong>Email:</strong> ${email}</p>
+
+  <p><strong>Message:</strong></p>
+  <div style="padding:10px; border:1px solid #ddd; border-radius:6px; white-space: pre-line;">
+    ${message}
+  </div>
+
+  <hr />
+  <p style="font-size:12px;color:#888;">
+    Source: https://networkking.app/contact
+  </p>
+</div>
+`,
     });
 
+    console.log("RESEND_RESULT:", result);
+
     if ((result as any)?.error) {
+      console.error("Resend error:", (result as any).error);
       return NextResponse.json(
         { ok: false, error: "Email provider error." },
         { status: 502 }
