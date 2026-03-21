@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 
 type Step = {
@@ -24,7 +24,7 @@ export default function OnboardingOverlay({
   const [currentStep, setCurrentStep] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   
-  
+  const hasScrolledRef = useRef(false);
 
   const step = steps[currentStep];
 
@@ -34,6 +34,7 @@ export default function OnboardingOverlay({
 
 useEffect(() => {
   setRect(null);
+  hasScrolledRef.current = false;
 }, [step]);
 
   // 🔍 Find target position
@@ -41,7 +42,7 @@ useEffect(() => {
   if (!isOpen || !step) return;
 
   let attempts = 0;
-let hasScrolled = false;
+
 
   const findAndMeasure = () => {
    const candidates = Array.from(
@@ -66,12 +67,15 @@ const el = candidates.find(
 
 
     // 👇 scroll AFTER valid rect
-    if (!hasScrolled) {
+    if (!hasScrolledRef.current) {
+  const isTall = r.height > window.innerHeight * 0.6;
+
   el.scrollIntoView({
     behavior: "smooth",
-    block: "center",
+    block: isTall ? "start" : "center",
   });
-  hasScrolled = true;
+
+  hasScrolledRef.current = true;
 }
 
     return true;
@@ -181,7 +185,7 @@ p-5
   position: "fixed",
   top: Math.max(
   12,
-  isBottomOverflow ? rect.top - 160 : rect.bottom + 12
+  isBottomOverflow ? rect.top - Math.min(140, rect.height * 0.5) : rect.bottom + 12
 ),
   left: Math.max(
   12,
@@ -225,7 +229,14 @@ p-5
       </button>
     ) : (
       <button
-        onClick={onFinish}
+        onClick={() => {
+  // only do this on mobile
+  if (window.innerWidth < 768) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  onFinish();
+}}
         className="px-3 py-1 text-sm rounded bg-gradient-to-r from-amber-400 to-yellow-300 text-gray-900 shadow-lg font-semibold"
       >
         Finish
