@@ -1310,7 +1310,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
           {/* LEFT PANEL — Identity */}
-          <div className="order-1 lg:order-none rounded-2xl p-4 bg-white/10 border border-white/15 shadow-xl border-2 border-indigo-500 shadow-[0_0_10px_#6366f1,0_0_20px_#6366f1] backdrop-blur">
+          <div className="order-1 lg:order-none rounded-2xl p-4 bg-white/10 border-white/15 border-2 border-indigo-500 shadow-[0_0_10px_#6366f1,0_0_20px_#6366f1] backdrop-blur">
 
             <div className="relative flex flex-col items-center">
   {/* mobile scroll-to-talisman arrow */}
@@ -1688,7 +1688,7 @@ setBuyTokensOpen(true);
           {/* CENTER PANEL — Talisman Showcase */}
           <div
   ref={talismanRef}
-  className="order-3 lg:order-none rounded-2xl p-4 bg-white/5 border border-white/10 shadow-2xl border-2 border-indigo-500 shadow-[0_0_10px_#6366f1,0_0_20px_#6366f1] backdrop-blur relative overflow-hidden"
+  className="order-3 lg:order-none rounded-2xl p-4 bg-white/5 border-white/10 border-2 border-indigo-500 shadow-[0_0_10px_#6366f1,0_0_20px_#6366f1] backdrop-blur relative overflow-hidden"
 >
 
             {/* soft glow */}

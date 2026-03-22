@@ -226,6 +226,8 @@ function GlobalChatPreview({ limit = 3, compact = false }: { limit?: number; com
 
   const [preview, setPreview] = useState<any[]>([]);
   const router = useRouter();
+  
+
 
   const formatTimeAgo = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
@@ -503,6 +505,7 @@ export default function DashboardPage() {
 
   // Core page state
   const [user, setUser] = useState<any>(null);
+  const profileId = user?.id;
 
   const showHelpButton = (() => {
   if (!user?.createdAt) return false;
@@ -1700,13 +1703,11 @@ useEffect(() => {
         <div className="md:hidden mt-5 space-y-4">
           {/* 2) ID Card (mobile) */}
           <motion.div
-          id="onboarding-profile"
-            {...fastFade}
-            transition={{ duration: 0.45 }}
-            className="relative overflow-hidden rounded-2xl p-4 bg-white/10 backdrop-blur-md shadow-2xl border border-amber-300/40"
-            onClick={() => user?.id && router.push(`/profile/${user.id}`)}
-            role="button"
-          >
+  id="onboarding-profile"
+  {...fastFade}
+  transition={{ duration: 0.45 }}
+  className="relative overflow-hidden rounded-2xl p-4 bg-white/10 backdrop-blur-md shadow-2xl border border-amber-300/40"
+>
             <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-transparent [background:linear-gradient(45deg,#ffd700,#7c3aed,#22d3ee)_border-box] [mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] [mask-composite:exclude] opacity-50" />
 
             {user ? (
@@ -1748,14 +1749,20 @@ useEffect(() => {
                     View Profile
                   </button>
 
-                  <BadgeStack
-                    badges={
-                      Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0
-                        ? user.featuredBadges
-                        : user.badges || []
-                    }
-                    isFeatured={Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0}
-                  />
+                  <div
+  onClick={() => router.push(`/profile/${profileId}/badges`)}
+  className="cursor-pointer"
+  title="View badges"
+>
+  <BadgeStack
+    badges={
+      Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0
+        ? user.featuredBadges
+        : user.badges || []
+    }
+    isFeatured={Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0}
+  />
+</div>
                 </div>
               </div>
             ) : (
