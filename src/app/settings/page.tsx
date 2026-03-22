@@ -341,6 +341,10 @@ export default function SettingsPage() {
   const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  const [confirmText, setConfirmText] = useState("");
+
   // Preferences (local only)
   const [use24h, setUse24h] = useState(false);
 
@@ -486,6 +490,10 @@ if (hasPassword && !pwCurrent)
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return setDeleteMsg(data?.error || "Failed to delete account.");
+      
+      setConfirmText("");
+setDeletePassword("");
+setDeleteMsg("");
 
       localStorage.removeItem("token");
       router.push("/login");
@@ -1120,15 +1128,100 @@ if (hasPassword && !pwCurrent)
                   >
                     Cancel
                   </Button>
-                  <Button variant="danger" onClick={deleteAccount}>
-                    Delete
-                  </Button>
+
+               
+                  <Button
+  variant="danger"
+  onClick={() => {
+    if (!deletePassword) {
+      setDeleteMsg("Password required.");
+      return;
+    }
+  setDeleteOpen(false); 
+  setConfirmText("");        
+  setConfirmDeleteOpen(true);  
+  }}
+>
+  Delete
+</Button>
                 </div>
               </motion.div>
             </motion.div>
           </Portal>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+  {confirmDeleteOpen && (
+    <Portal>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 px-4"
+        onClick={() => {
+  setConfirmDeleteOpen(false);
+  setConfirmText("");
+}}
+      >
+        <motion.div
+          initial={{ y: 20, opacity: 0, scale: 0.98 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 10, opacity: 0, scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 260, damping: 24 }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-md rounded-2xl bg-white border border-red-200 shadow-xl p-6"
+        >
+          <div className="flex items-center gap-2">
+            <Trash2 size={20} className="text-red-600" />
+            <div className="text-lg font-extrabold text-red-700">
+              Are you absolutely sure?
+            </div>
+          </div>
+
+          <p className="mt-3 text-sm text-slate-700">
+            This action <span className="font-bold text-red-600">cannot be undone</span>.
+            <br />
+            Your account, progress, purchases, and all data will be permanently deleted.
+          </p>
+
+          <div className="mt-5">
+  <Field label="Type DELETE to confirm">
+    <Input
+      value={confirmText}
+      onChange={(e) => setConfirmText(e.target.value)}
+      placeholder="DELETE"
+    />
+  </Field>
+</div>
+
+<div className="mt-6 flex gap-2 justify-end">
+  <Button
+    variant="secondary"
+    onClick={() => {
+      setConfirmDeleteOpen(false);
+      setConfirmText("");
+    }}
+  >
+    Cancel
+  </Button>
+
+  <Button
+    variant="danger"
+    disabled={confirmText !== "DELETE"}
+    onClick={() => {
+      setConfirmDeleteOpen(false);
+      deleteAccount();
+    }}
+  >
+    Yes, delete forever
+  </Button>
+</div>
+        </motion.div>
+      </motion.div>
+    </Portal>
+  )}
+</AnimatePresence>
     </main>
   );
 }
