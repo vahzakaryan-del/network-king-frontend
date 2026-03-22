@@ -41,7 +41,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
       } catch {}
 
       // redirect immediately
-      window.location.href = "/login";
+      window.location.href = "/login?reason=session_expired";
     }
 
     // stop further execution everywhere

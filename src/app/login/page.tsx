@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { GoogleLogin } from "@react-oauth/google";
@@ -60,6 +60,9 @@ export default function LoginPage() {
   const [emailNotVerified, setEmailNotVerified] = useState(false);
 
   const [useGoogleHint, setUseGoogleHint] = useState(false);
+
+  const params = useSearchParams();
+const reason = params.get("reason");
 
   const [notice, setNotice] = useState<{
     kind: NoticeKind;
@@ -323,9 +326,13 @@ try {
   }`}
 >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
-
+     
       <div className="relative mx-auto flex min-h-[100svh] max-w-5xl flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14">
-
+  {reason === "session_expired" && (
+  <div className="mb-4 text-sm text-red-400 text-center">
+    ⚠️ Your session expired. Please log in again.
+  </div>
+)}
         <motion.div
   className="w-full max-w-md rounded-2xl bg-white/10 p-6 shadow-2xl backdrop-blur-md sm:p-8"
   initial={{ opacity: 0, y: 24 }}
