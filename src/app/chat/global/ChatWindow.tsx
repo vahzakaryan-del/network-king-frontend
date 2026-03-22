@@ -582,7 +582,7 @@ useEffect(() => {
           <h2 className="font-semibold">{channel}</h2>
           {!canPost && (
             <span className="text-xs text-white/60 ml-2">
-              Read-only (admins only)
+              Read-only channel
             </span>
           )}
         </div>
@@ -742,10 +742,22 @@ useEffect(() => {
 </div>
 
       ) : (
-        <div className="p-3 border-t border-white/10 text-xs text-white/50 flex-shrink-0">
-          Only admins can post in announcements.
-        </div>
-      )}
+  <div className="p-4 border-t border-white/10 flex-shrink-0">
+    <div className="w-full rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 px-4 py-4 text-center">
+      
+      <div className="text-lg mb-1">📢</div>
+
+      <div className="text-sm font-semibold text-white/90">
+        Announcements
+      </div>
+
+      <div className="text-xs text-white/60 mt-1">
+        You can read all our updates here
+      </div>
+
+    </div>
+  </div>
+)}
     </section>
   );
 }
