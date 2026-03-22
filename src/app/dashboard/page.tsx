@@ -1468,16 +1468,48 @@ const data = await res.json();
                 className={`w-full mb-3 px-4 py-3 rounded-xl font-bold border transition ${
                   isPremium
                     ? "border-yellow-400 text-yellow-300 shadow-[0_0_10px_rgba(255,215,0,0.45)]"
-                    : "border-white/20 text-white hover:border-white/50"
+                    : "border-silver text-white hover:border-white/50"
                 }`}
               >
                 👑 Premium
               </button>
 
-              {/* ✅ Mystic Cookie (in menu) */}
+                  {/* Daily widgets moved to bottom (mobile) */}
+
+             <button
+ onClick={() => {
+  setMobileMenuOpen(false);
+  openLottery();
+}}
+  disabled={!lotteryAvailable}
+  className={[
+    "w-full py-3 rounded-2xl mb-1",
+    "border-2 border-amber-400/80 ring-1 ring-amber-300/50",
+    "shadow-xl transition-all text-left px-4",
+    lotteryAvailable
+      ? "bg-[rgba(169,169,169,0.22)] text-white active:scale-[0.99]"
+      : "bg-[rgba(64,63,63,0.22)] text-white active:scale-[0.99]",
+  ].join(" ")}
+>
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <span>💎</span>
+      <span className="font-semibold">Daily Lottery</span>
+    </div>
+
+    <span className="text-[11px] font-medium">
+      {lotteryAvailable
+        ? "Ready"
+        : formatLotteryCooldown(lotteryCooldownMs)}
+    </span>
+  </div>
+</button>
+
+            
            {/* ✅ Mystic Cookie (in menu) */}
-<div className="bg-black/20 shadow-[0_0_20px_rgba(0,0,0,0.25)]
- rounded-2xl mb-3 overflow-hidden">
+
+<div className="mt-2 bg-black/20 shadow-[0_0_20px_rgba(0,0,0,0.25)]
+ rounded-2xl mb-2 overflow-hidden">
   <button
     onClick={() => {
       setMobileMenuOpen(false);
@@ -1507,6 +1539,26 @@ const data = await res.json();
 </div>
 
 
+              <button
+  onClick={() => {
+    router.push("/tests");
+    setMobileMenuOpen(false);
+  }}
+  className="
+    w-full mb-3 mt-2 px-4 py-4 rounded-xl
+    font-bold text-white
+    bg-gradient-to-r from-indigo-500 via-purple-600 to-amber-400
+    border border-white/20
+    shadow-[0_0_20px_rgba(255,180,0,0.35)]
+    animate-pulse
+    active:scale-[0.98]
+    transition-all
+  "
+>
+  🚀 Go to Tests
+</button>
+
+
 
               <button
   onClick={() => {
@@ -1514,7 +1566,7 @@ const data = await res.json();
     setMobileMenuOpen(false);
   }}
   className="
-    w-full mb-3 px-4 py-3 rounded-xl
+    w-full mb-6 mt-1 px-4 py-3 rounded-xl
     bg-white/10
     border border-gray-300
     text-gray-200
@@ -1525,6 +1577,10 @@ const data = await res.json();
   ⚙️ Settings
 </button>
 
+<div className="mb-5">
+        <div className="mb-3 h-px w-full bg-gradient-to-r from-transparent via-white to-transparent" />
+      </div>
+
 <button
   
   onClick={() => {
@@ -1532,13 +1588,13 @@ const data = await res.json();
     setDropdownOpen(false); // if inside dropdown
     setMobileMenuOpen(false)
   }}
-   className="w-full mb-5 px-4 py-3 rounded-xl bg-amber-400 text-gray-900 font-semibold"
+   className="w-full mt-4 px-4 py-3 rounded-xl bg-amber-400 text-gray-900 font-semibold"
                
 >
   
   🧭 Replay onboarding
 </button>
-
+ 
 
 
               {user?.role === "admin" && (
@@ -1553,12 +1609,14 @@ const data = await res.json();
                 </button>
               )}
 
+              
+
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   setLogoutConfirmOpen(true);
                 }}
-                className="w-full mt-2 px-4 py-3 rounded-xl bg-red-600 font-semibold"
+                className="w-full mt-4 px-4 py-3 rounded-xl bg-red-600 font-semibold"
               >
                 Log Out
               </button>
@@ -1787,23 +1845,6 @@ const data = await res.json();
             </button>
           </motion.div>
 
-          {/* Daily widgets moved to bottom (mobile) */}
-            <div className="mt-4 space-y-3">
-
-              <button
-                onClick={openLottery}
-                className="
-                  w-full py-4 rounded-2xl
-                  bg-[rgba(169,169,169,0.22)]
-                  border-2 border-amber-400/80 ring-1 ring-amber-300/50
-                  text-base font-semibold text-white
-                  shadow-xl
-                  transition-all active:scale-[0.99]
-                "
-              >
-                💎 Daily Lottery
-              </button>
-            </div>
 
 
  {/* 6) My Friends (thin + 2 preview) */}
