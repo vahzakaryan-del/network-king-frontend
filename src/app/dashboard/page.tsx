@@ -9,6 +9,7 @@ import BadgeScore from "@/components/BadgeScore";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 import { onboardingSteps } from "@/lib/onboardingSteps";
+import { apiFetch } from "@/lib/api";
 
 import { asset } from "@/lib/assets";
 const API = process.env.NEXT_PUBLIC_API_URL!;
@@ -243,7 +244,7 @@ function GlobalChatPreview({ limit = 3, compact = false }: { limit?: number; com
 
 useEffect(() => {
   if (typeof window === "undefined") return;
-  fetch(`${API}/global/preview`)
+  apiFetch(`/global/preview`)
     .then((res) => res.json())
     .then((data) => setPreview((data || []).slice(-limit)))
     .catch(console.error);
@@ -334,7 +335,7 @@ function TestPreview({ limit = 6 }: { limit?: number }) {
   async function loadTests() {
     setLoading(true);
     try {
-    const res = await fetch(`${API}/admin/tests/preview`);
+    const res = await apiFetch(`/admin/tests/preview`);
       const data = await res.json();
       if (Array.isArray(data)) {
         const shuffled = data.sort(() => 0.5 - Math.random());
@@ -436,9 +437,7 @@ function FriendsPreview({ limit = 4 }: { limit?: number }) {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch(`${API}/friends/preview`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/friends/preview`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setFriends(data);
@@ -595,14 +594,12 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch(`${API}/levels`)
+    apiFetch(`/levels`)
       .then((r) => r.json())
       .then((d) => setLevels(d.levels || []))
       .catch(() => {});
 
-    fetch(`${API}/levels/mine`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/levels/mine`)
       .then((r) => r.json())
       .then((d) => setCurrentLevel(d.level || 1))
       .catch(() => {});
@@ -669,9 +666,7 @@ const wasOpenRef = useRef(false);
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch(`${API}/me/entitlements`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/me/entitlements`)
       .then((r) => r.json())
       .then((data) => setIsPremium(!!data?.isPremium))
       .catch(() => {});
@@ -897,9 +892,7 @@ useEffect(() => {
   if (!token) return;
 
   try {
-   const res = await fetch(`${API}/lottery/status`, {
-  headers: { Authorization: `Bearer ${token}` },
-});
+   const res = await apiFetch(`/lottery/status`);
 
 const data = await res.json();
 
@@ -928,9 +921,8 @@ async function spinLottery() {
   setLotteryResult(null);
 
   try {
-   const res = await fetch(`${API}/lottery/spin`, {
+   const res = await apiFetch(`/lottery/spin`, {
   method: "POST",
-  headers: { Authorization: `Bearer ${token}` },
 });
 
 const data = await res.json();
@@ -983,9 +975,7 @@ const data = await res.json();
       return;
     }
 
-    fetch(`${API}/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/profile`)
       .then(async (res) => {
         if (!res.ok) {
           const data = await res.json();
@@ -1005,20 +995,15 @@ const data = await res.json();
   }
 })
       .catch((err) => {
-        setMessage(`❌ ${err.message}`);
-        setTimeout(() => router.push("/login"), 1200);
-      });
+  console.error(err);
+});
 
-   fetch(`${API}/notifications/unread-count`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+   apiFetch(`/notifications/unread-count`)
       .then((r) => r.json())
       .then((d) => setUnreadCount(d.unread ?? 0))
       .catch(() => {});
 
-    fetch(`${API}/notifications`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/notifications`)
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d.notifications)) {
@@ -1102,20 +1087,18 @@ useEffect(() => {
 
   async function markAsRead(id: number) {
     const token = localStorage.getItem("token");
-    await fetch(`${API}/notifications/${id}/read`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await apiFetch(`/notifications/${id}/read`, {
+  method: "POST",
+});
     setNotifications((n) => n.map((x) => (x.id === id ? { ...x, read: true } : x)));
     setUnreadCount((c) => Math.max(0, c - 1));
   }
 
   async function deleteNotification(id: number) {
     const token = localStorage.getItem("token");
-   await fetch(`${API}/notifications/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+   await apiFetch(`/notifications/${id}`, {
+  method: "DELETE",
+});
     setNotifications((n) => n.filter((x) => x.id !== id));
   }
 
@@ -1124,10 +1107,9 @@ useEffect(() => {
   if (!token) return;
 
   try {
-    const res = await fetch(`${API}/notifications/delete-all`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await apiFetch(`/notifications/delete-all`, {
+  method: "DELETE",
+});
    clearAllNewWhileOpen();
     // even if backend not ready, UI clears:
     setNotifications([]);
@@ -1145,10 +1127,9 @@ useEffect(() => {
     if (!token) return;
 
     try {
-      const res = await fetch(`${API}/notifications/delete-all`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/notifications/delete-all`, {
+  method: "POST",
+});
       if (res.ok) {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
         setUnreadCount(0);
