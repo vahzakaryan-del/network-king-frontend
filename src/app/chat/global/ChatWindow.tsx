@@ -260,6 +260,15 @@ function GlobalChat({ channel }: { channel: string }) {
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+   useEffect(() => {
+  const el = textareaRef.current;
+  if (!el) return;
+
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}, [text]);
+  
 
   const [emojis, setEmojis] = useState<AvailableEmoji[]>([]);
 const [emojiOpen, setEmojiOpen] = useState(false);
@@ -651,10 +660,32 @@ useEffect(() => {
                 </span>
               </div>
 
-<p className="text-sm text-gray-200 whitespace-pre-wrap leading-snug [overflow-wrap:anywhere]">
- {renderContentWithEmojis(m.content, emojiMap)}
+{isAnnouncement ? (
+  <div className="
+    relative rounded-xl p-4
+    bg-gradient-to-br from-yellow-500/10 via-amber-400/10 to-yellow-600/10
+    border border-yellow-400/30
+    shadow-[0_0_20px_rgba(250,204,21,0.15)]
+  ">
+    {/* Glow */}
+    <div className="absolute inset-0 rounded-xl pointer-events-none
+      bg-gradient-to-r from-yellow-400/0 via-yellow-400/10 to-yellow-400/0 blur-xl opacity-40" />
 
-</p>
+    <div className="relative z-10">
+      <div className="text-xs uppercase tracking-widest text-yellow-300/80 mb-1">
+        ✨ Official Update
+      </div>
+
+      <div className="text-sm text-yellow-100 whitespace-pre-wrap leading-relaxed">
+        {renderContentWithEmojis(m.content, emojiMap)}
+      </div>
+    </div>
+  </div>
+) : (
+  <p className="text-sm text-gray-200 whitespace-pre-wrap leading-snug [overflow-wrap:anywhere]">
+    {renderContentWithEmojis(m.content, emojiMap)}
+  </p>
+)}
 
 
             </div>
@@ -730,17 +761,24 @@ useEffect(() => {
     </div>
   )}
 
-  <input
-    maxLength={MAX_MESSAGE_LEN}
-    className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none"
-    placeholder={`Message #${channel}`}
-    value={text}
-    onChange={(e) => {
-      setText(e.target.value);
-      handleTyping();
-    }}
-    onKeyDown={(e) => e.key === "Enter" && sendGlobal()}
-  />
+  <textarea
+  ref={textareaRef}
+  rows={1}
+  maxLength={MAX_MESSAGE_LEN}
+  className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none resize-none overflow-hidden"
+  placeholder={`Message #${channel}`}
+  value={text}
+  onChange={(e) => {
+    setText(e.target.value);
+    handleTyping();
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendGlobal();
+    }
+  }}
+/>
 
   <button
     type="button"
@@ -955,6 +993,7 @@ function LevelChat({
 
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const activeSubRef = useRef<SubChannel | null>(activeSub);
   useEffect(() => {
@@ -992,6 +1031,14 @@ function LevelChat({
       }
     };
   }, [levelRoom]);
+
+  useEffect(() => {
+  const el = textareaRef.current;
+  if (!el) return;
+
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}, [text]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -1704,14 +1751,23 @@ function insertEmoji(e: AvailableEmoji) {
 )}
 
 
-              <input
-              maxLength={MAX_MESSAGE_LEN}
-                className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none"
-                placeholder={`Message #${activeSub?.name ?? ""}`}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendLevelMessage()}
-              />
+              <textarea
+  ref={textareaRef}
+  rows={1}
+  maxLength={MAX_MESSAGE_LEN}
+  className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none resize-none overflow-hidden"
+  placeholder={`Message #${activeSub?.name ?? ""}`}
+  value={text}
+  onChange={(e) => {
+    setText(e.target.value);
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendLevelMessage();
+    }
+  }}
+/>
 
               <button
                 type="button"
@@ -1859,14 +1915,23 @@ function insertEmoji(e: AvailableEmoji) {
                   </div>
                 )}
 
-                <input
-                maxLength={MAX_MESSAGE_LEN}
-                  className="flex-1 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  placeholder={`Message #${activeSub.name}`}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendLevelMessage()}
-                />
+                <textarea
+  ref={textareaRef}
+  rows={1}
+  maxLength={MAX_MESSAGE_LEN}
+  className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none resize-none overflow-hidden"
+  placeholder={`Message #${activeSub?.name ?? ""}`}
+  value={text}
+  onChange={(e) => {
+    setText(e.target.value);
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+     sendLevelMessage();
+    }
+  }}
+/>
 
                 <button
                   type="button"
