@@ -351,7 +351,16 @@ useEffect(() => {
   return () => window.removeEventListener("mousedown", onDown);
 }, [emojiOpen]);
 
+function renderFormattedContent(content: string, emojiMap: Map<string, AvailableEmoji>) {
+  const parts = content.split(/\*\*(.*?)\*\*/g);
 
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      return <strong key={i}>{renderContentWithEmojis(part, emojiMap)}</strong>;
+    }
+    return <span key={i}>{renderContentWithEmojis(part, emojiMap)}</span>;
+  });
+}
 
   async function markGlobalReadOnServer(channelName: string) {
     const token = localStorage.getItem("token");
@@ -554,8 +563,10 @@ useEffect(() => {
     const content = text.trim();
 
     if (!token || !socket || !content) return;
-    if (content.length > MAX_MESSAGE_LEN) return;
-    if (!canPost) return;
+    const isAnnouncement = channel === "announcements";
+
+if (!isAnnouncement && content.length > MAX_MESSAGE_LEN) return;
+if (!canPost) return;
 
     setText("");
 
@@ -677,7 +688,7 @@ useEffect(() => {
       </div>
 
       <div className="text-sm text-yellow-100 whitespace-pre-wrap leading-relaxed">
-        {renderContentWithEmojis(m.content, emojiMap)}
+        {renderFormattedContent(m.content, emojiMap)}
       </div>
     </div>
   </div>
@@ -764,13 +775,13 @@ useEffect(() => {
   <textarea
   ref={textareaRef}
   rows={1}
-  maxLength={MAX_MESSAGE_LEN}
+  maxLength={channel === "announcements" ? 10000 : MAX_MESSAGE_LEN}
   className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none resize-none overflow-hidden"
   placeholder={`Message #${channel}`}
   value={text}
   onChange={(e) => {
     setText(e.target.value);
-    handleTyping();
+    if (canPost) handleTyping();
   }}
   onKeyDown={(e) => {
     if (e.key === "Enter" && !e.shiftKey) {
