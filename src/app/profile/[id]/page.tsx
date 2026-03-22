@@ -1310,14 +1310,14 @@ const fmtMoney = (cents: number, currency = "EUR") =>
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
           {/* LEFT PANEL — Identity */}
-          <div className="order-1 lg:order-none rounded-2xl p-4 bg-white/10 border border-white/15 shadow-xl backdrop-blur">
+          <div className="order-1 lg:order-none rounded-2xl p-4 bg-white/10 border border-white/15 shadow-xl border-2 border-indigo-500 shadow-[0_0_10px_#6366f1,0_0_20px_#6366f1] backdrop-blur">
 
             <div className="relative flex flex-col items-center">
   {/* mobile scroll-to-talisman arrow */}
   <button
     type="button"
     onClick={() => talismanRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-    className="md:hidden absolute top-0 right-0 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 grid place-items-center transition"
+    className="lg:hidden absolute top-0 right-0 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 grid place-items-center transition"
     title="Jump to Talisman"
     aria-label="Jump to Talisman"
   >
@@ -1523,7 +1523,7 @@ setBuyTokensOpen(true);
               </div>
               )}
 
-               <div className=" block md:hidden relative w-full max-w-2xl mt-2 rounded-2xl bg-gray-500/80 border border-white/15 shadow-2xl backdrop-blur p-5">
+               <div className=" block lg:hidden relative w-full max-w-2xl mt-5 rounded-2xl bg-gray-500/80 border border-white/15 shadow-2xl backdrop-blur p-3">
                    {/* subtle ID-card frame */}
               <div
                 className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-transparent
@@ -1533,7 +1533,7 @@ setBuyTokensOpen(true);
   opacity-30"
               />
               
-              <div className="relative flex items-center justify-between">
+              <div className="relative flex justify-between">
                 <div className="text-m font-semibold text-white/90">
                   🏅 Featured Badges
                 </div>
@@ -1688,7 +1688,7 @@ setBuyTokensOpen(true);
           {/* CENTER PANEL — Talisman Showcase */}
           <div
   ref={talismanRef}
-  className="order-2 lg:order-none rounded-2xl p-4 bg-white/5 border border-white/10 shadow-2xl backdrop-blur relative overflow-hidden"
+  className="order-3 lg:order-none rounded-2xl p-4 bg-white/5 border border-white/10 shadow-2xl border-2 border-indigo-500 shadow-[0_0_10px_#6366f1,0_0_20px_#6366f1] backdrop-blur relative overflow-hidden"
 >
 
             {/* soft glow */}
@@ -1700,7 +1700,7 @@ setBuyTokensOpen(true);
               }}
             />
 
-            <div className="relative h-[420px] md:h-[520px] flex flex-col items-center justify-between">
+            <div className="relative h-[420px] lg:h-[520px] flex flex-col items-center justify-between">
 
               {/* Title */}
               <div className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-300/15 border border-amber-300/30 text-amber-200 text-xs font-semibold">
@@ -1780,7 +1780,7 @@ setBuyTokensOpen(true);
                 {isSelf ? (
                   <button
                     onClick={openTalisman}
-                    className="px-5 py-2 rounded-xl border border-amber-300/40 bg-amber-300/20 hover:bg-amber-300/30 text-amber-100 font-semibold transition"
+                    className="px-5 py-2 mt-1 rounded-xl border border-amber-300/40 bg-amber-300/20 hover:bg-amber-300/30 text-amber-100 font-semibold transition"
                   >
                     ✨ Choose Talisman
                   </button>
@@ -1794,10 +1794,10 @@ setBuyTokensOpen(true);
           </div>
 
           {/* RIGHT PANEL — Achievements & Identity */}
-          <div className="hidden lg:block order-3 lg:order-none rounded-2xl p-6 bg-white/10 border border-white/15 shadow-xl backdrop-blur space-y-6">
+         <div className="order-2 lg:order-none rounded-2xl p-6 bg-white/10 border-2 border-indigo-500 shadow-[0_0_10px_#6366f1,0_0_20px_#6366f1] backdrop-blur space-y-6">
 
             {/*  Featured Badges */}
-            <div className="relative overflow-hidden rounded-2xl px-4 py-4 bg-white/20 backdrop-blur-md shadow-xl border border-amber-300/40">
+            <div className="hidden lg:block relative overflow-hidden rounded-2xl px-4 py-4 bg-white/20 backdrop-blur-md shadow-xl border border-amber-300/40">
               {/* subtle ID-card frame */}
               <div
                 className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-transparent
@@ -1858,7 +1858,7 @@ setBuyTokensOpen(true);
 
                {/* My Completed Tests (only visible to owner) */}
 {isSelf && (
-  <div className="hidden md:block mt-6 rounded-2xl p-4 bg-white/5 border border-white/10 backdrop-blur">   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div className="hidden lg:block mt-6 rounded-2xl p-4 bg-white/5 border border-white/10 backdrop-blur">   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       
       <div>
         <div className="text-sm font-semibold text-white/90">
@@ -1885,55 +1885,48 @@ setBuyTokensOpen(true);
     </div>
   </div>
 )}
-
-
-            {/* ✅ PATCHED BADGES PREVIEW */}
             <div>
-              <div className="flex items-center justify-between mb-3 mt-6">
-                <h3 className="font-bold text-lg">🌟 Recent Badges</h3>
 
-                {isSelf && (
-                  <button
-                    onClick={() => router.push(`/profile/${profileId}/badges`)}
-                    className="text-xs px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15"
-                  >
-                    View all
-                  </button>
-                )}
-              </div>
+                      {/* ✅ PATCHED BADGES PREVIEW */}
+                      
+              <div className="hidden lg:flex items-center justify-between mb-3 mt-6">
+  <h3 className="font-bold text-lg">🌟 Recent Badges</h3>
 
-              <div className="grid grid-cols-3 gap-3 mt-6">
-                {profile.badges?.length ? (
-                  [...profile.badges]
-                    .sort(
-                      (a, b) =>
-                        new Date(b.earnedAt || 0).getTime() -
-                        new Date(a.earnedAt || 0).getTime()
-                    )
-                    .slice(0, 3)
-                    .map((b) => (
-                      <div
-                        key={b.id}
-                        className="relative rounded-xl p-3 text-center bg-white/5 border border-white/10"
-                      >
-                        {/* Badge Icon */}
-                        <img
-  src={asset(b.icon?.startsWith("/badges/") ? b.icon : `badges/${b.icon}`)}
-                          className="w-12 h-12 mx-auto object-contain drop-shadow-lg"
-                        />
+  {isSelf && (
+    <button
+      onClick={() => router.push(`/profile/${profileId}/badges`)}
+      className="text-xs px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15"
+    >
+      View all
+    </button>
+  )}
+</div>
 
-
-                        <div className="mt-1 text-xs text-white/80 truncate">
-                          {b.name}
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-sm opacity-60 col-span-3 text-center">
-                    No badges yet
-                  </p>
-                )}
-              </div>
+<div className="hidden lg:grid grid-cols-3 gap-3 mt-6">
+  {profile.badges?.length ? (
+    [...profile.badges]
+      .sort(
+        (a, b) =>
+          new Date(b.earnedAt || 0).getTime() - new Date(a.earnedAt || 0).getTime()
+      )
+      .slice(0, 3)
+      .map((b) => (
+        <div
+          key={b.id}
+          className="relative rounded-xl p-3 text-center bg-white/5 border border-white/10"
+        >
+          {/* Badge Icon */}
+          <img
+            src={asset(b.icon?.startsWith("/badges/") ? b.icon : `badges/${b.icon}`)}
+            className="w-12 h-12 mx-auto object-contain drop-shadow-lg"
+          />
+          <div className="mt-1 text-xs text-white/80 truncate">{b.name}</div>
+        </div>
+      ))
+  ) : (
+    <p className="text-sm opacity-60 col-span-3 text-center">No badges yet</p>
+  )}
+</div>
             </div>
 
          
