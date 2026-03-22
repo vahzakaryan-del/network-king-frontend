@@ -1,7 +1,7 @@
 // frontend/src/app/settings/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Portal from "@/components/Portal";
@@ -332,6 +332,22 @@ export default function SettingsPage() {
   );
 
   const [tab, setTab] = useState<TabKey>("account");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  const el = scrollRef.current;
+  if (!el) return;
+
+  const timer = setTimeout(() => {
+    el.scrollTo({ left: 60, behavior: "smooth" });
+
+    setTimeout(() => {
+      el.scrollTo({ left: 0, behavior: "smooth" });
+    }, 400);
+  }, 400);
+
+  return () => clearTimeout(timer);
+}, []);
 
   const [me, setMe] = useState<MeUser | null>(null);
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
@@ -513,7 +529,7 @@ setDeleteMsg("");
   };
 
   return (
-    <main className="min-h-screen bg-slate-200 text-slate-900">
+    <main className="min-h-screen bg-red-200 text-slate-900">
       {/* Top header */}
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 md:px-10 py-4 flex items-center justify-between gap-3">
@@ -623,7 +639,11 @@ setDeleteMsg("");
           {/* Mobile tabs */}
           <div className="md:hidden -mt-1">
             <div className="rounded-2xl border border-slate-200/70 bg-white shadow-sm p-2">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar p-1">
+              <div className="relative">
+  <div
+    ref={scrollRef}
+    className="flex gap-2 overflow-x-auto no-scrollbar p-1 pr-6"
+  >
                 {tabs.map((t) => (
                   <button
                     key={t.key}
@@ -640,12 +660,20 @@ setDeleteMsg("");
                     {t.label.split(" ")[0]}
                   </button>
                 ))}
-              </div>
-            </div>
-            <div className="md:hidden text-[12px] text-slate-400 text-center mt-1">
+
+                  </div>
+
+                  <div className="md:hidden text-[12px] text-slay-300 text-center">
   swipe to see more→
 </div>
-          </div>
+
+  {/* RIGHT FADE INDICATOR */}
+  <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-white to-transparent" />
+</div>
+              </div>
+            </div>
+            
+          
 
           {/* Content */}
           <div className="space-y-6">
