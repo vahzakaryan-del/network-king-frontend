@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -52,6 +52,16 @@ const COOLDOWN_SECONDS = 60;
 
 export default function LoginPage() {
 
+ 
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+ function LoginPageInner() {
+
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -62,7 +72,7 @@ export default function LoginPage() {
   const [useGoogleHint, setUseGoogleHint] = useState(false);
 
   const params = useSearchParams();
-const reason = params.get("reason");
+const reason = useMemo(() => params.get("reason"), [params]);
 
   const [notice, setNotice] = useState<{
     kind: NoticeKind;
