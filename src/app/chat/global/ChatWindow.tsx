@@ -652,7 +652,7 @@ if (!canPost) return;
              <div className="min-w-0 flex-1">
 
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 font-semibold text-sm">
+                <span className="flex mb-2 items-center gap-1 font-semibold text-sm">
   {isAnnouncement ? "Networ.King" : (m.user?.name || "User")}
 
   {!isAnnouncement && typeof m.user?.currentLevel === "number" && (
