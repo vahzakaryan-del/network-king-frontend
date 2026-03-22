@@ -873,14 +873,12 @@ function openLottery() {
 
   
 useEffect(() => {
-  if (!lotteryOpen) return;
-
   const t = setInterval(() => {
     setLotteryCooldownMs((ms) => Math.max(0, ms - 1000));
   }, 1000);
 
   return () => clearInterval(t);
-}, [lotteryOpen]);
+}, []);
 
   function formatLotteryCooldown(ms: number) {
     const totalSec = Math.ceil(ms / 1000);
@@ -1026,6 +1024,18 @@ const data = await res.json();
       })
       .catch(() => {});
   }, [router]);
+
+  useEffect(() => {
+  if (!user?.id) return;
+
+  loadLotteryStatus();
+}, [user?.id]);
+
+useEffect(() => {
+  if (mobileMenuOpen) {
+    loadLotteryStatus();
+  }
+}, [mobileMenuOpen]);
 
   /* -------------------------------------------------------
      Socket.IO events
@@ -1566,7 +1576,7 @@ const data = await res.json();
     setMobileMenuOpen(false);
   }}
   className="
-    w-full mb-6 mt-1 px-4 py-3 rounded-xl
+    w-full mb-8 mt-1 px-4 py-3 rounded-xl
     bg-white/10
     border border-gray-300
     text-gray-200

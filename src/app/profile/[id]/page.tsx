@@ -245,6 +245,11 @@ const selectedPrice = selectedPack ? PACK_PRICES[selectedPack] : null;
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
 
+// ✅ AUTO ENABLE EDIT MODE FOR OWN PROFILE
+useEffect(() => {
+  setEditMode(isSelf);
+}, [isSelf]);
+
   // ----------------------------
   // Countries
   // ----------------------------
@@ -1260,12 +1265,18 @@ const fmtMoney = (cents: number, currency = "EUR") =>
         </button>
 
         {isSelf ? (
-          <button
-            onClick={() => setEditMode((v) => !v)}
-            className="px-2 py-2 ml-1 text-sm rounded-xl border border-amber-300/50 bg-amber-300/20 hover:bg-amber-300/30 text-amber-100 font-semibold transition"
-          >
-            {editMode ? "✅ End modifying" : "✏️ Modify Profile"}
-          </button>
+         <button
+  onClick={() => setEditMode((v) => !v)}
+  className="
+    px-2 py-1.5 text-xs rounded-lg
+    md:px-2 md:py-2 md:text-sm md:rounded-xl
+    ml-1 border border-amber-300/50
+    bg-amber-300/20 hover:bg-amber-300/30
+    text-amber-100 font-semibold transition
+  "
+>
+  {editMode ? "👀 Preview" : "✏️ Modify All"}
+</button>
         ) : (
           <button
   ref={connectBtnRef}
@@ -1299,7 +1310,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
           {/* LEFT PANEL — Identity */}
-          <div className="order-1 lg:order-none rounded-2xl p-6 bg-white/10 border border-white/15 shadow-xl backdrop-blur">
+          <div className="order-1 lg:order-none rounded-2xl p-4 bg-white/10 border border-white/15 shadow-xl backdrop-blur">
 
             <div className="relative flex flex-col items-center">
   {/* mobile scroll-to-talisman arrow */}
@@ -1328,20 +1339,41 @@ const fmtMoney = (cents: number, currency = "EUR") =>
 
               <div className="mt-4 w-full">
   {!nameEditing ? (
-    <div className="flex items-center justify-center gap-2">
-      <h1 className="text-2xl font-bold">{profile.name}</h1>
+    <div
+  className={`flex items-center justify-center gap-2 ${
+    isSelf && !editMode ? "flex-wrap" : ""
+  }`}
+>
+  <h1 className="text-2xl font-bold">{profile.name}</h1>
 
-      {isSelf && editMode && (
-        <button
-          onClick={openNameEdit}
-          className="text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 transition"
-          title="Edit name"
-          aria-label="Edit name"
+  {/* ✅ FLAGS INLINE ONLY IN PREVIEW */}
+  {isSelf && !editMode && profile.countries?.length === 1 && (
+    <div className="flex items-center gap-1">
+      {profile.countries.map((code) => (
+        <span
+          key={code}
+          className={
+            code.toUpperCase() ===
+            (profile.mainCountry || "").toUpperCase()
+              ? "p-0.5 rounded bg-amber-400/30 border border-amber-400/50"
+              : "p-0.5 rounded bg-white/10 border border-white/20"
+          }
         >
-          ✏️
-        </button>
-      )}
+          <FlagIcon code={code} />
+        </span>
+      ))}
     </div>
+  )}
+
+  {isSelf && editMode && (
+    <button
+      onClick={openNameEdit}
+      className="text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 transition"
+    >
+      ✏️
+    </button>
+  )}
+</div>
   ) : (
     <div className="w-full">
       {/* token indicator */}
@@ -1453,7 +1485,8 @@ setBuyTokensOpen(true);
 </div>
 
 
-              <div className="flex items-center gap-3 mt-2">
+              {!(isSelf && !editMode && profile.countries?.length === 1) && (
+  <div className="flex items-center gap-3 mt-2">
                 <div className="flex items-center gap-1">
                   {Array.isArray(profile.countries) &&
                   profile.countries.length > 0 ? (
@@ -1488,6 +1521,84 @@ setBuyTokensOpen(true);
                   </button>
                 )}
               </div>
+              )}
+
+               <div className=" block md:hidden relative w-full max-w-2xl mt-2 rounded-2xl bg-gray-500/80 border border-white/15 shadow-2xl backdrop-blur p-5">
+                   {/* subtle ID-card frame */}
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-transparent
+  [background:linear-gradient(45deg,#ffd700,#7c3aed,#22d3ee)_border-box]
+  [mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)]
+  [mask-composite:exclude]
+  opacity-30"
+              />
+              
+              <div className="relative flex items-center justify-between">
+                <div className="text-m font-semibold text-white/90">
+                  🏅 Featured Badges
+                </div>
+
+                {isSelf && editMode && (
+                  <button
+                    onClick={openFeatured}
+                    className="text-xs px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 border border-white/15 transition font-semibold"
+                  >
+                    Modify 
+                  </button>
+                )}
+              </div>
+
+              <div className="relative mt-3 flex items-center gap-3">
+                {profile.featuredBadges?.length ? (
+                  profile.featuredBadges.slice(0, 3).map((b: any) => (
+                    <div key={b.id} className="relative">
+                      {/* circular badge */}
+                      <div className="relative w-16 h-16 rounded-full bg-white/10 border border-amber-300/40 shadow-lg grid place-items-center overflow-hidden">
+                       <img
+  src={asset(b.icon?.startsWith("/badges/") ? b.icon : `badges/${b.icon}`)}
+                          alt=""
+                          className="w-12 h-12 object-contain"
+                          draggable={false}
+                        />
+                      </div>
+
+                      {/* score overlay (your BadgeScore style) */}
+                      {b.badgeScore != null && (
+                        <BadgeScore
+                          score={b.badgeScore}
+                          unit={b.badgeScoreUnit || "percent"}
+                          overlayOnly
+                        />
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-white/60">
+                    {isSelf
+                      ? "Pick up to 3 badges to feature."
+                      : "No featured badges."}
+                  </div>
+                )}
+
+               
+              </div>
+
+               {/* divider */}
+<div className="mt-4 h-px bg-white" />
+                 
+                <div className="mt-2 flex items-center justify-between">
+  <h3 className="text-sm font-semibold text-white">
+    🌟 Recent Badges
+  </h3>
+
+  <button
+    onClick={() => router.push(`/profile/${profileId}/badges`)}
+    className="text-xs px-3 py-1 mt-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15"
+  >
+    View all
+  </button>
+</div>
+            </div>
 
               {/* About me */}
               <div className="mt-5 w-full rounded-xl bg-white/5 border border-white/10 p-4">
@@ -1523,13 +1634,15 @@ setBuyTokensOpen(true);
 
 {/* show more/less (mobile only) */}
 {aboutText && aboutLong && (
-  <button
-    type="button"
-    onClick={() => setAboutExpanded((v) => !v)}
-    className="md:hidden mt-2 text-xs text-amber-200 hover:text-amber-100 underline underline-offset-2"
-  >
-    {aboutExpanded ? "Show less" : "Show more"}
-  </button>
+  <div className="text-right">
+    <button
+      type="button"
+      onClick={() => setAboutExpanded((v) => !v)}
+      className="md:hidden mt-2 text-xs text-amber-200 hover:text-amber-100 underline underline-offset-2"
+    >
+      {aboutExpanded ? "Show less" : "Show more"}
+    </button>
+  </div>
 )}
 
               </div>
@@ -1571,11 +1684,11 @@ setBuyTokensOpen(true);
             </div>
           </div>
 
-                  {/* CENTER PANEL — Representation (unchanged from your original) */}
+                 
           {/* CENTER PANEL — Talisman Showcase */}
           <div
   ref={talismanRef}
-  className="order-3 lg:order-none rounded-2xl p-4 bg-white/5 border border-white/10 shadow-2xl backdrop-blur relative overflow-hidden"
+  className="order-2 lg:order-none rounded-2xl p-4 bg-white/5 border border-white/10 shadow-2xl backdrop-blur relative overflow-hidden"
 >
 
             {/* soft glow */}
@@ -1681,9 +1794,9 @@ setBuyTokensOpen(true);
           </div>
 
           {/* RIGHT PANEL — Achievements & Identity */}
-          <div className="order-2 lg:order-none rounded-2xl p-6 bg-white/10 border border-white/15 shadow-xl backdrop-blur space-y-6">
+          <div className="hidden lg:block order-3 lg:order-none rounded-2xl p-6 bg-white/10 border border-white/15 shadow-xl backdrop-blur space-y-6">
 
-            {/* 🏅 Featured Badges */}
+            {/*  Featured Badges */}
             <div className="relative overflow-hidden rounded-2xl px-4 py-4 bg-white/20 backdrop-blur-md shadow-xl border border-amber-300/40">
               {/* subtle ID-card frame */}
               <div
@@ -1693,7 +1806,7 @@ setBuyTokensOpen(true);
   [mask-composite:exclude]
   opacity-50"
               />
-
+              
               <div className="relative flex items-center justify-between">
                 <div className="text-m font-semibold text-white/90">
                   🏅 Featured Badges
@@ -1704,7 +1817,7 @@ setBuyTokensOpen(true);
                     onClick={openFeatured}
                     className="text-xs px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 border border-white/15 transition font-semibold"
                   >
-                    Modify Profile
+                    Modify 
                   </button>
                 )}
               </div>
@@ -1745,8 +1858,7 @@ setBuyTokensOpen(true);
 
                {/* My Completed Tests (only visible to owner) */}
 {isSelf && (
-  <div className="mt-6 rounded-2xl p-4 bg-white/5 border border-white/10 backdrop-blur">
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div className="hidden md:block mt-6 rounded-2xl p-4 bg-white/5 border border-white/10 backdrop-blur">   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       
       <div>
         <div className="text-sm font-semibold text-white/90">
