@@ -602,39 +602,48 @@ useEffect(() => {
           <div className="text-sm text-white/60">Loading messages…</div>
         )}
 
-        {messages.map((m) => (
-          <div key={m.id} className="flex items-start gap-3">
+       {messages.map((m) => {
+  const isAnnouncement = channel === "announcements";
+
+  return (
+  <div key={m.id} className="flex items-start gap-3">
             <div className="relative shrink-0">
               <img
-                src={avatarSrc(m.user?.avatar)}
+  src={isAnnouncement ? asset("logo.png") : avatarSrc(m.user?.avatar)}
                 alt={m.user?.name || "User"}
-                onClick={() => m.user?.id && router.push(`/profile/${m.user.id}`)}
+                onClick={() => {
+  if (!isAnnouncement && m.user?.id) {
+    router.push(`/profile/${m.user.id}`);
+  }
+}}
                 className={`w-8 h-8 rounded-full shrink-0 object-cover ${
-  m.user?.isPremium ? "ring-2 ring-yellow-400" : ""
-} ${m.user?.id ? "cursor-pointer hover:opacity-80" : ""}`}
+  !isAnnouncement && m.user?.isPremium ? "ring-2 ring-yellow-400" : ""
+} ${!isAnnouncement && m.user?.id ? "cursor-pointer hover:opacity-80" : ""}`}
                 onError={(e) =>
                    ((e.currentTarget as HTMLImageElement).src =
                   asset("avatars/default.webp"))
 }
               />
-              {m.user?.id ? (
-                <OnlineIndicator online={onlineUsers.includes(m.user.id)} />
-              ) : null}
+              {!isAnnouncement && m.user?.id ? (
+  <OnlineIndicator online={onlineUsers.includes(m.user.id)} />
+) : null}
             </div>
 
              <div className="min-w-0 flex-1">
 
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1 font-semibold text-sm">
-  {m.user?.name || "User"}
+  {isAnnouncement ? "Networ.King" : (m.user?.name || "User")}
 
-  {typeof m.user?.currentLevel === "number" && (
-    <LevelBadge lvl={m.user.currentLevel} />
-  )}
+  {!isAnnouncement && typeof m.user?.currentLevel === "number" && (
+  <LevelBadge lvl={m.user.currentLevel} />
+)}
 
-  {m.user?.isPremium && <PremiumBadge />}
+{!isAnnouncement && m.user?.isPremium && <PremiumBadge />}
 
-  {m.user?.mainCountry && <FlagIcon code={m.user.mainCountry} />}
+{!isAnnouncement && m.user?.mainCountry && (
+  <FlagIcon code={m.user.mainCountry} />
+)}
 </span>
 
                 <span className="text-xs text-gray-400">
@@ -650,7 +659,8 @@ useEffect(() => {
 
             </div>
           </div>
-        ))}
+           );
+})}
 
         {typingUsers.length > 0 && (
           <div className="text-sm text-gray-200 italic flex items-center gap-1 mt-2 ml-10">
