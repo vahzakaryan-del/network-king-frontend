@@ -107,6 +107,11 @@ const [showAchievements, setShowAchievements] = useState(false);
     return `€${(priceCents / 100).toFixed(2)}`;
   }, []);
 
+  const isNewAvatar = useCallback((createdAt: string) => {
+  const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+  return Date.now() - new Date(createdAt).getTime() < THREE_DAYS;
+}, []);
+
   // ✅ sorting helpers
   const sortLockedNewest = useCallback((arr: AvatarRow[]) => {
     return [...arr].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -472,25 +477,32 @@ return;
           }}
         >
           <div className="relative">
-            <img
-              src={imgPath}
-              className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover"
-              alt={a.fileName}
-              draggable={false}
-            />
+  <img
+    src={imgPath}
+    className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover"
+    alt={a.fileName}
+    draggable={false}
+  />
 
-            {selected ? (
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] px-2 py-1 rounded-full bg-yellow-400 text-gray-900 font-extrabold shadow">
-                Selected
-              </div>
-            ) : null}
+  {/* 🔥 NEW badge */}
+  {isNewAvatar(a.createdAt) && (
+    <div className="absolute -top-2 right-0 text-[9px] sm:text-xs px-2 py-1 rounded-full bg-red-500 text-white font-extrabold shadow">
+      NEW
+    </div>
+  )}
 
-            {badgeText ? (
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-2 py-1 rounded-full bg-black/40 border border-white/20 backdrop-blur-md whitespace-nowrap">
-                {badgeText}
-              </div>
-            ) : null}
-          </div>
+  {selected ? (
+    <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] px-2 py-1 rounded-full bg-yellow-400 text-gray-900 font-extrabold shadow">
+      Selected
+    </div>
+  ) : null}
+
+  {badgeText ? (
+    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-2 py-1 rounded-full bg-black/40 border border-white/20 backdrop-blur-md whitespace-nowrap">
+      {badgeText}
+    </div>
+  ) : null}
+</div>
         </motion.div>
       );
     },
@@ -512,6 +524,38 @@ return;
 
   const monthlyOwned = !!available.find((a) => monthlyCandidates.includes(a.fileName));
  const lockedWithoutMonthly = locked.filter((a) => !a.fileName.startsWith("premium_"));
+
+ // 🔥 Smart sorting + splitting (FEATURED + REST)
+const sortedLockedFull = useMemo(() => {
+  return [...lockedWithoutMonthly].sort((a, b) => {
+    const dateDiff =
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+    if (dateDiff !== 0) return dateDiff;
+
+    return (b.priceCents || 0) - (a.priceCents || 0);
+  });
+}, [lockedWithoutMonthly]);
+
+const FEATURED_COUNT = 7;
+
+const featuredLocked = useMemo(
+  () => sortedLockedFull.slice(0, FEATURED_COUNT),
+  [sortedLockedFull]
+);
+
+const restLocked = useMemo(
+  () => sortedLockedFull.slice(FEATURED_COUNT),
+  [sortedLockedFull]
+);
+
+// pagination applies only to REST
+const visibleRestLocked = useMemo(
+  () => restLocked.slice(0, lockedLimit),
+  [restLocked, lockedLimit]
+);
+
+const hasMoreRestLocked = restLocked.length > lockedLimit;
 
 
   // Show more slices
@@ -569,147 +613,147 @@ return;
           </div>
 
           {/* LOCKED */}
-          <div className="w-full max-w-5xl z-10 mt-8 sm:mt-10">
-            <h2 className="text-xl sm:text-2xl font-bold mb-3">🔒 Locked (for purchase)</h2>
+          {/* LOCKED */}
+<div className="w-full max-w-5xl z-10 mt-8 sm:mt-10">
+  <h2 className="text-xl sm:text-2xl font-bold mb-3">
+  {restLocked.length > 0
+    ? "🛍 Avatar Shop"
+    : "🔒 Locked avatars"}
+</h2>
+  {locked.length === 0 ? (
+    <div className="text-white/80">No locked avatars.</div>
+  ) : (
+    <>
+      {/* 🔥 FEATURED */}
+      {featuredLocked.length > 0 && (
+        <>
+          <h3 className="text-lg font-bold mb-2">🔥 Featured</h3>
 
-            {locked.length === 0 ? (
-              <div className="text-white/80">No locked avatars.</div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
-                  {/* Monthly pinned */}
-                  <div className="flex flex-col items-center gap-3">
-                    {monthlyAvatar ? (
-                      <>
-                        <motion.div
-  className="rounded-full border-4 border-yellow-300 shadow-[0_0_25px_rgba(255,215,0,0.55)] cursor-pointer"
-  animate={{ scale: [1, 1.04, 1] }}
-  transition={{ duration: 2.2, repeat: Infinity }}
-  onClick={() => openPreview(monthlyAvatar)}
->
+          {/* MOBILE: carousel */}
+          <div className="sm:hidden overflow-x-auto flex gap-4 px-1 pb-2 snap-x snap-mandatory">
+            {featuredLocked.map((a) => {
+              return (
+                <div
+                  key={a.id}
+                  className="min-w-[160px] snap-center flex-shrink-0"
+                >
+                  <motion.div
+                    whileTap={{ scale: 0.96 }}
+                    className="
+                      rounded-2xl
+                      bg-gradient-to-b from-white/15 to-white/5
+                      border border-white/20
+                      backdrop-blur-xl
+                      p-3
+                      flex flex-col items-center gap-3
+                      shadow-xl
+                    "
+                    onClick={() => openPreview(a)}
+                  >
+                    <div className="relative">
+  <img
+    src={asset(`avatars/${a.fileName}`)}
+    className="w-24 h-24 rounded-full object-cover"
+  />
 
-                          <div className="relative">
-                           <img
-                              src={asset(`avatars/${monthlyAvatar.fileName}`)}
-                              className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover"
-                              alt={monthlyAvatar.fileName}
-                              draggable={false}
-                            />
-                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-2 py-1 rounded-full bg-black/50 border border-white/20 backdrop-blur-md whitespace-nowrap">
-                              Monthly
-                            </div>
-                          </div>
-                        </motion.div>
+  {isNewAvatar(a.createdAt) && (
+    <div className="absolute -top-2 right-0 text-[10px] px-2 py-1 rounded-full bg-red-500 text-white font-extrabold shadow">
+      NEW
+    </div>
+  )}
 
-                        {monthlyOwned ? (
-                          <button
-                            disabled
-                            className="px-4 py-2 rounded-xl font-bold shadow-lg bg-emerald-500/80 text-white cursor-default"
-                          >
-                            Owned ✅
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleUnlockMonthly(monthlyAvatar.fileName)}
-                            disabled={premiumUnlocking}
-                            className={`px-4 py-2 rounded-xl font-bold shadow-lg ${
-                              premiumUnlocking
-                                ? "bg-gray-400"
-                                : entitlements?.isPremium
-                                ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                                : "bg-white/20 text-white hover:bg-white/30"
-                            }`}
-                          >
-                            {premiumUnlocking
-                              ? "Unlocking..."
-                              : entitlements?.isPremium
-                              ? "Unlock (Premium)"
-                              : "Need Premium"}
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-white/20 flex items-center justify-center text-[10px] sm:text-xs text-white/80 text-center px-3">
-                          Monthly avatar not found in DB:
-                          <br />
-                          {monthlyCandidates[0]}
-                        </div>
-                        <button
-                          disabled
-                          className="px-4 py-2 rounded-xl font-bold shadow-lg bg-gray-400 cursor-default"
-                        >
-                          Not available
-                        </button>
-                      </>
-                    )}
-                  </div>
+  <div className="absolute inset-0 rounded-full border border-yellow-300/40 shadow-[0_0_20px_rgba(255,215,0,0.35)]" />
+</div>
 
-                  {/* Locked list */}
-                  {visibleLocked.map((a) => {
-                    const isPending = pendingAvatarIds.has(a.id);
-                   const buttonLabel =
-  buyingId === a.id
-    ? "Creating..."
-    : isPending
-    ? "Pending..."
-    : "View";
-                    return (
-                      <div key={a.id} className="flex flex-col items-center gap-3">
-                      <AvatarBubble
-  a={a}
-  clickable={false}
-  selected={false}
-  previewable={true}
-  onPreview={() => openPreview(a)}
-  badgeText={formatPrice(a.priceCents) || "PAID"}
-/>
+                    <div className="text-sm font-bold text-yellow-200">
+                      {formatPrice(a.priceCents) || "PAID"}
+                    </div>
 
-
-                        <button
-                           onClick={() => openPreview(a)}
-                          disabled={isPending}
-                          className={`px-4 py-2 rounded-xl font-bold shadow-lg ${
-                            buyingId === a.id
-                              ? "bg-gray-400"
-                              : isPending
-                              ? "bg-white/20 text-white cursor-default"
-                              : "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                          }`}
-                          title={
-                            isPending
-                              ? "Purchase is pending. Mark it paid in /dev/payments (dev mode)."
-                              : undefined
-                          }
-                        >
-                          {buttonLabel}
-                        </button>
-
-                        {isPending ? (
-                          <div className="text-[11px] text-white/80 text-center max-w-[10rem] leading-snug">
-                            Waiting for payment…
-                            <br />
-                            (dev: mark paid in <span className="underline">/dev/payments</span>)
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
+                    <div className="text-xs text-white/80">
+                      Tap to preview
+                    </div>
+                  </motion.div>
                 </div>
-
-                {hasMoreLocked && (
-                  <div className="mt-5 flex justify-center">
-                    <button
-                      onClick={() => setLockedLimit((n) => n + LOCKED_STEP)}
-                      className="px-5 py-2 rounded-xl bg-white/15 hover:bg-white/20 border border-white/15 font-semibold"
-                    >
-                      Show more ({Math.min(lockedLimit, lockedWithoutMonthly.length)}/{lockedWithoutMonthly.length})
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+              );
+            })}
           </div>
+
+          {/* DESKTOP: grid */}
+          <div className="hidden sm:grid grid-cols-3 md:grid-cols-5 gap-6">
+            {featuredLocked.map((a) => (
+              <div key={a.id} className="flex flex-col items-center gap-3">
+                <AvatarBubble
+                  a={a}
+                  clickable={false}
+                  selected={false}
+                  previewable={true}
+                  onPreview={() => openPreview(a)}
+                  badgeText={formatPrice(a.priceCents) || "PAID"}
+                />
+
+                <button
+                  onClick={() => openPreview(a)}
+                  className="px-4 py-2 rounded-xl font-bold shadow-lg bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+                >
+                  View
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* 🧱 REST */}
+      {restLocked.length > 0 && (
+        <>
+          <h3 className="text-lg font-bold mt-6 mb-2">🛒 More avatars</h3>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
+            {visibleRestLocked.map((a) => {
+              const isPending = pendingAvatarIds.has(a.id);
+
+              return (
+                <div key={a.id} className="flex flex-col items-center gap-3">
+                  <AvatarBubble
+                    a={a}
+                    clickable={false}
+                    selected={false}
+                    previewable={true}
+                    onPreview={() => openPreview(a)}
+                    badgeText={formatPrice(a.priceCents) || "PAID"}
+                  />
+
+                  <button
+                    onClick={() => openPreview(a)}
+                    disabled={isPending}
+                    className={`px-4 py-2 rounded-xl font-bold shadow-lg ${
+                      isPending
+                        ? "bg-white/20 text-white cursor-default"
+                        : "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+                    }`}
+                  >
+                    {isPending ? "Pending..." : "View"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {hasMoreRestLocked && (
+            <div className="mt-5 flex justify-center">
+              <button
+                onClick={() => setLockedLimit((n) => n + LOCKED_STEP)}
+                className="px-5 py-2 rounded-xl bg-white/15 hover:bg-white/20 border border-white/15 font-semibold"
+              >
+                Show more ({Math.min(lockedLimit, restLocked.length)}/{restLocked.length})
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  )}
+</div>
 
           {/* ACHIEVEMENTS */}
 <div className="w-full max-w-5xl z-10 mt-10">
