@@ -12,7 +12,6 @@ import { onboardingSteps } from "@/lib/onboardingSteps";
 import { apiFetch } from "@/lib/api";
 
 import { asset } from "@/lib/assets";
-const API = process.env.NEXT_PUBLIC_API_URL!;
 
 /* -------------------------
    Types (adjust if needed)
@@ -614,13 +613,9 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
   if (!token) return;
 
   try {
-    const res = await fetch(`${API}/me/onboarding-complete`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const res = await apiFetch(`/me/onboarding-complete`, {
+  method: "POST",
+});
 
     const data = await res.json();
     console.log("✅ onboarding response:", data);
