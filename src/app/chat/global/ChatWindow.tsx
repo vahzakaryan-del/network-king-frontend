@@ -418,27 +418,41 @@ function renderFormattedContent(content: string, emojiMap: Map<string, Available
     });
     prevChannelRef.current = channelRef.current || "global";
 
-    const onMessage = (msg: GlobalMessage) => {
-      const msgChannel = msg.channel || "global";
-      const activeChannel = channelRef.current || "global";
-      if (msgChannel !== activeChannel) return;
+   const onMessage = (msg: GlobalMessage) => {
+  const msgChannel = msg.channel || "global";
+  const activeChannel = channelRef.current || "global";
+  if (msgChannel !== activeChannel) return;
 
-      setMessages((prev) => [...prev, msg]);
+  // ✅ PATCH: force correct premium for current user
+  const myId = Number(localStorage.getItem("userId"));
+  const myPremium = localStorage.getItem("isPremium") === "1";
 
-      const el = scrollAreaRef.current;
-      if (!el) return;
-
-      const distance = el.scrollHeight - (el.scrollTop + el.clientHeight);
-      if (distance < 400) {
-        requestAnimationFrame(() =>
-          bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-        );
-        setNewMsgCount(0);
-        markGlobalReadOnServer(activeChannel);
-      } else {
-        setNewMsgCount((c) => c + 1);
-      }
+  if (msg.user?.id === myId) {
+    msg = {
+      ...msg,
+      user: {
+        ...msg.user,
+        isPremium: myPremium,
+      },
     };
+  }
+
+  setMessages((prev) => [...prev, msg]);
+
+  const el = scrollAreaRef.current;
+  if (!el) return;
+
+  const distance = el.scrollHeight - (el.scrollTop + el.clientHeight);
+  if (distance < 400) {
+    requestAnimationFrame(() =>
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    );
+    setNewMsgCount(0);
+    markGlobalReadOnServer(activeChannel);
+  } else {
+    setNewMsgCount((c) => c + 1);
+  }
+};
 
     const onTyping = (user: TypingUser & { channel?: string }) => {
       const active = channelRef.current || "global";
@@ -570,6 +584,8 @@ if (!canPost) return;
 
     setText("");
 
+    
+
     if (!socket.connected) socket.connect();
     socket.emit("auth", token);
 
@@ -651,25 +667,30 @@ if (!canPost) return;
 
              <div className="min-w-0 flex-1">
 
-              <div className="flex items-center gap-2">
-                <span className="flex mb-2 items-center gap-1 font-semibold text-sm">
-  {isAnnouncement ? "Networ.King" : (m.user?.name || "User")}
+              <div className="flex flex-col min-w-0 mb-1">
+  {/* ROW 1 */}
+  <div className="flex items-center gap-2 min-w-0">
+    <span className="flex items-center gap-1 font-semibold text-sm min-w-0">
+      <span className="truncate">
+        {isAnnouncement ? "Networ.King" : (m.user?.name || "User")}
+      </span>
 
-  {!isAnnouncement && typeof m.user?.currentLevel === "number" && (
-  <LevelBadge lvl={m.user.currentLevel} />
-)}
+      {!isAnnouncement && typeof m.user?.currentLevel === "number" && (
+        <LevelBadge lvl={m.user.currentLevel} />
+      )}
 
-{!isAnnouncement && m.user?.isPremium && <PremiumBadge />}
+      {!isAnnouncement && m.user?.isPremium && <PremiumBadge />}
+    </span>
+  </div>
 
-{!isAnnouncement && m.user?.mainCountry && (
-  <FlagIcon code={m.user.mainCountry} />
-)}
-</span>
-
-                <span className="text-xs text-gray-400">
-                  {formatTs(m.createdAt)}
-                </span>
-              </div>
+  {/* ROW 2 */}
+  <div className="flex items-center gap-2 text-xs text-gray-400">
+    {!isAnnouncement && m.user?.mainCountry && (
+      <FlagIcon code={m.user.mainCountry} />
+    )}
+    <span>{formatTs(m.createdAt)}</span>
+  </div>
+</div>
 
 {isAnnouncement ? (
   <div className="

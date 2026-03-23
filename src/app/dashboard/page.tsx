@@ -808,21 +808,28 @@ const wasOpenRef = useRef(false);
 
   // Premium
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const token = localStorage.getItem("token");
+  if (!token) return;
 
-    apiFetch(`/me/entitlements`)
-      .then((r) => r.json())
-      .then((data) => setIsPremium(!!data?.isPremium))
-      .catch(() => {});
-  }, []);
+  apiFetch(`/me/entitlements`)
+    .then((r) => r.json())
+    .then((data) => {
+      const premium = !!data?.isPremium;
+
+      setIsPremium(premium);
+
+      // ✅ STEP 1 — SAVE TO LOCALSTORAGE
+      localStorage.setItem("isPremium", premium ? "1" : "0");
+    })
+    .catch(() => {});
+}, []);
 
   // Motion helper
   const fastFade = useMemo(
     () => ({ initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } }),
     []
   );
-
+ 
   /* ===== Mystic Cookie (once per day) ===== */
   const COOKIE_KEY = useMemo(() => `mystic_cookie_last_open_${user?.id ?? "anon"}`, [user?.id]);
 
