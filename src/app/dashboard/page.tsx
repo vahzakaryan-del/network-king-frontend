@@ -486,6 +486,156 @@ function FriendsPreview({ limit = 4 }: { limit?: number }) {
   );
 }
 
+//DAILY LEADERBOARD ON MOBILE
+
+function DailyLeaderboardPreview() {
+  const router = useRouter();
+
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [secondsLeft, setSecondsLeft] = useState<number>(0);
+
+  const API = process.env.NEXT_PUBLIC_API_URL!;
+
+  // fetch today's leaderboard
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch(`${API}/daily-leaderboard/today`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // countdown (same logic as modal)
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const tomorrowUTC = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + 1
+        )
+      );
+
+      const diff = Math.floor((tomorrowUTC.getTime() - Date.now()) / 1000);
+      setSecondsLeft(diff > 0 ? diff : 0);
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = () => {
+    const h = Math.floor(secondsLeft / 3600);
+    const m = Math.floor((secondsLeft % 3600) / 60);
+    return `${h}h ${m}m`;
+  };
+
+  const top3 = data?.leaderboard?.slice(0, 3) || [];
+
+  return (
+    <div className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-3 flex flex-col">
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-amber-300">
+          🏆 Today’s Leaderboard
+        </h2>
+
+        <span className="text-xs text-white/70">
+          ⏳ {formatTime()}
+        </span>
+      </div>
+
+      {/* CONTENT */}
+      {loading ? (
+        <div className="text-center text-white/70 text-sm py-4">
+          Loading...
+        </div>
+      ) : data?.active === false ? (
+        <div className="text-center text-white/70 text-sm py-4">
+          No challenge today 👑
+        </div>
+      ) : top3.length === 0 ? (
+        <div className="text-center text-white/70 text-sm py-4">
+          No entries yet 👑
+        </div>
+      ) : (
+        <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+  {top3.map((entry: any, index: number) => (
+    <div
+      key={entry.id}
+      onClick={() => router.push(`/profile/${entry.user.id}`)}
+     className={`flex-1 flex flex-col items-center rounded-lg py-2 border cursor-pointer transition
+  ${
+    index === 0
+      ? "bg-yellow-400/20 border-yellow-300/50 shadow-[0_0_20px_rgba(255,215,0,0.6)]"
+      : index === 1
+      ? "bg-white/10 border-white"
+      : index === 2
+      ? "bg-amber-700/20 border-amber-400"
+      : "bg-white/5 border-white/10 hover:bg-white/10"
+  }`} >
+      {/* Rank */}
+      <div className="text-lg">
+        {index === 0 && "🥇"}
+        {index === 1 && "🥈"}
+        {index === 2 && "🥉"}
+      </div>
+
+      {/* Avatar */}
+      <img
+        src={
+          entry.user.avatar
+            ? `${API}/avatars/${entry.user.avatar}`
+            : "/placeholder.png"
+        }
+        onError={(e) => (e.currentTarget.src = "/placeholder.png")}
+        className="w-8 h-8 rounded-full object-cover border border-white/20 mt-1"
+      />
+
+      {/* Name */}
+      <div className="text-[11px] font-semibold mt-1 text-center truncate max-w-[80px]">
+        {entry.user.name}
+      </div>
+    </div>
+  ))}
+</div>
+        </div>
+      )}
+
+      {/* BUTTON */}
+      <div className="mt-3 flex items-center justify-between gap-2">
+  {/* Your rank (if not top 3) */}
+  {data?.myRank && data.myRank > 3 ? (
+    <div className="text-xs text-white/70">
+      Your rank: <span className="font-bold text-amber-300">#{data.myRank}</span>
+    </div>
+  ) : (
+    <div />
+  )}
+
+  {/* Button */}
+  <button
+    onClick={() => router.push("/tests")}
+    className="px-3 py-1.5 rounded-lg bg-amber-400 text-gray-900 font-semibold hover:bg-amber-300 transition text-xs"
+  >
+    View →
+  </button>
+</div>
+    </div>
+  );
+}
+
 /* =========================================================
    Main Page Component
    ========================================================= */
@@ -1833,6 +1983,8 @@ useEffect(() => {
             </div>
           </motion.div>
 
+        
+
           {/* 5) Tests & Badges (thin + 4 tests) */}
           <motion.div
           id="onboarding-tests"
@@ -1856,6 +2008,14 @@ useEffect(() => {
               Open Tests
             </button>
           </motion.div>
+
+            {/* 5.5) Daily Leaderboard (mobile only) */}
+<motion.div
+  {...fastFade}
+  transition={{ delay: 0.09, duration: 0.45 }}
+>
+  <DailyLeaderboardPreview />
+</motion.div>
 
 
 

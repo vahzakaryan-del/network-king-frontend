@@ -252,26 +252,29 @@ function GlobalChatPageContent() {
               <div className="text-sm text-white/80 font-semibold truncate pr-2">
                 {headerName}
               </div>
-
+ <div className="h-12 w-px bg-gradient-to-b from-white/10 via-white/60 to-white/10 opacity-70" />
+  
               <div className="flex items-center gap-2">
                 {channel === "global" && (
                   <button
                     type="button"
                     onClick={() => setMembersOpen(true)}
-                    className="px-2 py-1 rounded-md bg-blue-200 hover:bg-white/15 border border-white/10 text-xs"
-                  >
-                    👥
-                  </button>
+                  className="px-2 ml-1 mr-1 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/10 text-xs animate-pulse"
+                 >
+                    Online 🙏
+                  </button> 
                 )}
+              
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard")}
                   className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/10 text-xs"
                 >
-                  Back to 👑
+                 👑  Go back
                 </button>
               </div>
+              
             </div>
           )}
 
@@ -290,7 +293,7 @@ function GlobalChatPageContent() {
             />
             <div className="fixed right-0 top-0 h-full w-[82vw] max-w-[340px] z-[9999] bg-[#1e1f22] border-l border-white/10">
               <div className="h-12 px-3 flex items-center justify-between border-b border-white/10">
-                <div className="text-sm font-semibold text-white/80">Online</div>
+                <div className="text-sm font-semibold text-white/80">Online users</div>
                 <button
                   className="px-2 py-1 rounded bg-white/10 hover:bg-white/15 text-xs"
                   onClick={() => setMembersOpen(false)}
