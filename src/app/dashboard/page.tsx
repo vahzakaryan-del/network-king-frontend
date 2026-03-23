@@ -837,13 +837,32 @@ const wasOpenRef = useRef(false);
     ],
     []
   );
+  
+
 
   const [lotteryOpen, setLotteryOpen] = useState(false);
   const [lotteryCooldownMs, setLotteryCooldownMs] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [lotteryResult, setLotteryResult] = useState<{ label: string; icon: string } | null>(null);
+  // ✅ Responsive wheel size
+const [wheelSize, setWheelSize] = useState(320);
 
+// ✅ Dynamic sizing helpers
+const radius = wheelSize * 0.35;
+const pointerSize = wheelSize * 0.04;
+
+useEffect(() => {
+  function update() {
+    requestAnimationFrame(() => {
+      setWheelSize(Math.min(window.innerWidth * 0.72, 320));
+    });
+  }
+
+  update();
+  window.addEventListener("resize", update);
+  return () => window.removeEventListener("resize", update);
+}, []);
   const [lotteryInventory, setLotteryInventory] = useState<Record<string, number>>({});
 const [lotteryAvailable, setLotteryAvailable] = useState(false);
 
@@ -1463,7 +1482,7 @@ useEffect(() => {
                 👑 Premium
               </button>
 
-                  {/* Daily widgets moved to bottom (mobile) */}
+                  {/* Daily widgets  (mobile) */}
 
              <button
  onClick={() => {
@@ -2371,7 +2390,16 @@ onClick={(e) => e.stopPropagation()}
                   <p className="text-sm text-white/70 font-semibold">Networ.King</p>
                   <h2 className="text-2xl md:text-3xl font-extrabold mt-1">Daily Lottery</h2>
                  <p className="text-white/70 mt-2">
-  Daily spins available
+  {lotteryAvailable ? (
+    "Daily spins available"
+  ) : (
+    <>
+      You used all your attempts for today.
+      <span className="block text-amber-300 mt-1 text-xs">
+        💡 Tip: Premium users get 2 spins per day
+      </span>
+    </>
+  )}
 </p></div>
 
                 <button
@@ -2387,9 +2415,14 @@ onClick={(e) => e.stopPropagation()}
                 <div className="relative">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
                     <div
-                      className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px]
-                        border-l-transparent border-r-transparent border-t-amber-300"
-                    />
+  style={{
+    width: 0,
+    height: 0,
+    borderLeft: `${pointerSize}px solid transparent`,
+    borderRight: `${pointerSize}px solid transparent`,
+    borderTop: `${pointerSize * 1.6}px solid #fcd34d`,
+  }}
+/>
                   </div>
 
                   <motion.div
@@ -2397,52 +2430,62 @@ onClick={(e) => e.stopPropagation()}
                     transition={{ duration: 2.4, ease: [0.22, 1, 0.36, 1] }}
                     className="relative rounded-full border border-white/20 shadow-2xl overflow-hidden"
 style={{
-  width: "min(72vw, 320px)",
-  height: "min(72vw, 320px)",
-  background: "conic-gradient("  +
-                        [
-                          "rgba(255,255,255,0.25) 0deg 45deg",
-                          "rgba(220,38,38,0.35) 45deg 90deg",
-                          "rgba(255,255,255,0.25) 90deg 135deg",
-                          "rgba(220,38,38,0.35) 135deg 180deg",
-                          "rgba(255,255,255,0.25) 180deg 225deg",
-                          "rgba(220,38,38,0.35) 225deg 270deg",
-                          "rgba(255,255,255,0.25) 270deg 315deg",
-                          "rgba(220,38,38,0.35) 315deg 360deg",
-                        ].join(",") +
-                        ")",
-                    }}
+  width: wheelSize,
+  height: wheelSize,
+  background: "conic-gradient(" +
+    [
+      "rgba(255,255,255,0.25) 0deg 45deg",
+      "rgba(220,38,38,0.35) 45deg 90deg",
+      "rgba(255,255,255,0.25) 90deg 135deg",
+      "rgba(220,38,38,0.35) 135deg 180deg",
+      "rgba(255,255,255,0.25) 180deg 225deg",
+      "rgba(220,38,38,0.35) 225deg 270deg",
+      "rgba(255,255,255,0.25) 270deg 315deg",
+      "rgba(220,38,38,0.35) 315deg 360deg",
+    ].join(",") +
+    ")",
+}}
                   >
                     {prizes.map((p, i) => {
                       const angle = (360 / prizes.length) * i + 360 / prizes.length / 2;
-                      const xOffset = -20;
-                      const yOffset = -20;
-
-                      return (
+                      
+                                            return (
                         <div
-                          key={p.label}
-                          className="absolute left-1/2 top-1/2"
-                          style={{
-                            transform: `
-                              translate(${xOffset}px, ${yOffset}px)
-                              rotate(${angle}deg)
-                              translateY(-120px)
-                              rotate(-${angle}deg)
-                            `,
-                          }}
-                        >
-                          <div className="w-10 h-10 rounded-full bg-black/20 border border-white/10 grid place-items-center text-2xl">
-                            {p.icon}
+  key={p.label}
+  className="absolute left-1/2 top-1/2"
+  style={{
+    transform: `
+      translate(-50%, -50%)
+      rotate(${angle}deg)
+      translateX(${radius}px)
+      rotate(-${angle}deg)
+    `,
+  }}
+>
+                         <div
+  style={{
+    width: wheelSize * 0.15,
+    height: wheelSize * 0.15,
+    fontSize: wheelSize * 0.065,
+  }}
+  className="rounded-full bg-black/20 border border-white/10 grid place-items-center"
+>                            {p.icon}
                           </div>
                         </div>
                       );
                     })}
 
                     <div className="absolute inset-0 grid place-items-center">
-                      <div className="w-18 h-18 rounded-full bg-black/30 border border-white/15 shadow-inner grid place-items-center">
-                        <span className="text-2xl">🍀</span>
-                      </div>
-                    </div>
+  <div
+    style={{
+      width: wheelSize * 0.22,
+      height: wheelSize * 0.22,
+    }}
+    className="rounded-full bg-black/30 border border-white/15 shadow-inner grid place-items-center"
+  >
+    <span style={{ fontSize: wheelSize * 0.08 }}>🍀</span>
+  </div>
+</div>
                   </motion.div>
                 </div>
 
