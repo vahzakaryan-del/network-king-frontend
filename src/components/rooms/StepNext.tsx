@@ -79,6 +79,7 @@ export default function StepNext({
   const [enterAnim, setEnterAnim] = useState(false);
 
   const [showConfirm, setShowConfirm] = useState(false);
+  const [lockedAnim, setLockedAnim] = useState(false);
 
   const pct =
     progress && progress.total > 0
@@ -105,36 +106,41 @@ export default function StepNext({
 
   
 
-  const handleEnterRoom = async () => {
-    if (busy || enterAnim) return;
+ const handleEnterRoom = async () => {
+  if (busy || enterAnim) return;
 
-    if (unlocked) {
-      enterRoom();
-      return;
-    }
-
-    if (!canUnlock) return;
-
-    if (onUnlock) {
-      setBusy(true);
-      const ok = await onUnlock(level);
-      setBusy(false);
-      if (!ok) return;
-    }
-
+  if (unlocked) {
     enterRoom();
-  };
+    return;
+  }
 
-  const handleBuyKey = async (e: React.MouseEvent) => {
+  if (!canUnlock) {
+    setLockedAnim(true);
+    navigator.vibrate?.(100);
+
+    setTimeout(() => setLockedAnim(false), 500);
+    return;
+  }
+
+  if (onUnlock) {
+    setBusy(true);
+    const ok = await onUnlock(level);
+    setBusy(false);
+    if (!ok) return;
+  }
+
+  enterRoom();
+};
+
+
+    const handleBuyKey = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!canBuyKey || busy || enterAnim) return;
 
     setShowConfirm(true);
-return;
-
-    
-
   };
+
+
 
   // ✅ Render pretty per-rule progress lines from "details" (with OR grouping)
   const progressLines = useMemo((): ProgressLine[] => {
@@ -470,37 +476,54 @@ mx-auto py-8 max-sm:py-6 rounded-xl
 
       {/* Door */}
       <div className="relative perspective-[800px]">
-        <motion.div
-          className="
-            w-28 md:w-32 h-44 md:h-48 rounded-md overflow-hidden
-            border-[3px] border-black/40 shadow-lg
-            bg-[url('/rooms/door-wood.webp')] bg-cover bg-center
-          "
-          style={{
-            opacity: unlocked ? 1 : 0.6,
-            transformOrigin: "left center",
-          }}
-          animate={enterAnim ? { rotateY: -80, opacity: 0.15 } : {}}
-          transition={{ duration: 1.1, ease: "easeInOut" }}
-        />
+  <motion.div
+    className="
+      w-28 md:w-32 h-44 md:h-48 rounded-md overflow-hidden
+      border-[3px] border-black/40 shadow-lg
+      bg-[url('/rooms/door-wood.webp')] bg-cover bg-center
+    "
+    style={{
+      opacity: unlocked ? 1 : 0.6,
+      transformOrigin: "left center",
+      filter: lockedAnim ? "drop-shadow(0 0 8px red)" : "none",
+    }}
+    animate={
+      enterAnim
+        ? { rotateY: -80, opacity: 0.15 }
+        : lockedAnim
+        ? { x: [-8, 8, -8, 8, 0] }
+        : {}
+    }
+    transition={{
+      duration: lockedAnim ? 0.3 : 1.1,
+      ease: "easeInOut",
+    }}
+  />
 
-        {!unlocked && (
-          <motion.img
-            src="/rooms/padlock-red.webp"
-            alt="Locked"
-            className="
-              absolute -top-4 left-1/2 -translate-x-1/2 w-10 md:w-12
-              drop-shadow-[0_0_15px_rgba(255,0,0,0.7)]
-            "
-            animate={
-              enterAnim
-                ? { rotate: [0, -20, 20, 0], opacity: 0, y: -10 }
-                : { opacity: 1 }
-            }
-            transition={{ duration: 0.6 }}
-          />
-        )}
-      </div>
+  {/* 🔒 Locked text */}
+  {lockedAnim && (
+    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-bold text-black animate-pulse">
+  🔒 Locked
+</div>
+  )}
+
+  {!unlocked && (
+    <motion.img
+      src="/rooms/padlock-red.webp"
+      alt="Locked"
+      className="
+        absolute -top-4 left-1/2 -translate-x-1/2 w-10 md:w-12
+        drop-shadow-[0_0_15px_rgba(255,0,0,0.7)]
+      "
+      animate={
+        enterAnim
+          ? { rotate: [0, -20, 20, 0], opacity: 0, y: -10 }
+          : { opacity: 1 }
+      }
+      transition={{ duration: 0.6 }}
+    />
+  )}
+</div>
 
       {/* ✅ Progress UI */}
       {!unlocked && (

@@ -149,15 +149,20 @@ function MyRoomsInner() {
 
       <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0f]">
         {showIntro ? (
-          <PyramidIntro onFinish={() => setShowIntro(false)} />
+          <PyramidIntro
+  onFinish={() => {
+    setShowIntro(false);
+  }}
+/>
         ) : (
-          <RoomsLayout
-            levels={levels}
-            currentLevel={currentLevel ?? 1}
-            unlockLevel={unlockLevel}
-            buyKey={buyKey}
-            justUnlocked={justUnlocked}
-          />
+         <RoomsLayout
+  levels={levels}
+  currentLevel={currentLevel ?? 1}
+  unlockLevel={unlockLevel}
+  buyKey={buyKey}
+  justUnlocked={justUnlocked}
+  autoScroll={!showIntro} // 👈 THIS IS THE KEY
+/>
         )}
       </div>
     </>

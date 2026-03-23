@@ -36,12 +36,14 @@ export default function RoomsLayout({
   unlockLevel,
   buyKey,
    justUnlocked,
+   autoScroll,
 }: {
   levels: any[];
   currentLevel: number;
   unlockLevel: (level: number) => Promise<boolean>;
   buyKey: (level: number) => Promise<boolean>;
   justUnlocked: boolean; 
+  autoScroll?: boolean;
 }) {
   const router = useRouter();
   const [infoOpen, setInfoOpen] = useState(false);
@@ -54,20 +56,31 @@ export default function RoomsLayout({
   const next = levels.find((l) => l.level === currentLevel + 1);
   const nextNext = levels.find((l) => l.level === currentLevel + 2);
 
-  useEffect(() => {
-    if (!scrollRef.current || !current) return;
+ useEffect(() => {
+  if (!autoScroll) return;
+  if (!scrollRef.current || !current) return;
 
-    const container = scrollRef.current;
-    const currentElement = container.querySelector("#current-level") as HTMLElement | null;
-    if (!currentElement) return;
+  const container = scrollRef.current;
 
-    const offset =
-      currentElement.offsetTop -
-      container.clientHeight / 2 +
-      currentElement.clientHeight / 2;
+  const timer = setTimeout(() => {
+    requestAnimationFrame(() => {
+      const currentElement = document.getElementById("current-level") as HTMLElement | null;
+      if (!currentElement) return;
 
-    container.scrollTo({ top: offset, behavior: "smooth" });
-  }, [current]);
+      const offset =
+        currentElement.offsetTop -
+        container.clientHeight / 2 +
+        currentElement.clientHeight / 2;
+
+      container.scrollTo({
+        top: offset,
+        behavior: "smooth",
+      });
+    });
+  }, 500); // slightly longer for mobile stability
+
+  return () => clearTimeout(timer);
+}, [autoScroll, current]);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,7 +148,10 @@ export default function RoomsLayout({
   };
 
   return (
-    <main className="relative w-full h-screen overflow-auto bg-[#0d0b14] text-white">
+    <main
+  ref={scrollRef}
+  className="relative w-full h-screen overflow-auto bg-[#0d0b14] text-white"
+>
       {/* BACKGROUND */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-[#1a1628] pointer-events-none" />
       <div
@@ -165,16 +181,15 @@ export default function RoomsLayout({
       <div className="fixed top-4 right-4 z-50">
         <button
           onClick={() => router.push("/dashboard")}
-          className="px-4 py-2 rounded-lg bg-amber-400 text-black font-bold border border-amber-300 hover:bg-amber-300 shadow-md"
+          className="px-4 py-1 rounded-lg bg-amber-400 text-black font-bold border border-amber-300 hover:bg-amber-300 shadow-md"
         >
           ⬅ Back to Dashboard
         </button>
       </div>
 
       {/* SCROLLABLE LEVELS */}
-      <div
-        ref={scrollRef}
-        className="relative z-10 w-full flex flex-col items-center gap-24 max-sm:gap-12 pt-0 max-sm:pt-16 pb-32 max-sm:pb-24"
+     <div
+  className="relative z-10 w-full flex flex-col items-center gap-24 max-sm:gap-12 pt-0 max-sm:pt-16 pb-32 max-sm:pb-24"
       >
         {nextNext && <StepPlaceholder level={nextNext.level} />}
 
