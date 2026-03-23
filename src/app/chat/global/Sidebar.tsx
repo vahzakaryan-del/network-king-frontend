@@ -119,25 +119,36 @@ export default function Sidebar({
 
   
 
-  // glow colors based on level group (every 6 levels)
+  // glow colors based on level group (every 12 levels)
 function getMobileGlowClasses(level: number) {
-  // 0–35
   const idx = (level - 1) % 36;
-  const group = Math.floor(idx / 6);
+  const group = Math.floor(idx / 3);
 
   switch (group) {
-    case 0: // Copper
-      return "ring-2 ring-amber-600 shadow-[0_0_8px_#c96a2f] shadow-[0_0_14px_#f59e0b]";
-    case 1: // Silver
-      return "ring-2 ring-gray-300 shadow-[0_0_8px_#e5e7eb] shadow-[0_0_14px_#f3f4f6]";
-    case 2: // Golden
-      return "ring-2 ring-yellow-400 shadow-[0_0_8px_#facc15] shadow-[0_0_14px_#fbbf24]";
-    case 3: // Emerald
-      return "ring-2 ring-emerald-400 shadow-[0_0_8px_#34d399] shadow-[0_0_14px_#10b981]";
-    case 4: // Diamond Blue
-      return "ring-2 ring-sky-400 shadow-[0_0_8px_#7dd3fc] shadow-[0_0_14px_#38bdf8]";
-    case 5: // White
+    case 0: // Amber (warm)
+      return "ring-2 ring-amber-400 shadow-[0_0_8px_#fbbf24] shadow-[0_0_14px_#f59e0b]";
+    case 1: // Cyan (cool)
+      return "ring-2 ring-cyan-400 shadow-[0_0_8px_#22d3ee] shadow-[0_0_14px_#06b6d4]";
+    case 2:// Red (strong)
+      return "ring-2 ring-red-500 shadow-[0_0_8px_#ef4444] shadow-[0_0_14px_#dc2626]";
+    case 3: // Lime (neon green)
+      return "ring-2 ring-lime-400 shadow-[0_0_8px_#a3e635] shadow-[0_0_14px_#84cc16]";
+    case 4: // Blue (deep cool) 
+      return "ring-2 ring-blue-500 shadow-[0_0_8px_#3b82f6] shadow-[0_0_14px_#2563eb]";
+    case 5:  // Yellow (bright) 
+      return "ring-2 ring-yellow-300 shadow-[0_0_8px_#fde047] shadow-[0_0_14px_#facc15]";
+    case 6: // White (neutral pop)
       return "ring-2 ring-white shadow-[0_0_8px_#ffffff] shadow-[0_0_14px_#f9fafb]";
+    case 7: // Purple (contrast)
+      return "ring-2 ring-purple-500 shadow-[0_0_8px_#a855f7] shadow-[0_0_14px_#7e22ce]";
+    case 8: // Emerald (rich green)
+      return "ring-2 ring-emerald-400 shadow-[0_0_8px_#34d399] shadow-[0_0_14px_#059669]";
+    case 9: // Pink (vivid)
+      return "ring-2 ring-pink-500 shadow-[0_0_8px_#ec4899] shadow-[0_0_14px_#be185d]";
+    case 10: // Sky (light blue)
+      return "ring-2 ring-sky-400 shadow-[0_0_8px_#38bdf8] shadow-[0_0_14px_#0284c7]";
+    case 11: // Gray (cool neutral)
+      return "ring-2 ring-gray-300 shadow-[0_0_8px_#d1d5db] shadow-[0_0_14px_#9ca3af]";
     default:
       return "";
   }
@@ -187,7 +198,7 @@ function getMobileGlowClasses(level: number) {
       ].join(" ")}
       title={label}
     >
-      <span className="text-[18px] leading-none">{icon}</span>
+      <span className="text-[24px] leading-none">{icon}</span>
       <span className="text-[11px] leading-tight text-white/80 text-center truncate w-full">
         {label}
       </span>

@@ -111,7 +111,7 @@ type TypingUser = { id: number; name: string };
 const levelColor = (lvl: number) => {
   const hue = (lvl * 11) % 360;
   return {
-    backgroundColor: `hsla(${hue}, 85%, 55%, 0.18)`,
+    backgroundColor: `hsla(${hue}, 95%, 55%, 0.18)`,
     borderColor: `hsla(${hue}, 90%, 65%, 0.35)`,
     color: `hsla(${hue}, 90%, 85%, 1)`,
     boxShadow: `0 0 12px hsla(${hue}, 90%, 60%, 0.22)`,
@@ -1409,11 +1409,12 @@ function insertEmoji(e: AvailableEmoji) {
 
               markSubReadOnServer(levelNumber, sc.id);
             }}
-            className="w-full text-left px-3 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-2"
+            className="w-full text-left px-3 py-3 rounded-lg hover:bg-white/10 flex items-center gap-2 border-b border-white/30"
           >
+            <span className="font-semibold truncate">#</span>
             <span className="text-lg">{sc.emoji || "💬"}</span>
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="font-semibold truncate">#{sc.name}</span>
+              <span className="font-semibold truncate">{sc.name}</span>
 
               {(unreadBySub[sc.id] ?? 0) > 0 && (
                 <span className="ml-auto min-w-[22px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[11px] font-extrabold flex items-center justify-center">
@@ -1435,7 +1436,7 @@ function insertEmoji(e: AvailableEmoji) {
   );
 
   return (
-    <section className="flex flex-col flex-1 bg-[#2b2d31] text-white overflow-hidden min-w-0">
+    <section className="flex flex-col flex-1 bg-black/30 text-white overflow-hidden min-w-0">
       {/* Level top bar */}
       <div className="border-b border-white/10 px-4 py-2 flex flex-col gap-2">
         <div className="min-w-0">
@@ -1480,7 +1481,7 @@ function insertEmoji(e: AvailableEmoji) {
             className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/10 text-xs"
             title="Members"
           >
-            🔍🤝
+            Search 🔍
           </button>
 
           <button
@@ -1651,26 +1652,44 @@ function insertEmoji(e: AvailableEmoji) {
       {/* ✅ Mobile fullscreen subchat (ONLY when activeSub on mobile) */}
       {showSubsFullscreen && (
         <div className="fixed inset-0 z-[9999] bg-[#2b2d31] flex flex-col">
-          <div className="h-12 border-b border-white/10 px-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSub(null);
-                setEmojiOpen(false);
-              }}
-              className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/15 text-sm"
-            >
-              ← Back
-            </button>
+       <div className="border-b border-white/10 px-3 py-2 flex flex-col">
 
-            <div className="text-sm font-semibold text-white/80 truncate">
-              {activeSub
-                ? `lvl ${levelNumber} • ${activeSub.emoji || "💬"} #${activeSub.name}`
-                : `lvl ${levelNumber}`}
-            </div>
+  {/* ROW 1 */}
+  <div className="relative flex items-center justify-center">
 
-            <div className="w-[64px]" />
-          </div>
+       <button  className="absolute left-0 px-3 py-1 mt-2 rounded-md bg-white/10 hover:bg-white/15 text-sm"
+>
+      About
+    </button>
+
+    <div className="text-l mt-2 font-semibold text-white/80 truncate">
+      {activeSub
+        ? `lvl ${levelNumber} • ${activeSub.emoji || "💬"} #${activeSub.name}`
+        : `lvl ${levelNumber}`}
+    </div>
+
+    <button
+      type="button"
+      onClick={() => {
+        setActiveSub(null);
+        setEmojiOpen(false);
+      }}
+      className="absolute right-0 px-3 py-1 mt-2 rounded-md bg-white/10 hover:bg-white/15 text-sm"
+    >
+      ← Back
+    </button>
+
+  </div>
+
+  {/* SEPARATOR */}
+  <div className="h-px bg-white/10 my-2 mt-4 mb-2" />
+
+  {/* ROW 2 */}
+  <div className="flex mt-4 items-center justify-center gap-4">
+
+  </div>
+
+</div>
 
           <div className="flex-1 min-h-0 flex flex-col">
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-4">
