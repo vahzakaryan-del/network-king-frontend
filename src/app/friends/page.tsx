@@ -30,7 +30,11 @@ const [invitedError, setInvitedError] = useState("");
   const [findMessage, setFindMessage] = useState("");
   const [findLoading, setFindLoading] = useState(false);
 
-  const [findOpen, setFindOpen] = useState(false);
+ const initialFindOpen =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("find") === "1";
+
+const [findOpen, setFindOpen] = useState(initialFindOpen);
 
   const [friendsQuery, setFriendsQuery] = useState("");
   const [friendsSort, setFriendsSort] = useState<"default" | "online">(
@@ -41,7 +45,7 @@ const [invitedError, setInvitedError] = useState("");
 const [invitedCount, setInvitedCount] = useState<number>(0);
 const [inviteLoading, setInviteLoading] = useState(false);
 const [inviteMsg, setInviteMsg] = useState<string>("");
-
+const [recommendedInitialized, setRecommendedInitialized] = useState(false);
 
   // Mobile-only: recommended accordion
   const [recommendedOpen, setRecommendedOpen] = useState(false);
@@ -91,6 +95,19 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
     if (urlTab === "requests") setRequestsSub(urlSub);
   }, [searchParams]);
 
+
+  useEffect(() => {
+  const shouldOpenFind = searchParams.get("find");
+
+  if (shouldOpenFind === "1") {
+    setFindOpen(true);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("find");
+
+    router.replace(`/friends?${params.toString()}`);
+  }
+}, [searchParams, router]);
   // Load friends, requests, recommended
   useEffect(() => {
     if (!token) return;
@@ -371,6 +388,21 @@ async function loadRequests() {
     loadFriends();
   }
 
+  useEffect(() => {
+  if (recommendedInitialized) return;
+
+  // wait until first real fetch happened
+  if (!friends) return;
+
+  // IMPORTANT: only run after first load completes
+  // (you always set array, so we check if fetch happened)
+  if (friends.length < 5) {
+    setRecommendedOpen(true);
+  }
+
+  setRecommendedInitialized(true);
+}, [friends, recommendedInitialized]);
+
   function timeAgo(input?: string | Date | null) {
     if (!input) return null;
     const d = typeof input === "string" ? new Date(input) : input;
@@ -594,29 +626,20 @@ async function loadRequests() {
   <div className="flex items-center gap-2">
     <button
       onClick={() => setFindOpen(true)}
-      className="px-4 py-2 rounded-lg bg-blue-300 text-gray-900 font-semibold hover:bg-amber-300 transition"
+      className="px-4 py-2 rounded-lg bg-gradient-to-br from-red-700 to-amber-300 text-gray-900 font-semibold hover:bg-amber-300 transition"
     >
       Search
     </button>
 
-    {/* Tiny Invite Button */}
-    <button
-  onClick={(e) => {
-    e.stopPropagation();
-    setMobileInviteOpen((v) => !v);
-  }}
-  className="w-10 h-10 flex items-center justify-center rounded-full bg-white/15 border border-white/20 hover:bg-white/25 transition"
-  title="Invite new people"
->
-  👤➕
-</button>
+    
   </div>
 
   {/* Invite Dropdown */}
   {mobileInviteOpen && (
-    <div onClick={(e) => e.stopPropagation()}
-  className="absolute right-0 top-full mt-3 w-64 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-xl p-4 z-30">
-      <div className="flex flex-col gap-3">
+  <div
+    onClick={(e) => e.stopPropagation()}
+    className="fixed bottom-24 right-6 w-64 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-xl p-4 z-50"
+  >    <div className="flex flex-col gap-3">
         <button
           onClick={() => {
             handleCopyInviteLink();
@@ -668,7 +691,7 @@ async function loadRequests() {
       className={`z-10 py-2 font-semibold transition-colors
         ${tab === "friends" ? "text-gray-900" : "text-white/80"}`}
     >
-      Friends
+     My Friends
     </button>
 
     <button
@@ -685,16 +708,27 @@ async function loadRequests() {
         {/* 4. Friends area or Requests area */}
         {tab === "friends" ? (
           <div className="mt-4">
-            {/* Friends search */}
-            <div className="rounded-2xl bg-white/10 border border-white/10 p-3">
-              <input
-                type="text"
-                value={friendsQuery}
-                onChange={(e) => setFriendsQuery(e.target.value)}
-                placeholder="Search inside your friends..."
-                className="w-full px-4 py-2 rounded-xl bg-white/15 border border-white/10 placeholder-gray-200 text-white outline-none focus:ring-2 focus:ring-amber-400"
-              />
-            </div>
+           {/* Friends search (mobile with refresh) */}
+<div className="rounded-2xl bg-white/10 border border-white/10 p-3">
+  <div className="relative">
+    <input
+      type="text"
+      value={friendsQuery}
+      onChange={(e) => setFriendsQuery(e.target.value)}
+      placeholder="Search inside your friends..."
+      className="w-full px-4 py-2 pr-12 rounded-xl bg-white/15 border border-white/10 placeholder-gray-200 text-white outline-none focus:ring-2 focus:ring-amber-400"
+    />
+
+    {/* Refresh button */}
+    <button
+      onClick={refreshAll}
+      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 transition"
+      title="Refresh"
+    >
+      ↻
+    </button>
+  </div>
+</div>
 
             {/* Friends list: show ~4 items and scroll */}
             <div className="mt-3 rounded-2xl bg-white/10 border border-white/10 p-3">
@@ -749,7 +783,7 @@ async function loadRequests() {
             : "text-white/80"
         }`}
     >
-      Incoming
+      ← Incoming
     </button>
 
     <button
@@ -764,7 +798,7 @@ async function loadRequests() {
             : "text-white/80"
         }`}
     >
-      Outgoing
+      Outgoing →
     </button>
   </div>
 </div>
@@ -857,11 +891,21 @@ async function loadRequests() {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold truncate">{u.name}</span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 border border-white/10 text-gray-100">
-                              Lv {u.currentLevel ?? "—"}
-                            </span>
-                          </div>
+  <span className="font-semibold truncate">{u.name}</span>
+
+  <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 border border-white/10 text-gray-100">
+    Lv {u.currentLevel ?? "—"}
+  </span>
+
+  {u.mainCountry && (
+    <img
+      src={`https://flagcdn.com/20x15/${u.mainCountry.toLowerCase()}.png`}
+      alt={u.mainCountry}
+      className="rounded-sm shadow-sm"
+      title={u.mainCountry}
+    />
+  )}
+</div>
                           <div className="text-xs text-gray-300 mt-0.5">
                             {u.online
                               ? "Online now"
@@ -890,6 +934,18 @@ async function loadRequests() {
             </div>
           )}
         </div>
+
+        {/* Floating Invite Button (Mobile) */}
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    setMobileInviteOpen((v) => !v);
+  }}
+  className="fixed bottom-6 right-6 z-40 w-14 h-14 flex items-center justify-center rounded-full bg-amber-400 text-gray-900 text-xl shadow-xl hover:bg-amber-300 active:scale-95 transition"
+  title="Invite new people"
+>
+  👤➕
+</button>
       </div>
 
       {/* =========================
@@ -910,29 +966,43 @@ async function loadRequests() {
               </button>
             </div>
 
-            {/* FRIENDS SEARCH + SORT */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <input
-                type="text"
-                value={friendsQuery}
-                onChange={(e) => setFriendsQuery(e.target.value)}
-                placeholder="Search inside your friends..."
-                className="flex-1 px-4 py-2 rounded-lg bg-white/15 border border-white/10 placeholder-gray-200 text-white outline-none focus:ring-2 focus:ring-amber-400"
-              />
+           {/* FRIENDS SEARCH + SORT */}
+<div className="flex flex-col sm:flex-row gap-3 mb-6">
+  
+  {/* Search with refresh */}
+  <div className="relative flex-1">
+    <input
+      type="text"
+      value={friendsQuery}
+      onChange={(e) => setFriendsQuery(e.target.value)}
+      placeholder="Search inside your friends..."
+      className="w-full px-4 py-2 pr-10 rounded-lg bg-white/15 border border-white/10 placeholder-gray-200 text-white outline-none focus:ring-2 focus:ring-amber-400"
+    />
 
-              <select
-                value={friendsSort}
-                onChange={(e) => setFriendsSort(e.target.value as any)}
-                className="px-4 py-2 rounded-lg bg-white/15 border border-white/10 text-white outline-none focus:ring-2 focus:ring-amber-400"
-              >
-                <option value="default" className="text-black">
-                  Default
-                </option>
-                <option value="online" className="text-black">
-                  Online first
-                </option>
-              </select>
-            </div>
+    {/* Refresh button */}
+    <button
+      onClick={refreshAll}
+      className="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-sm px-2 py-1 rounded-md hover:bg-white/10 transition"
+      title="Refresh"
+    >
+      ↻
+    </button>
+  </div>
+
+  {/* Sort */}
+  <select
+    value={friendsSort}
+    onChange={(e) => setFriendsSort(e.target.value as any)}
+    className="px-4 py-2 rounded-lg bg-white/15 border border-white/10 text-white outline-none focus:ring-2 focus:ring-amber-400"
+  >
+    <option value="default" className="text-black">
+      Default
+    </option>
+    <option value="online" className="text-black">
+      Online first
+    </option>
+  </select>
+</div>
 
             {/* TABS */}
             <div className="flex justify-center gap-4 mb-6">

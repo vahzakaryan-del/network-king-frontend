@@ -2039,7 +2039,7 @@ useEffect(() => {
                 <p className="text-gray-200 text-sm mb-3">Your network</p>
               </div>
               <button
-                onClick={() => router.push("/friends")}
+                onClick={() => router.push("/friends?find=1")}
                 className="px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-xs"
                 title="Find Friends"
               >
