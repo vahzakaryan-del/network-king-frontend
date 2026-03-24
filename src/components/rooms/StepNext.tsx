@@ -324,13 +324,15 @@ if (type === "friends_count_min") {
           typeof d?.rule?.minScore === "number" ? d.rule.minScore : null;
 
         const badgeLabel =
-          typeof d?.meta?.label === "string" && d.meta.label.trim()
-            ? d.meta.label
-            : typeof d?.rule?.badgeSlug === "string"
-              ? d.rule.badgeSlug
-              : typeof d?.rule?.badgeId === "number"
-                ? `#${d.rule.badgeId}`
-                : "badge";
+  typeof d?.meta?.badgeName === "string" && d.meta.badgeName.trim()
+    ? d.meta.badgeName
+    : typeof d?.meta?.label === "string" && d.meta.label.trim()
+      ? d.meta.label
+      : typeof d?.rule?.badgeSlug === "string"
+        ? d.rule.badgeSlug
+        : typeof d?.rule?.badgeId === "number"
+          ? `#${d.rule.badgeId}`
+          : "badge";
 
         if (minScore != null) {
           const current = score ?? 0;
@@ -549,7 +551,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
           )}
 
           {progressLines.length > 0 && (
-            <div className="mt-2 mb-4 space-y-1">
+            <div className="mt-2 mb-3 space-y-1">
               {progressLines.map((l, idx) => (
                 <p
                   key={idx}
@@ -594,7 +596,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
           disabled={busy || enterAnim}
           onClick={handleBuyKey}
           className="
-            mt-2 px-4 py-2 rounded-lg bg-amber-300
+            mt-1 px-3 py-1 mb-3 rounded-lg bg-amber-300
             text-black font-extrabold flex gap-2
           "
         >
@@ -611,7 +613,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
   }}
   className="
      overflow-hidden
-    absolute bottom-3 right-3 px-3 py-1 text-xs
+    absolute bottom-2 right-2 px-3 py-1 text-xs
     text-white rounded-md bg-black/40 backdrop-blur-sm
 
     transition

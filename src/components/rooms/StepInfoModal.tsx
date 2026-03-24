@@ -117,11 +117,11 @@ const formattedAbout = about
   </div>
 )}
 
-            {/* 🧠 Why this level exists */}
+            {/* 🧠 Why this room exists */}
 {formattedAbout.length > 0 && (
   <div className="mb-6">
     <h3 className="text-lg font-bold text-amber-300 mb-3 uppercase tracking-widest">
-      Why this level exists
+      Why this door exists
     </h3>
 
     <div className="space-y-2">
