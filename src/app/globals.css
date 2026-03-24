@@ -24,6 +24,17 @@ body {
   100% { background-position: 0% 50%; }
 }
 
+@keyframes shine {
+  0% {
+    transform: translateX(-150%);
+  }
+  20% {
+    transform: translateX(150%);
+  }
+  100% {
+    transform: translateX(150%);
+  }
+}
 
 
 @layer base {

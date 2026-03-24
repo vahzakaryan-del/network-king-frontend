@@ -19,6 +19,14 @@ export default function StepInfoModal({
   requirement?: string | null;
   about?: string | null; // <-- Added about here
 }) {
+
+  const formattedDescription = description
+  ? description.split("\n").map((l) => l.trim()).filter(Boolean)
+  : [];
+
+const formattedAbout = about
+  ? about.split("\n").map((l) => l.trim()).filter(Boolean)
+  : [];
   return (
     <AnimatePresence>
       {open && (
@@ -78,36 +86,53 @@ export default function StepInfoModal({
             </div>
 
             <div className="w-full h-[2px] bg-amber-300/40 rounded-full mb-6" />
+            {/* 🔐 Requirements */}
+{formattedDescription.length > 0 && (
+  <div className="mb-6">
+    <h3 className="text-lg font-bold text-amber-300  mb-3 uppercase tracking-widest">
+      Requirements
+    </h3>
 
-            {/* Requirement */}
-            {requirement && (
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold text-amber-200 mb-1">
-                  Requirement
-                </h3>
-                <p className="text-gray-300 leading-relaxed">{requirement}</p>
-              </div>
-            )}
+    <div className="space-y-2">
+      {formattedDescription.map((line, idx) => {
+        const isBullet = line.startsWith("-");
+        const isNote = line.startsWith("💡");
 
-            {/* Description */}
-            {description && (
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold text-amber-200 mb-1">
-                  About
-                </h3>
-                <p className="text-gray-300 leading-relaxed">{description}</p>
-              </div>
-            )}
+        return (
+          <p
+            key={idx}
+            className={`text-sm ${
+              isNote
+                ? "text-black bg-amber-300 rounded px-2 py-1 font-semibold"
+                : isBullet
+                ? "text-gray-200"
+                : "text-gray-300"
+            }`}
+          >
+            {isBullet ? "• " + line.replace("-", "").trim() : line}
+          </p>
+        );
+      })}
+    </div>
+  </div>
+)}
 
-            {/* About - Added this block for 'about' */}
-            {about && (
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold text-amber-200 mb-1">
-                  About
-                </h3>
-                <p className="text-gray-300 leading-relaxed">{about}</p>
-              </div>
-            )}
+            {/* 🧠 Why this level exists */}
+{formattedAbout.length > 0 && (
+  <div className="mb-6">
+    <h3 className="text-lg font-bold text-amber-300 mb-3 uppercase tracking-widest">
+      Why this level exists
+    </h3>
+
+    <div className="space-y-2">
+      {formattedAbout.map((line, idx) => (
+        <p key={idx} className="text-sm text-gray-300 leading-relaxed">
+          {line}
+        </p>
+      ))}
+    </div>
+  </div>
+)}
 
             {/* CLOSE BUTTON BOTTOM */}
             <button

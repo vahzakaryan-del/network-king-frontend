@@ -90,12 +90,6 @@ export default function StepNext({
   return description.split("\n").map((line) => line.trim()).filter(Boolean);
 }, [description]);
 
-const formattedAbout = useMemo(() => {
-  if (!about) return [];
-
-  return about.split("\n").map((line) => line.trim()).filter(Boolean);
-}, [about]);
-
   const priceLabel = useMemo(() => {
     if (!keyInfo || keyInfo.priceCents == null) return "";
     const value = (keyInfo.priceCents / 100).toFixed(2);
@@ -473,7 +467,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
         }
       `}
     >
-      <h2 className="text-lg md:text-xl font-extrabold text-black mb-2">
+      <h2 className="text-lg md:text-xl font-extrabold text-black mb-1">
         Level {level}
       </h2>
 
@@ -481,30 +475,6 @@ mx-auto py-8 max-sm:py-6 rounded-xl
         {title}
       </p>
 
-      {/* 📝 Description (pretty formatted) */}
-{formattedDescription.length > 0 && (
-  <div className="w-[85%] mb-3 space-y-1 text-center">
-    {formattedDescription.map((line, idx) => {
-      const isBullet = line.startsWith("-");
-      const isNote = line.startsWith("💡");
-
-      return (
-        <p
-          key={idx}
-          className={`text-[12px] font-semibold ${
-            isNote
-              ? "text-black bg-yellow-200/70 rounded px-2 py-1"
-              : isBullet
-              ? "text-black"
-              : "text-black/80"
-          }`}
-        >
-          {isBullet ? "• " + line.replace("-", "").trim() : line}
-        </p>
-      );
-    })}
-  </div>
-)}
 
       {/* Door */}
       <div className="relative perspective-[800px]">
@@ -559,7 +529,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
 
       {/* ✅ Progress UI */}
       {!unlocked && (
-        <div className="w-[85%] mt-4">
+        <div className="w-[85%] mt-3">
           {progress && progress.total > 0 && (
             <>
               <div className="flex justify-between text-xs text-black/80 font-semibold mb-1">
@@ -579,7 +549,7 @@ mx-auto py-8 max-sm:py-6 rounded-xl
           )}
 
           {progressLines.length > 0 && (
-            <div className="mt-2 space-y-1">
+            <div className="mt-2 mb-4 space-y-1">
               {progressLines.map((l, idx) => (
                 <p
                   key={idx}
@@ -634,37 +604,32 @@ mx-auto py-8 max-sm:py-6 rounded-xl
 
       {/* Info */}
 
-      {/* 🧠 About section */}
-{formattedAbout.length > 0 && (
-  <div className="w-[85%] mt-3 text-center">
-    <p className="text-[11px] font-bold text-black/70 mb-1 uppercase tracking-wide">
-      Why this level exists
-    </p>
+       <button
+  onClick={(e) => {
+    e.stopPropagation();
+    onClickInfo();
+  }}
+  className="
+     overflow-hidden
+    absolute bottom-3 right-3 px-3 py-1 text-xs
+    text-white rounded-md bg-black/40 backdrop-blur-sm
 
-    <div className="space-y-1">
-      {formattedAbout.map((line, idx) => (
-        <p key={idx} className="text-[11px] text-black/80">
-          {line}
-        </p>
-      ))}
-    </div>
-  </div>
-)}
+    transition
+    active:scale-95 active:translate-y-[1px]
+    hover:scale-[1.03]
+  "
+>
+  <span className="relative z-10">View Requirements</span>
 
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onClickInfo();
-        }}
-        className="
-          absolute bottom-3 right-3 max-sm:bottom-2 max-sm:right-2 px-2 py-1 text-xs
-
-          bg-black/40 text-white rounded-md
-        "
-      >
-        Requirements
-      </button>
+  <span
+    className="
+      pointer-events-none absolute inset-0
+      bg-gradient-to-r from-transparent via-white/30 to-transparent
+      translate-x-[-150%]
+      animate-[shine_8s_linear_infinite]
+    "
+  />
+</button>
 
       {/* Key overlay */}
       {keyAnim && (

@@ -17,6 +17,7 @@ function MyRoomsInner() {
   const [justUnlocked, setJustUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const searchParams = useSearchParams();
 
@@ -54,6 +55,17 @@ function MyRoomsInner() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  useEffect(() => {
+  function handleResize() {
+    setIsMobile(window.innerWidth <= 768);
+  }
+
+  handleResize(); // run on mount
+  window.addEventListener("resize", handleResize);
+
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
 
   useEffect(() => {
   const purchase = searchParams.get("purchase");
@@ -161,7 +173,7 @@ function MyRoomsInner() {
   unlockLevel={unlockLevel}
   buyKey={buyKey}
   justUnlocked={justUnlocked}
-  autoScroll={!showIntro} // 👈 THIS IS THE KEY
+  autoScroll={!showIntro && isMobile}
 />
         )}
       </div>
