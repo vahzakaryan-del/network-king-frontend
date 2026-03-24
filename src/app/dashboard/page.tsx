@@ -10,6 +10,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 import { onboardingSteps } from "@/lib/onboardingSteps";
 import { apiFetch } from "@/lib/api";
+import { useLottery } from "./hooks/useLottery";
 
 import { asset } from "@/lib/assets";
 
@@ -655,6 +656,21 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const profileId = user?.id;
 
+  const {
+  prizes,
+  lotteryOpen,
+  lotteryCooldownMs,
+  lotteryAvailable,
+  lotteryInventory,
+  spinning,
+  wheelRotation,
+  lotteryResult,
+  spinLottery,
+  openLottery,
+  closeLottery,
+  loadLotteryStatus,
+} = useLottery(user?.id);
+
   const showHelpButton = (() => {
   if (!user?.createdAt) return false;
 
@@ -980,28 +996,6 @@ const wasOpenRef = useRef(false);
     setCookieOpen(false);
   }
 
-
-  const prizes = useMemo(
-    () => [
-      { label: "Cherry", icon: "🍒" },
-      { label: "Lemon", icon: "🍋" },
-      { label: "Grapes", icon: "🍇" },
-      { label: "Apple", icon: "🍎" },
-      { label: "Peach", icon: "🍑" },
-      { label: "Melon", icon: "🍈" },
-      { label: "Kiwi", icon: "🥝" },
-      { label: "Banana", icon: "🍌" },
-    ],
-    []
-  );
-  
-
-
-  const [lotteryOpen, setLotteryOpen] = useState(false);
-  const [lotteryCooldownMs, setLotteryCooldownMs] = useState(0);
-  const [spinning, setSpinning] = useState(false);
-  const [wheelRotation, setWheelRotation] = useState(0);
-  const [lotteryResult, setLotteryResult] = useState<{ label: string; icon: string } | null>(null);
   // ✅ Responsive wheel size
 const [wheelSize, setWheelSize] = useState(320);
 
@@ -1020,34 +1014,9 @@ useEffect(() => {
   window.addEventListener("resize", update);
   return () => window.removeEventListener("resize", update);
 }, []);
-  const [lotteryInventory, setLotteryInventory] = useState<Record<string, number>>({});
-const [lotteryAvailable, setLotteryAvailable] = useState(false);
-
-
   
-function openLottery() {
-  setLotteryOpen(true);
-  setSpinning(false);
-  setLotteryResult(null);
-  setInventoryExpanded(false);
-  loadLotteryStatus();
-}
 
 
-
-  function closeLottery() {
-    setLotteryOpen(false);
-    setSpinning(false);
-  }
-
-  
-useEffect(() => {
-  const t = setInterval(() => {
-    setLotteryCooldownMs((ms) => Math.max(0, ms - 1000));
-  }, 1000);
-
-  return () => clearInterval(t);
-}, []);
 
   function formatLotteryCooldown(ms: number) {
     const totalSec = Math.ceil(ms / 1000);
@@ -1058,82 +1027,7 @@ useEffect(() => {
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  async function loadLotteryStatus() {
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  try {
-   const res = await apiFetch(`/lottery/status`);
-
-const data = await res.json();
-
-
-    // Status should update immediately
-    setLotteryInventory(data.inventory || {});
-    setLotteryCooldownMs(data.remainingMs || 0);
-    setLotteryAvailable(!!data.available);
-
-    // Optional: only show a result if your status endpoint provides it explicitly
-    // setLotteryResult(data.lastPrize ?? null);
-  } catch (e) {
-    console.error("lottery status error", e);
-  }
-}
-
-
-
-async function spinLottery() {
-  if (!lotteryAvailable || spinning) return;
-
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  setSpinning(true);
-  setLotteryResult(null);
-
-  try {
-   const res = await apiFetch(`/lottery/spin`, {
-  method: "POST",
-});
-
-const data = await res.json();
-    
-
-    if (!res.ok) {
-      if (data?.error === "COOLDOWN") {
-        setLotteryCooldownMs(data.remainingMs || 0);
-        setLotteryInventory(data.inventory || {});
-        setLotteryAvailable(false);
-      }
-      setSpinning(false);
-      return;
-    }
-
-    // 🎡 keep your wheel animation
-    const index = Math.max(0, prizes.findIndex((p) => p.label === data.prize.label));
-
-
-    const slices = prizes.length;
-    const sliceDeg = 360 / slices;
-    const targetCenterDeg = index * sliceDeg + sliceDeg / 2;
-    const extraSpins = 5 * 360;
-    const delta = -targetCenterDeg;
-
-    setWheelRotation((prev) => prev + extraSpins + delta);
-
-    setTimeout(() => {
-      setLotteryResult(data.prize);
-      setLotteryInventory(data.inventory || {});
-      setLotteryCooldownMs(data.remainingMs || 0);
-      setLotteryAvailable(!!data.available);
-      setSpinning(false);
-    }, 2400);
-  } catch (e) {
-    console.error("spin error", e);
-    setSpinning(false);
-  }
-}
-
+ 
 
   /* -------------------------------------------------------
      Load profile + notifications
@@ -1184,17 +1078,12 @@ const data = await res.json();
       .catch(() => {});
   }, [router]);
 
-  useEffect(() => {
-  if (!user?.id) return;
-
-  loadLotteryStatus();
-}, [user?.id]);
-
+  
 useEffect(() => {
   if (mobileMenuOpen) {
     loadLotteryStatus();
   }
-}, [mobileMenuOpen]);
+}, [mobileMenuOpen, loadLotteryStatus]);
 
   /* -------------------------------------------------------
      Socket.IO events
@@ -1646,7 +1535,6 @@ useEffect(() => {
   setMobileMenuOpen(false);
   openLottery();
 }}
-  disabled={!lotteryAvailable}
   className={[
     "w-full py-3 rounded-2xl mb-1",
     "border-2 border-amber-400/80 ring-1 ring-amber-300/50",

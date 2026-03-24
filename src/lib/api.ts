@@ -1,5 +1,4 @@
 // frontend/src/lib/api.ts
-// frontend/src/lib/api.ts
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
