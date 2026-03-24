@@ -9,6 +9,7 @@ export default function StepInfoModal({
   title,
   description,
   requirement,
+  about, // <-- Added about here
 }: {
   open: boolean;
   onClose: () => void;
@@ -16,6 +17,7 @@ export default function StepInfoModal({
   title: string;
   description?: string | null;
   requirement?: string | null;
+  about?: string | null; // <-- Added about here
 }) {
   return (
     <AnimatePresence>
@@ -51,8 +53,7 @@ export default function StepInfoModal({
             "
           >
             {/* GOLDEN SHIMMER BORDER */}
-            <div className="
-              pointer-events-none absolute inset-0 rounded-2xl 
+            <div className="pointer-events-none absolute inset-0 rounded-2xl 
               border border-amber-300/30
               animate-pulse opacity-30
             " />
@@ -60,10 +61,8 @@ export default function StepInfoModal({
             {/* Close button */}
             <button
               onClick={onClose}
-              className="
-                absolute top-3 right-3 text-amber-300
-                hover:text-amber-200 text-xl
-              "
+              className="absolute top-3 right-3 text-amber-300
+                hover:text-amber-200 text-xl"
             >
               ✕
             </button>
@@ -94,20 +93,28 @@ export default function StepInfoModal({
             {description && (
               <div className="mb-6">
                 <h3 className="text-xl font-semibold text-amber-200 mb-1">
-                  About 
+                  About
                 </h3>
                 <p className="text-gray-300 leading-relaxed">{description}</p>
+              </div>
+            )}
+
+            {/* About - Added this block for 'about' */}
+            {about && (
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-amber-200 mb-1">
+                  About
+                </h3>
+                <p className="text-gray-300 leading-relaxed">{about}</p>
               </div>
             )}
 
             {/* CLOSE BUTTON BOTTOM */}
             <button
               onClick={onClose}
-              className="
-                mt-2 w-full py-3 rounded-lg 
+              className="mt-2 w-full py-3 rounded-lg 
                 bg-amber-400 text-black font-bold
-                hover:bg-amber-300 transition shadow-lg
-              "
+                hover:bg-amber-300 transition shadow-lg"
             >
               Close
             </button>

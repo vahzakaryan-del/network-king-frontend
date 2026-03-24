@@ -14,13 +14,13 @@ type NextStatus = {
   unlocked?: boolean;
   canUnlock?: boolean;
   progress?: { done: number; total: number };
-  reasons?: string[];
   details?: any[];
 
   next?: {
     level: number;
     title: string;
     description?: string | null;
+    about?: string | null; 
     key?: {
       enabled: boolean;
       priceCents: number | null;
@@ -197,10 +197,11 @@ export default function RoomsLayout({
           <StepNext
             level={next.level}
             title={next.title}
+            description={next.description}
+            about={next.about}
             unlocked={false}
             canUnlock={!!nextStatus?.canUnlock}
             progress={nextStatus?.progress ?? null}
-            reasons={nextStatus?.reasons ?? null}
             details={nextStatus?.details ?? null}
             onUnlock={handleUnlock}
             keyInfo={nextStatus?.next?.key ?? null}
@@ -228,6 +229,7 @@ export default function RoomsLayout({
           level={infoData.level}
           title={infoData.title}
           description={infoData.description}
+          about={infoData.about}
           requirement={infoData.requirement}
         />
       )}

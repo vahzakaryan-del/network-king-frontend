@@ -11,13 +11,6 @@ type KeyInfo = {
   canBuy: boolean;
 };
 
-type DetailItem = {
-  ok: boolean;
-  reason?: string;
-  meta?: any;
-  rule?: any;
-};
-
 type ProgressLine = {
   text: string;
   done: boolean;
@@ -27,6 +20,8 @@ type ProgressLine = {
 export default function StepNext({
   level,
   title,
+  description,
+  about,
   onClickInfo,
   unlocked = false,
    justUnlocked = false,
@@ -34,7 +29,6 @@ export default function StepNext({
   // requirements path
   canUnlock = false,
   progress,
-  reasons, // accepted but NOT displayed (we render our own lines)
   details,
   onUnlock,
 
@@ -44,13 +38,14 @@ export default function StepNext({
 }: {
   level: number;
   title: string;
+    description?: string | null;
+  about?: string | null;
   onClickInfo: () => void;
   unlocked?: boolean;
   justUnlocked?: boolean;
 
   canUnlock?: boolean;
   progress?: { done: number; total: number } | null;
-  reasons?: string[] | null;
   details?: any[] | null;
   onUnlock?: (level: number) => Promise<boolean>;
 
@@ -88,6 +83,18 @@ export default function StepNext({
 
   const canBuyKey =
     !!keyInfo?.canBuy && !unlocked && typeof onBuyKey === "function";
+
+    const formattedDescription = useMemo(() => {
+  if (!description) return [];
+
+  return description.split("\n").map((line) => line.trim()).filter(Boolean);
+}, [description]);
+
+const formattedAbout = useMemo(() => {
+  if (!about) return [];
+
+  return about.split("\n").map((line) => line.trim()).filter(Boolean);
+}, [about]);
 
   const priceLabel = useMemo(() => {
     if (!keyInfo || keyInfo.priceCents == null) return "";
@@ -474,6 +481,31 @@ mx-auto py-8 max-sm:py-6 rounded-xl
         {title}
       </p>
 
+      {/* 📝 Description (pretty formatted) */}
+{formattedDescription.length > 0 && (
+  <div className="w-[85%] mb-3 space-y-1 text-center">
+    {formattedDescription.map((line, idx) => {
+      const isBullet = line.startsWith("-");
+      const isNote = line.startsWith("💡");
+
+      return (
+        <p
+          key={idx}
+          className={`text-[12px] font-semibold ${
+            isNote
+              ? "text-black bg-yellow-200/70 rounded px-2 py-1"
+              : isBullet
+              ? "text-black"
+              : "text-black/80"
+          }`}
+        >
+          {isBullet ? "• " + line.replace("-", "").trim() : line}
+        </p>
+      );
+    })}
+  </div>
+)}
+
       {/* Door */}
       <div className="relative perspective-[800px]">
   <motion.div
@@ -601,6 +633,25 @@ mx-auto py-8 max-sm:py-6 rounded-xl
       )}
 
       {/* Info */}
+
+      {/* 🧠 About section */}
+{formattedAbout.length > 0 && (
+  <div className="w-[85%] mt-3 text-center">
+    <p className="text-[11px] font-bold text-black/70 mb-1 uppercase tracking-wide">
+      Why this level exists
+    </p>
+
+    <div className="space-y-1">
+      {formattedAbout.map((line, idx) => (
+        <p key={idx} className="text-[11px] text-black/80">
+          {line}
+        </p>
+      ))}
+    </div>
+  </div>
+)}
+
+
       <button
         onClick={(e) => {
           e.stopPropagation();
