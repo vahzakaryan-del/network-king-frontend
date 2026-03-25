@@ -1095,10 +1095,7 @@ useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
     if (!socket.connected) socket.connect();
-    socket.emit("auth", token);
-
     
-
 
     const onNotification = (note: NotificationItem) => {
       setNotifications((prev) => [note, ...prev].slice(0, 50));
@@ -1155,13 +1152,22 @@ useEffect(() => {
   }
 
   async function deleteNotification(id: number) {
-    const token = localStorage.getItem("token");
-   await apiFetch(`/notifications/${id}`, {
-  method: "DELETE",
-});
-    setNotifications((n) => n.filter((x) => x.id !== id));
-  }
+  const token = localStorage.getItem("token");
 
+  // find notification BEFORE deleting
+  const notif = notifications.find((n) => n.id === id);
+
+  await apiFetch(`/notifications/${id}`, {
+    method: "DELETE",
+  });
+
+  setNotifications((n) => n.filter((x) => x.id !== id));
+
+  // ✅ FIX: update unread count
+  if (notif && !notif.read) {
+    setUnreadCount((c) => Math.max(0, c - 1));
+  }
+}
   async function deleteAllNotifications() {
   const token = localStorage.getItem("token");
   if (!token) return;
@@ -1433,25 +1439,33 @@ useEffect(() => {
                       <div className="flex gap-2 mt-2 flex-wrap">
                         {n.url && (
                           <button
-                            onClick={() => {
-                              clearNewWhileOpen(n.id)
-                              const id = localStorage.getItem("userId") || "";
-                              const type = (n.type || "").toLowerCase();
+                            onClick={async () => {
+  clearNewWhileOpen(n.id);
 
-                              let finalUrl: string;
+  // ✅ mark as read instantly
+  if (!n.read) {
+    await markAsRead(n.id);
+  }
 
-                              // ✅ Friend request goes to incoming requests tab
-                              if (type.includes("friend") || type.includes("request")) {
-                                finalUrl = "/friends?tab=requests&sub=incoming";
-                              } else if (type === "badge" && id) {
-                                finalUrl = `/profile/${id}`;
-                              } else {
-                                finalUrl = n.url ?? "/dashboard";
-                              }
+  const id = localStorage.getItem("userId") || "";
+  const type = (n.type || "").toLowerCase();
 
-                              router.push(finalUrl);
-                              setDropdownOpen(false);
-                            }}
+  let finalUrl: string;
+
+  // ✅ smarter routing (STEP 3 partially here)
+  if (type === "friend_request") {
+  finalUrl = "/friends?tab=requests&sub=incoming";
+} else if (type === "friend_accept") {
+  finalUrl = "/friends";
+  } else if (type === "badge" && id) {
+    finalUrl = `/profile/${id}`;
+  } else {
+    finalUrl = n.url ?? "/dashboard";
+  }
+
+  router.push(finalUrl);
+  setDropdownOpen(false);
+}}
                             className="text-[11px] sm:text-xs px-2 py-1 rounded bg-amber-400/20 border border-amber-400/30 text-amber-200 hover:bg-amber-400/30"
                           >
                             Open
