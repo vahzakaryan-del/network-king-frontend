@@ -349,6 +349,7 @@ function TestPreview({ limit = 6 }: { limit?: number }) {
   }
 
   
+  
 
   useEffect(() => {
     loadTests();
@@ -1094,7 +1095,7 @@ useEffect(() => {
 
     const socket = getSocket();
     if (!socket) return;
-    if (!socket.connected) socket.connect();
+  
     
 
     const onNotification = (note: NotificationItem) => {

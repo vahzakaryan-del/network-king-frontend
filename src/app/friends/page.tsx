@@ -25,6 +25,8 @@ const [invitedError, setInvitedError] = useState("");
   const [unreadMap, setUnreadMap] = useState<Record<number, number>>({});
   const [sentRequests, setSentRequests] = useState<number[]>([]);
   const [findQuery, setFindQuery] = useState("");
+  const [removeModalOpen, setRemoveModalOpen] = useState(false);
+const [friendToRemove, setFriendToRemove] = useState<any | null>(null);
 
   const [findResults, setFindResults] = useState<any[]>([]);
   const [findMessage, setFindMessage] = useState("");
@@ -378,15 +380,23 @@ async function loadRequests() {
     loadRequests();
   }
 
-  async function handleRemoveFriend(friendId: number) {
-    if (!confirm("Remove this friend?")) return;
+ function handleRemoveFriend(friend: any) {
+  setFriendToRemove(friend);
+  setRemoveModalOpen(true);
+}
 
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/${friendId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    loadFriends();
-  }
+async function confirmRemoveFriend() {
+  if (!friendToRemove) return;
+
+  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/${friendToRemove.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  setRemoveModalOpen(false);
+  setFriendToRemove(null);
+  loadFriends();
+}
 
   useEffect(() => {
   if (recommendedInitialized) return;
@@ -491,7 +501,7 @@ async function loadRequests() {
   </button>
 
  <button
-  onClick={() => handleRemoveFriend(f.id)}
+  onClick={() => handleRemoveFriend(f)}
   className="px-1.5 py-1 rounded bg-red-500 hover:bg-red-400 text-sm"
   aria-label="Remove friend"
   title="Remove"
@@ -1109,7 +1119,7 @@ async function loadRequests() {
                         </button>
 
                         <button
-                          onClick={() => handleRemoveFriend(f.id)}
+                          onClick={() => handleRemoveFriend(f)}
                           className="px-3 py-1 rounded bg-red-500 hover:bg-red-400 text-sm"
                         >
                           Remove
@@ -1764,6 +1774,63 @@ async function loadRequests() {
   >
     {inviteMsg}
   </motion.div>
+)}
+
+{removeModalOpen && friendToRemove && (
+  <>
+    {/* Backdrop */}
+    <motion.div
+      className="fixed inset-0 bg-black/50 z-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      onClick={() => setRemoveModalOpen(false)}
+    />
+
+    {/* Modal */}
+   <motion.div
+  className="fixed inset-0 z-[60] flex items-center justify-center px-4"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+>
+  <motion.div
+    className="w-full max-w-sm rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-xl p-5"
+    initial={{ scale: 0.9, y: 20 }}
+    animate={{ scale: 1, y: 0 }}
+    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+  >
+    {/* Header */}
+    <div className="text-lg font-bold text-amber-300">
+      Remove friend
+    </div>
+
+    {/* Body */}
+    <div className="mt-3 text-sm text-white/80">
+      Are you sure you want to remove{" "}
+      <span className="font-semibold text-white">
+        {friendToRemove.name}
+      </span>
+      ?
+    </div>
+
+    {/* Buttons */}
+    <div className="mt-5 flex gap-3">
+      <button
+        onClick={() => setRemoveModalOpen(false)}
+        className="flex-1 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 font-semibold transition"
+      >
+        Cancel
+      </button>
+
+      <button
+        onClick={confirmRemoveFriend}
+        className="flex-1 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-400 font-semibold transition"
+      >
+        Remove
+      </button>
+    </div>
+  </motion.div>
+</motion.div>
+  </>
 )}
 
     </main>
