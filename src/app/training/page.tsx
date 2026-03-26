@@ -4,6 +4,9 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
+import { useEffect } from "react";
+
+
 
 const modules = [
   { title: "➗ Math Quizzler", desc: "Practice with a live board", href: "/training/math" },
@@ -23,28 +26,43 @@ export default function TrainingCenter() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const lastTapRef = useRef(0);
 
+ const [loading, setLoading] = useState(false);
+
+const handleSurprise = () => {
+  setLoading(true);
+
+  const randomIndex = Math.floor(Math.random() * modules.length);
+  router.push(modules[randomIndex].href);
+};
+
+
+
+useEffect(() => {
+  modules.forEach((m) => {
+    router.prefetch(m.href);
+  });
+}, []);
+
   return (
 <main className="relative h-[100dvh] overflow-x-hidden bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white px-4 sm:px-6 py-4 sm:py-10">
 
-      {/* Heading */}
-      <div className="mb-10 grid grid-cols-[1fr_auto_1fr] items-center">
-  {/* Left spacer (keeps symmetry) */}
-  <div />
+     {/* Heading */}
+<div className="mb-8 px-4 max-w-5xl mx-auto flex items-center justify-between">
+  {/* Title */}
+  <Link
+    href="/dashboard"
+    className="text-2xl sm:text-3xl font-extrabold tracking-tight whitespace-nowrap"
+  >
+    🧠 Training Center
+  </Link>
 
-  {/* Center title */}
-  <h1 className="text-2xl font-extrabold text-center">
-    🧠 Networ.King Training Center
-  </h1>
-
-  {/* Right button */}
-  <div className="flex justify-end">
-    <button
-      onClick={() => router.push("/dashboard")}
-      className="px-4 py-2 bg-amber-400 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-amber-300 transition"
-    >
-      ← Back to Dashboard
-    </button>
-  </div>
+  {/* Button */}
+  <button
+    onClick={() => router.push("/dashboard")}
+    className="ml-4 px-3 py-1.5 sm:px-4 sm:py-2 bg-amber-400 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-amber-300 transition text-l sm:text-base whitespace-nowrap"
+  >
+    ← Back
+  </button>
 </div>
 
 
@@ -74,7 +92,7 @@ export default function TrainingCenter() {
 {/* MOBILE: left rail only */}
 <div className="sm:hidden mx-auto w-full max-w-md">
   <div className="min-h-[100svh] overflow-x-hidden px-1">
-    <div className="relative w-[95%] max-w-[360px] overflow-visible">
+    <div className="relative w-[95%] max-w-[360px] overflow-visible ">
       <div className="flex flex-col gap-3 py-2 max-h-[calc(100svh-140px)] overflow-y-auto overflow-x-visible pr-1">
         {modules.map((m, i) => {
           const isActive = selectedIndex === i;
@@ -94,83 +112,108 @@ export default function TrainingCenter() {
           };
 
           return (
-            <motion.div
+           <motion.div
   key={m.href}
   layout
-  transition={{ type: "spring", stiffness: 260, damping: 26 }}
+  transition={{ type: "spring", stiffness: 180, damping: 22, mass: 0.8 }}
+  style={{ x: 8 }}
   className={[
     "relative rounded-3xl border backdrop-blur-xl overflow-hidden",
-    "flex items-center",
+    "flex flex-col",
     isActive
       ? "bg-white/20 border-white/30 shadow-2xl"
       : "bg-white/10 border-white/15",
   ].join(" ")}
-  animate={{ width: isActive ? "100%" : "82%", scale: isActive ? 1.02 : 1 }}
-
+  animate={{
+    width: isActive ? "96%" : "77%",
+    scale: isActive ? 1.015 : 1,
+  }}
 >
   <motion.button
     layout="position"
     type="button"
     onClick={onTap}
     whileTap={{ scale: 0.98 }}
-    className="flex flex-wrap items-center gap-2 px-3 py-4 w-full"
-
+    className="flex flex-col w-full px-3 py-4"
   >
-    {/* icon */}
-    <span className="text-2xl leading-none">{icon}</span>
+    {/* top row: icon + title + button */}
+    <div className="flex items-center gap-2">
+      {/* icon */}
+      <span className="text-2xl leading-none">{icon}</span>
 
-    {/* title */}
-    <div className="font-extrabold text-xs whitespace-nowrap">
-      {label}
+      {/* title */}
+      <div className="font-extrabold text-base whitespace-nowrap">{label}</div>
+
+      <div className="flex-1" />
+
+      {/* start button */}
+      <motion.div layout="position">
+        <Link
+          href={m.href}
+          className={[
+            "px-3 py-1 rounded-full font-extrabold text-xs",
+            "bg-amber-400 text-gray-900 transition-all duration-200",
+            isActive ? "opacity-100" : "opacity-0 pointer-events-none py-1",
+          ].join(" ")}
+        >
+          Start →
+        </Link>
+      </motion.div>
     </div>
 
-    {/* spacer pushes right content */}
-    <div className="flex-1" />
-
-    {/* start button — always same row */}
-    <motion.div layout="position">
-      <Link
-        href={m.href}
-        className={[
-          "px-3 py-1 mt-5 rounded-full font-extrabold text-xs",
-         "bg-amber-400 text-gray-900 transition-all duration-200",
-          isActive ? "opacity-100" : "opacity-0 pointer-events-none py-1",
-        ].join(" ")}
-      >
-        Start →
-      </Link>
-    </motion.div>
-
-    {/* description below row (does NOT affect width) */}
-<AnimatePresence initial={false}>
-  {isActive && (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 6 }}
-      transition={{ duration: 0.18 }}
-      className="w-full mt-2 text-[11px] text-white/70"
-    >
-      {m.desc}
-    </motion.div>
-  )}
-</AnimatePresence>
-
+    
+    {/* reserved space for description */}
+<div className="mt-1 min-h-[48px] h-auto"> {/* increase height */}
+  <AnimatePresence initial={false}>
+    {isActive && (
+      <motion.div
+  initial={{ opacity: 0, y: 2 }}
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0, y: 2 }}
+  transition={{ duration: 0.18 }}
+  className="text-[11px] text-white/70 -mt-1"
+>
+  {m.desc}
+</motion.div>
+    )}
+  </AnimatePresence>
+</div>
   </motion.button>
 </motion.div>
 
           );
         })}
       </div>
+
+       <div className="mt-8 flex justify-center">
+  <button
+    onClick={handleSurprise}
+    className="
+      group relative overflow-hidden
+      px-5 py-2.5
+      text-sm font-bold
+      text-gray-900
+      bg-amber-400
+      rounded-full
+      shadow-md shadow-amber-300/40
+      hover:bg-amber-300
+      active:scale-95
+      transition-all duration-200
+    "
+  >
+    {/* shine layer */}
+    <span className="absolute inset-0 overflow-hidden rounded-full">
+      <span className="absolute -left-full top-0 h-full w-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:left-full transition-all duration-700" />
+    </span>
+
+    <span className="relative z-10">
+  {loading ? "Loading..." : "🎲 Surprise me"}
+</span>
+  </button>
+</div>
     </div>
 
-    <div className="h-6" />
-    <button
-      onClick={() => router.push("/tests")}
-      className="px-4 py-2 bg-emerald-400 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-amber-300 transition"
-    >
-      ← Go to try your new skills!
-    </button>
+  
   </div>
    <p className="text-center text-xs text-gray-300 mt-4">
               © {new Date().getFullYear()} Networ.King

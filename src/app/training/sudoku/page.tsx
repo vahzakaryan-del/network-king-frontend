@@ -421,7 +421,7 @@ export default function SudokuPage() {
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => router.push("/training")}
-              className="hidden sm:flex px-3 py-2 rounded-xl bg-white/5 border border-white/15 hover:bg-white/10 transition text-sm"
+              className="sm:flex px-3 py-2 rounded-xl bg-white/5 border border-white/15 hover:bg-white/10 transition text-sm"
             >
               ← Back
             </button>
