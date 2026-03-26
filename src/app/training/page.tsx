@@ -44,7 +44,7 @@ useEffect(() => {
 }, []);
 
   return (
-<main className="relative h-[100dvh] overflow-x-hidden bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white px-4 sm:px-6 py-4 sm:py-10">
+<main className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white px-4 sm:px-6 py-4 sm:py-10">
 
      {/* Heading */}
 <div className="mb-8 px-4 max-w-5xl mx-auto flex items-center justify-between">
@@ -91,7 +91,7 @@ useEffect(() => {
    
 {/* MOBILE: left rail only */}
 <div className="sm:hidden mx-auto w-full max-w-md">
-  <div className="min-h-[100svh] overflow-x-hidden px-1">
+  <div className="min-h-screen overflow-x-hidden px-1">
     <div className="relative w-[95%] max-w-[360px] overflow-visible ">
       <div className="flex flex-col gap-3 py-2 max-h-[calc(100svh-140px)] overflow-y-auto overflow-x-visible pr-1">
         {modules.map((m, i) => {
@@ -101,7 +101,7 @@ useEffect(() => {
 
           const onTap = () => {
             const now = Date.now();
-            const isDoubleTap = now - lastTapRef.current < 280;
+            const isDoubleTap = now - lastTapRef.current < 220;
             lastTapRef.current = now;
 
             if (isDoubleTap) {
@@ -134,12 +134,14 @@ useEffect(() => {
     type="button"
     onClick={onTap}
     whileTap={{ scale: 0.98 }}
-    className="flex flex-col w-full px-3 py-4"
+    className="flex flex-col w-full px-3 py-3 min-h-[70px] justify-center"
   >
     {/* top row: icon + title + button */}
     <div className="flex items-center gap-2">
       {/* icon */}
-      <span className="text-2xl leading-none">{icon}</span>
+      <span className="text-2xl flex items-center justify-center h-8 w-8">
+  {icon}
+</span>
 
       {/* title */}
       <div className="font-extrabold text-base whitespace-nowrap">{label}</div>
@@ -163,8 +165,8 @@ useEffect(() => {
 
     
     {/* reserved space for description */}
-<div className="mt-1 min-h-[48px] h-auto"> {/* increase height */}
-  <AnimatePresence initial={false}>
+<div className="mt-1 min-h-[48px]"> {/* increase height */}
+  <AnimatePresence mode="wait">
     {isActive && (
       <motion.div
   initial={{ opacity: 0, y: 2 }}
