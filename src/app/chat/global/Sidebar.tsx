@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type UnreadMap = Record<string, number>;
 
@@ -47,6 +48,11 @@ export default function Sidebar({
 }) {
   const [currentLevel, setCurrentLevel] = useState(1);
 
+   const router = useRouter();
+
+const [lockedToast, setLockedToast] = useState(false);
+const [shakeId, setShakeId] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -70,12 +76,38 @@ export default function Sidebar({
     };
   }, []);
 
-  
+  function handleChannelClick(id: string, unlocked: boolean) {
+  if (!unlocked) {
+    // 🔥 LOCKED UX
+
+    setShakeId(id);
+    setLockedToast(true);
+
+    // mobile vibration
+    if (navigator.vibrate) {
+      navigator.vibrate(120);
+    }
+
+    // remove shake
+    setTimeout(() => setShakeId(null), 400);
+
+    // auto hide toast
+    setTimeout(() => setLockedToast(false), 4000);
+
+    return;
+  }
+
+  // ✅ normal
+  onSelect(id);
+}
+
 
   const baseChannels = [
     { id: "global", name: "global", icon: "🌐" },
     { id: "announcements", name: "announcements", icon: "📢" },
   ];
+
+
 
   // ✅ Keep your original custom level names + icons
   const levelChannels = [
@@ -186,12 +218,14 @@ function getMobileGlowClasses(level: number) {
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={onClick}
       className={[
         "relative w-full rounded-xl border px-2 py-2 flex flex-col items-center justify-center gap-1 transition",
         "min-h-[62px]",
-        disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-white/10",
+        disabled
+  ? "opacity-50 cursor-pointer"
+  : "hover:bg-white/10 cursor-pointer",
+        shakeId === id ? "animate-[shake_0.35s]" : "",
         isSelected
           ? `bg-amber-500/15 border-amber-400/30 text-amber-200 ${glowClass}`
           : "bg-white/0 border-white/10 text-white/90",
@@ -203,6 +237,12 @@ function getMobileGlowClasses(level: number) {
         {label}
       </span>
       <Badge n={unread} compactDot />
+
+      {disabled && (
+ <div className="absolute inset-0 rounded-xl bg-black/3.0 flex items-center justify-center">  
+ <span className="text-base opacity-80">🔒</span>
+  </div>
+)}
     </button>
   );
 }
@@ -239,11 +279,13 @@ function getMobileGlowClasses(level: number) {
               key={ch.id}
               onClick={() => onSelect(ch.id)}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition
+                 ${shakeId === ch.id ? "animate-[shake_0.35s]" : ""}
                 ${
                   selected === ch.id
                     ? "bg-amber-500/20 text-amber-300"
                     : "hover:bg-white/10"
-                }`}
+                }
+          `}
             >
               <span className="text-base">{ch.icon}</span>
               <span className="truncate text-sm">{ch.name}</span>
@@ -274,8 +316,8 @@ function getMobileGlowClasses(level: number) {
                   icon={lvl.icon}
                   // ✅ point (1): tile layout + border + unread dot
                   label={`lvl ${lvl.level}`}
-                  disabled={!unlocked}
-                  onClick={() => unlocked && onSelect(id)}
+                   disabled={!unlocked}
+                  onClick={() => handleChannelClick(id, unlocked)}
                 />
               );
             })}
@@ -289,15 +331,14 @@ function getMobileGlowClasses(level: number) {
               <button
                 type="button"
                 key={lvl.level}
-                disabled={!unlocked}
-                onClick={() => unlocked && onSelect(id)}
+                onClick={() => handleChannelClick(id, unlocked)}
                 className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition
                   ${
                     selected === id
                       ? "bg-amber-500/20 text-amber-300"
                       : unlocked
                       ? "hover:bg-white/10"
-                      : "opacity-40 cursor-not-allowed"
+                      : "opacity-40"
                   }`}
               >
                 <span className="text-base">{lvl.icon}</span>
@@ -309,11 +350,22 @@ function getMobileGlowClasses(level: number) {
                 ) : (
                   <Badge n={unreadByChannel?.[id] ?? 0} />
                 )}
+
+    
               </button>
             );
           })
         )}
       </div>
+      {lockedToast && (
+  <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[9999]">
+    <div
+      onClick={() => router.push("/myrooms")}
+   className="px-5 py-2 rounded-lg bg-red-500/90 text-white text-sm shadow-lg cursor-pointer hover:scale-105 transition whitespace-nowrap max-w-[90vw] overflow-hidden text-ellipsis" >
+      🔒 Locked — Go to Level Up 🚀
+    </div>
+  </div>
+)}
     </aside>
   );
 }

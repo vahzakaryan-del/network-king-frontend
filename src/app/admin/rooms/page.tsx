@@ -10,8 +10,39 @@ export default function AdminRoomsPage() {
   const [about, setAbout] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // load level data
+  // 🔐 admin state
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  /* =========================
+     🔐 CHECK ADMIN
+  ========================= */
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setIsAdmin(false);
+      return;
+    }
+
+    fetch(`${API}/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.role === "admin") {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      })
+      .catch(() => setIsAdmin(false));
+  }, []);
+
+  /* =========================
+     📥 LOAD LEVEL DATA
+  ========================= */
+  useEffect(() => {
+    if (isAdmin !== true) return;
+
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -26,27 +57,61 @@ export default function AdminRoomsPage() {
           setAbout(room.about || "");
         }
       });
-  }, [level]);
+  }, [level, isAdmin]);
 
+  /* =========================
+     💾 SAVE
+  ========================= */
   const handleSave = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     setLoading(true);
 
-    await fetch(`${API}/admin/rooms/${level}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ description, about }),
-    });
+    try {
+      const res = await fetch(`${API}/admin/rooms/${level}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ description, about }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed");
+      }
+
+      alert("Saved ✅");
+    } catch (err) {
+      alert("❌ Save failed");
+    }
 
     setLoading(false);
-    alert("Saved ✅");
   };
 
+  /* =========================
+     ⛔ BLOCK NON-ADMIN
+  ========================= */
+  if (isAdmin === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white text-lg">
+        ❌ Access denied
+      </div>
+    );
+  }
+
+  if (isAdmin === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white text-lg">
+        Loading...
+      </div>
+    );
+  }
+
+  /* =========================
+     UI
+  ========================= */
   return (
     <div className="min-h-screen bg-[#0d0b14] text-white p-6">
       <h1 className="text-2xl font-bold mb-6">Admin — Rooms Editor</h1>
