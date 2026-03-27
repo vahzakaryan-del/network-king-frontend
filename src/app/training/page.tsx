@@ -134,12 +134,12 @@ useEffect(() => {
     type="button"
     onClick={onTap}
     whileTap={{ scale: 0.98 }}
-    className="flex flex-col w-full px-3 py-3 min-h-[70px] justify-center"
+    className="flex flex-col w-full px-3 py-3 min-h-[75px] justify-center"
   >
     {/* top row: icon + title + button */}
     <div className="flex items-center gap-2">
       {/* icon */}
-      <span className="text-2xl flex items-center justify-center h-8 w-8">
+      <span className="text-2xl flex items-center justify-center h-8 w-8  leading-none translate-y-[15px]">
   {icon}
 </span>
 
