@@ -72,6 +72,7 @@ export default function TestsIndexPage() {
   const [loading, setLoading] = useState(true);
 
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [leaderboardSecondsLeft, setLeaderboardSecondsLeft] = useState<number | null>(null);
 
   const [tests, setTests] = useState<TestRow[]>([]);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -110,6 +111,15 @@ export default function TestsIndexPage() {
     setToast(msg);
     window.setTimeout(() => setToast(null), 3200);
   };
+
+  const formatCountdown = (s: number | null) => {
+  if (s === null) return "";
+
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+
+  return `${h}h ${m}m`;
+};
 
   // ✅ NEW helper: creates pending purchase for token pack
   const createTokenPackPurchase = async (quantity = 5) => {
@@ -249,6 +259,25 @@ setInitialOrderById((prev) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
+  useEffect(() => {
+  const update = () => {
+    const now = new Date();
+
+    const tomorrowUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1
+    ));
+
+    const diff = Math.floor((tomorrowUTC.getTime() - Date.now()) / 1000);
+    setLeaderboardSecondsLeft(diff > 0 ? diff : 0);
+  };
+
+  update();
+  const interval = setInterval(update, 1000);
+
+  return () => clearInterval(interval);
+}, []);
   // ------------------------------
   // Attempts helpers
   // ------------------------------
@@ -1400,11 +1429,19 @@ const funTests = useMemo(
 
     {/* FLOATING BUTTON — OUTSIDE ALL TRANSFORM CONTEXTS */}
     <button
-      onClick={() => setLeaderboardOpen(true)}
-      className="lg:hidden fixed bottom-6 right-6 z-[999] inline-flex items-center gap-2 px-4 py-3 rounded-full bg-yellow-400 text-gray-900 font-semibold hover:bg-yellow-300 shadow-2xl border border-yellow-300/70 transition"
-    >
-      🏆 Daily Leaderboard
-    </button>
+  onClick={() => setLeaderboardOpen(true)}
+  className="lg:hidden fixed bottom-6 right-6 z-[999] flex flex-col items-center justify-center px-4 py-2 rounded-full bg-yellow-400 text-gray-900 font-semibold hover:bg-yellow-300 shadow-2xl border border-yellow-300/70 transition leading-tight"
+>
+  <div className="flex items-center gap-2">
+    🏆 <span> Daily Leaderboard</span>
+  </div>
+
+  {leaderboardSecondsLeft !== null && (
+    <div className="text-[8px] font-semibold opacity-80">
+      ⏳ {formatCountdown(leaderboardSecondsLeft)}
+    </div>
+  )}
+</button>
     
   </>
 );

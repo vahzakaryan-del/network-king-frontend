@@ -25,7 +25,8 @@ export default function BadgeScore({
     if (score < 95) return "text-yellow-400 border-yellow-400/40 bg-yellow-400/10";
     return "text-gray-200 border-gray-300/40 bg-gray-200/10";
   } else if (unit === "points") {
-    if (score < 50) return "text-gray-900 border-gray-900/40 bg-gray-900/10";
+    if (score < 20) return "text-white border-gray-900/40 bg-gray-900/10";
+    if (score < 60) return "text-gray-900 border-gray-900/40 bg-gray-900/10";
     if (score < 100) return "text-yellow-400 border-yellow-400/40 bg-yellow-400/10";
     return "text-gray-200 border-gray-300/40 bg-gray-200/10";
   }
@@ -40,7 +41,7 @@ const suffix = unit === "percent" ? "%" : "";
   if (overlayOnly) {
     return (
       <div
-        className={`absolute bottom-1 right-1 px-2 py-[2px] rounded-md text-[10px] font-bold shadow-xl border backdrop-blur-sm ${getColor()}`}
+        className={`absolute bottom-1 right-1 px-1.5 py-[1px] rounded-md text-[10px] font-bold shadow-xl border backdrop-blur-sm ${getColor()}`}
       >
         {score}{suffix}
       </div>

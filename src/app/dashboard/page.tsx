@@ -11,6 +11,7 @@ import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 import { onboardingSteps } from "@/lib/onboardingSteps";
 import { apiFetch } from "@/lib/api";
 import { useLottery } from "./hooks/useLottery";
+import MiniAudioPlayer from "@/components/MiniAudioPlayer";
 
 import { asset } from "@/lib/assets";
 
@@ -38,15 +39,15 @@ type NotificationItem = {
 function levelEmoji(level: number) {
   if (level >= 34) return "👑";
   if (level >= 31) return "🐲";
-  if (level >= 28) return "🔥";
-  if (level >= 25) return "🧙";
-  if (level >= 22) return "🏆";
-  if (level >= 19) return "🧠";
-  if (level >= 16) return "💎";
-  if (level >= 13) return "⚜️";
-  if (level >= 10) return "🚀";
-  if (level >= 7) return "⚔️";
-  if (level >= 4) return "🔰";
+  if (level >= 28) return "🧙";
+  if (level >= 19) return "🏆";
+  if (level >= 18) return "🔥";
+  if (level >= 16) return "🧠";
+  if (level >= 14) return "💎";
+  if (level >= 11) return "⚜️";
+  if (level >= 8) return "🚀";
+  if (level >= 5) return "⚔️";
+  if (level >= 3) return "🔰";
   return "🌱";
 }
 
@@ -178,7 +179,7 @@ function BadgeStack({
     <div className="flex md:hidden flex-col items-end gap-1">
   <div className="flex items-center gap-2">
     {top3.slice(0, 3).map((b, i) => (
-      <BadgeMedallion key={i} badge={b} size={60} />
+      <BadgeMedallion key={i} badge={b} size={70} />
     ))}
   </div>
 
@@ -720,27 +721,16 @@ const clearAllNewWhileOpen = useCallback(() => {
 }, []);
 
 useEffect(() => {
-  // when dropdown OPENS
   if (dropdownOpen) {
     wasOpenRef.current = true;
 
+    // only initialize ON OPEN, not on every notifications change
     setNewWhileOpenIds(
       new Set(notifications.filter((n) => !n.read).map((n) => n.id))
     );
-    return;
   }
-
-  // when dropdown CLOSES (but not on first mount)
-  if (wasOpenRef.current) {
-    clearAllNewWhileOpen();
-
-    if (unreadCount > 0) {
-      markAllRead();
-    }
-
-    wasOpenRef.current = false;
-  }
-}, [dropdownOpen, notifications, unreadCount, clearAllNewWhileOpen]);
+  // ❌ REMOVE notifications from deps
+}, [dropdownOpen]);
 
 
   // Rooms preview
@@ -1096,11 +1086,27 @@ useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
   
-    
+    if (socket.connected) {
+  socket.emit("auth", token);
+} else {
+  socket.once("connect", () => {
+    socket.emit("auth", token);
+  });
+}
 
     const onNotification = (note: NotificationItem) => {
-      setNotifications((prev) => [note, ...prev].slice(0, 50));
-      if (!note.read) setUnreadCount((c) => c + 1);
+      setNotifications((prev) => {
+  if (prev.some((n) => n.id === note.id)) return prev;
+  return [note, ...prev].slice(0, 50);
+});
+      setUnreadCount((c) => {
+  if (note.read) return c;
+
+  // avoid double count
+  if (notifications.some((n) => n.id === note.id)) return c;
+
+  return c + 1;
+});
 
       if (dropdownOpenRef.current) addNewWhileOpen(note.id);
       
@@ -1123,6 +1129,8 @@ useEffect(() => {
       socket.off("force_logout", onForceLogout);
     };
   }, [router, addNewWhileOpen]);
+
+  
 
   /* -------------------------------------------------------
      Notifications helpers
@@ -1188,22 +1196,6 @@ useEffect(() => {
   }
 }
 
-
-  const markAllRead = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const res = await apiFetch(`/notifications/delete-all`, {
-  method: "POST",
-});
-      if (res.ok) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-        setUnreadCount(0);
-      }
-    } catch {}
-  };
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white font-sans relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30 pointer-events-none" />
@@ -1223,6 +1215,12 @@ useEffect(() => {
         </button>
 
         <div className="flex items-center gap-2">
+
+  {/* 🔊 AUDIO BUTTON */}
+  {showHelpButton && (
+    <MiniAudioPlayer src="/audio/onboarding.mp3" />
+  )}
+
   {/* Bell */}
   <div className="relative z-[9999]" ref={bellWrapMobileRef}>
     <button 
@@ -1300,24 +1298,23 @@ useEffect(() => {
 
           {showHelpButton && (
   <>
-    <button
-      onClick={() => setShowOnboarding(true)}
-      className="
-        px-5 py-2 rounded-lg
-        bg-white/10 hover:bg-white/20
-        border border-silver
-        transition
-      "
-      title="Quick guide (available for a few days)"
-    >
-      💡❓
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setShowOnboarding(true)}
+        className="px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-silver transition"
+        title="Quick guide"
+      >
+        💡❓
+      </button>
 
-    {/* ✨ Vertical Separator */}
+      {/* 🔊 AUDIO BUTTON */}
+      <MiniAudioPlayer src="/audio/onboarding.mp3" />
+    </div>
+
+    {/* separator */}
     <div className="h-14 w-[2px] bg-gradient-to-b from-white/10 via-white/60 to-white/10 opacity-70" />
   </>
 )}
-
           <button
             onClick={() => router.push("/Subscription")}
             className={`px-5 py-3 rounded-xl font-bold transition-all ${
@@ -2621,7 +2618,7 @@ style={{
           <span className="truncate">
             {p.icon} {p.label}
           </span>
-          <span className="font-bold">{lotteryInventory[key] || 0}</span>
+          <span className="font-bold">{lotteryInventory?.[key] ?? 0}</span>
         </div>
       );
     })}
