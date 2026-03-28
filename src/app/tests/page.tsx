@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { startStripeCheckout } from "@/lib/startStripeCheckout";
 
 
@@ -477,96 +477,139 @@ const funTests = useMemo(
             
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                if (tokenCount <= 0 && tests.length > 0) {
-                  setBuyModalTest(tests[0]);
-                }
-              }}
-              title={tokenCount > 0 ? "You have cooldown tokens" : "Buy cooldown tokens"}
-              className={`flex-1 px-3 py-2 rounded-xl border text-xs font-semibold transition
-                ${
-                  tokenCount > 0
-                    ? "bg-white/10 border-white/20 text-white/90 cursor-default"
-                    : "bg-yellow-400/20 border-yellow-300/40 text-yellow-200 hover:bg-yellow-400/30 hover:border-yellow-300/70"
-                }`}
-            >
-              Cooldown tokens : 🔶 <span className="font-extrabold">{tokenCount}</span>
-            </button>
+         <div className="flex items-center justify-between gap-3 mt-2">
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => router.push("/tests/completed")}
-                className="px-3 py-2 rounded-xl border bg-white/10 border-white/20 text-xs font-semibold"
-              >
-                  🏅
-              </button>
+  {/* LEFT — TOKENS (PRIMARY) */}
+  <div
+    onClick={() => {
+      if (tokenCount <= 0 && tests.length > 0) {
+        setBuyModalTest(tests[0]);
+      }
+    }}
+    className={`
+      flex items-center gap-2 px-4 py-2 rounded-full
+      backdrop-blur-md border shadow-sm cursor-pointer transition
+      ${
+        tokenCount > 0
+          ? "bg-white/10 border-white/20 text-white/90"
+          : "bg-gradient-to-r from-yellow-400/30 to-amber-400/30 border-yellow-300/40 text-yellow-200 hover:brightness-110"
+      }
+    `}
+  >
+    <span className="text-sm">🔶</span>
+    <span className="text-sm font-semibold">Tokens</span>
+    <span className="text-sm font-extrabold">{tokenCount}</span>
+  </div>
 
-              <button
-  onClick={() => setLeaderboardOpen(true)}
-  className="px-3 py-2 rounded-xl border bg-white/10 border-white/20 text-xs font-semibold"
+  {/* RIGHT — ACTIONS */}
+  <div className="flex items-center gap-2">
+
+    <button
+  onClick={() => router.push("/tests/completed")}
+  className="
+    relative overflow-hidden
+    px-3 py-2 rounded-full text-xs font-semibold
+    bg-white/5 border border-white/10
+    text-white/80 backdrop-blur-md
+    hover:bg-white/10 transition
+    shimmer
+  "
 >
-  🏆
+  📋 Completed
 </button>
 
-              <button
-                onClick={() => setMobileSearchOpen((s) => !s)}
-                className="px-3 py-2 rounded-xl border bg-white/10 border-white/20 text-xs font-semibold"
-              >
-                🔍 Search
-              </button>
-              
-              
+    <button
+      onClick={() => router.push("/dashboard")}
+      className="
+        px-3 py-2 rounded-full text-xs font-semibold
+        bg-white/5 border border-white/10
+        text-white/80 backdrop-blur-md
+        hover:bg-white/10 transition
+      "
+    >
+      ← Back
+    </button>
 
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="px-3 py-2 rounded-xl border bg-white/10 border-white/20 text-xs font-semibold"
-              >
-                ← Back
-              </button>
-            </div>
-          </div>
+  </div>
 
-          {mobileSearchOpen && (
-            <div className="mt-2">
-              <input
-                value={mobileSearch}
-                onChange={(e) => setMobileSearch(e.target.value)}
-                placeholder="Search tests..."
-                className="w-full rounded-xl px-3 py-2 bg-white/10 border border-white/20 text-sm"
-              />
-            </div>
-          )}
+</div>
+
         </div>
       </div>
 
-      {/* Toggle */}
-      <div className="relative z-10 max-w-xl mx-auto px-4 pt-4 pb-4">
-        <div className="flex rounded-xl overflow-hidden border border-white/20">
-          <button
-            className={`flex-1 py-3 text-sm font-bold ${
-              mobileCategory === "fun" ? "bg-sky-500 text-gray-900" : "bg-white/10 text-white/80"
-            }`}
-            onClick={() => setMobileCategory("fun")}
-          >
-            Fun Tests
-          </button>
-          <button
-            className={`flex-1 py-3 text-sm font-bold ${
-              mobileCategory === "achievement"
-                ? "bg-amber-400 text-gray-900"
-                : "bg-white/10 text-white/80"
-            }`}
-            onClick={() => setMobileCategory("achievement")}
-          >
-            Achievement Tests
-          </button>
-        </div>
-      </div>
+      {/* 🔍 Always visible search */}
+<div className="mt-3">
+  <input
+    value={mobileSearch}
+    onChange={(e) => setMobileSearch(e.target.value)}
+    placeholder="Search tests..."
+    className="w-full rounded-xl px-4 py-3 bg-white/10 border border-white/20 text-sm placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+  />
+</div>
+
+    {/* Swipe category header */}
+<div className="relative z-10 max-w-xl mx-auto px-4 pt-4 pb-2">
+
+  <div className="flex items-center justify-center gap-3 mb-1">
+    <span className="text-white/70 text-lg animate-pulse">←</span>
+
+    <div className="flex items-center justify-center gap-2 bg-white/10 border border-white/20 rounded-full p-1 backdrop-blur-md">
+
+  <button
+    onClick={() => setMobileCategory("fun")}
+    className={`px-4 py-1 rounded-full text-xs font-bold transition ${
+      mobileCategory === "fun"
+        ? "bg-white text-black"
+        : "text-white/60"
+    }`}
+  >
+    🎯 Fun
+  </button>
+
+  <button
+    onClick={() => setMobileCategory("achievement")}
+    className={`px-4 py-1 rounded-full text-xs font-bold transition ${
+      mobileCategory === "achievement"
+        ? "bg-white text-black"
+        : "text-white/60"
+    }`}
+  >
+    🏅 Achievement
+  </button>
+
+</div>
+
+    <span className="text-white/70 text-lg animate-pulse">→</span>
+  </div>
+
+  <div className="text-center text-xs text-white/40">
+   ← →
+  </div>
+</div>
 
       {/* Grid */}
-      <div className="relative z-10 max-w-2xl mx-auto px-4 pb-10 grid grid-cols-2 gap-4">
+      <AnimatePresence mode="wait">
+  <motion.div
+  key={mobileCategory}
+  initial={{ x: mobileCategory === "fun" ? -40 : 40, opacity: 0 }}
+  animate={{ x: 0, opacity: 1 }}
+  exit={{ x: mobileCategory === "fun" ? 40 : -40, opacity: 0 }}
+  transition={{ duration: 0.25 }}
+
+  drag="x"
+  dragConstraints={{ left: 0, right: 0 }}
+  dragElastic={0.2}
+  onDragEnd={(e, info) => {
+    if (info.offset.x < -80) {
+      setMobileCategory("achievement");
+    } else if (info.offset.x > 80) {
+      setMobileCategory("fun");
+    }
+  }}
+
+  className="relative z-10 max-w-2xl mx-auto px-4 pb-10 grid grid-cols-2 gap-4"
+ 
+>
         {mobileShownTests.map((t) => {
           const locked = isLocked(t);
           const remain = cooldownRemainingDays(t);
@@ -582,150 +625,165 @@ const funTests = useMemo(
   }`}
 >
 
-                
                 {/* FRONT */}
-<div className="absolute inset-0 backface-hidden rounded-xl bg-white/10 border border-white/15 flex flex-col">
+<div className="absolute inset-0 backface-hidden rounded-xl bg-white/10 border border-white/15 flex flex-col p-2 ">
 
-  {/* Title */}
-  <div className="px-2 pt-2 text-center">
-    <div className="text-sm font-extrabold leading-tight line-clamp-2">
-      {t.title}
-    </div>
-    
-  </div>
-
-  {/* Logo */}
-  <div className="flex-1 flex items-center justify-center px-3">
+  {/* ICON */}
+  <div className="h-[60%] flex items-center justify-center">
     <img
       src={t.icon ? `${API}${t.icon}` : "/placeholder.png"}
       alt={t.title}
-      className="w-[79%] h-[79%] object-contain"
+      className="max-h-full max-w-full object-contain"
       onError={(e) => ((e.currentTarget.src = "/placeholder.png"))}
     />
   </div>
 
-  {/* Show more */}
-<button
-  onClick={(e) => {
-    e.stopPropagation();
-    toggleFlip(t.slug);
-  }}
-  className="
-    mx-3 mb-3 px-4 py-1
-    rounded-full text-xs font-medium tracking-wide
-    text-white
-    bg-gradient-to-r from-purple-500/80 to-yellow-400/80
-    backdrop-blur-md
-    border border-white/20
-    shadow-sm
-    hover:from-purple-500 hover:to-yellow-400
-    hover:shadow-md
-    active:scale-95
-    transition-all duration-200
-  "
->
-  Show more
-</button>
-
-</div>
-
-
-
-                {/* BACK */}
-                <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-xl bg-white/10 border border-white/15 p-3 flex flex-col">
- {/* Title */}
-  <div className="text-center mb-3">
-    <div className="text-sm font-extrabold leading-tight line-clamp-2">
-      {t.title}
+  {/* TITLE + QUESTIONS */}
+  <div className="h-[20%] flex flex-col items-center justify-center text-center px-1">
+    <div className="text-[11px] font-extrabold leading-tight line-clamp-2">
+      {t.title} ❓ {t.questionsCount ?? "-"}
     </div>
     
   </div>
- 
-  {/* Info row */}
-  <div className="text-xs text-white/80 mb-3">
-    {timeLabel ? `⏱ ${timeLabel}` : "⏱ ∞"}
-    {typeof t.questionsCount === "number" && ` • ❓ ${t.questionsCount}`}
-    {typeof t.maxScore === "number" && ` • 🏆 ${t.maxScore}`}
-  </div>
 
-  {/* Accelerate */}
-  {remain > 0 && !locked && !bypassNow && (
- <button
-  onClick={(e) => {
-    e.stopPropagation();
-    handleSkipCooldown(t);
-  }}
-  disabled={skippingSlug === t.slug}
-  className={`mb-2 py-1 rounded-lg text-xs font-semibold border transition
-    ${
-      tokenCount > 0
-        ? "bg-emerald-400/20 border-emerald-400/40 text-emerald-200 hover:bg-emerald-400/30"
-        : "bg-red-500/20 border-red-400/40 text-red-200 hover:bg-red-500/30"
-    } ${skippingSlug === t.slug ? "opacity-60 cursor-not-allowed" : ""}`}
->
-    {tokenCount > 0 ? "Accelerate" : "Get tokens"}
-  </button>
-)}
-
-
-  {/* Actions */}
-  <div className="mt-auto flex gap-2">
+  {/* ACTIONS */}
+  <div className="h-[20%] flex gap-2 items-center justify-center">
+    
     <button
-  onClick={(e) => {
-    e.stopPropagation();
-    handleStart(t);
-  }}
-  className={`relative flex-1 py-2 rounded-lg text-sm font-semibold transition
-    ${
-      locked
-        ? "bg-white/10 text-white/60"
-        : "bg-amber-300 text-gray-900"
-    }`}
->
-  Start
-
-  {remain > 0 && !locked && !bypassNow && (
-    <span
-      className="pointer-events-none absolute -top-2 -right-2
-        px-2 py-0.5 rounded-md
-        bg-red-500/20 border border-red-400/40
-        text-[11px] font-extrabold text-gray-900"
+      onClick={(e) => {
+        e.stopPropagation();
+        handleStart(t);
+      }}
+      className="flex-1 py-2 rounded-lg text-xs font-bold bg-amber-300 text-gray-900 active:scale-[0.97] transition"
     >
-      {remain}d
+      Start
+    </button>
+
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleFlip(t.slug);
+      }}
+      className="px-3 py-2 rounded-lg text-xs font-bold bg-white/10 border border-white/20 active:scale-[0.97] transition"
+    >
+      🔄
+    </button>
+
+  </div>
+</div>
+
+                {/* BACK */}
+                <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-xl bg-white/10 border border-white/15 p-2 flex flex-col overflow-hidden">
+
+  {/* TOP: title + icon */}
+  <div className="flex items-center gap-2 px-3 min-w-0">
+  {/* ICON */}
+  <img
+    src={t.icon ? `${API}${t.icon}` : "/placeholder.png"}
+    alt={t.title}
+    className="w-8 h-8 object-contain flex-shrink-0"
+    onError={(e) => (e.currentTarget.src = "/placeholder.png")}
+  />
+
+  {/* TITLE */}
+  <div className="text-[12px] font-extrabold leading-tight truncate min-w-0">
+    {t.title}
+  </div>
+</div>
+
+  {/* STATS */}
+<div className="flex items-center justify-center gap-2 mt-4 flex-nowrap overflow-hidden">
+  <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/10 border border-white/20 text-[11px] whitespace-nowrap shrink-0">
+    <span>⏱</span>
+    <span>{timeLabel || "∞"}</span>
+  </span>
+
+  {typeof t.questionsCount === "number" && (
+    <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/10 border border-white/20 text-[11px] whitespace-nowrap shrink-0">
+      <span>❓</span>
+      <span>{t.questionsCount}</span>
     </span>
   )}
-</button>
 
+  {typeof t.maxScore === "number" && (
+    <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/10 border border-white/20 text-[11px] whitespace-nowrap shrink-0">
+      <span>🏆</span>
+      <span>{t.maxScore}</span>
+    </span>
+  )}
+</div>
 
+  {/* ACTIONS */}
+  <div className="flex gap-2 mt-3 flex-wrap">
     <button
       onClick={(e) => {
         e.stopPropagation();
         handleInfo(t);
       }}
-      className="flex-1 py-2 rounded-lg text-sm font-semibold
-        bg-white/10 border border-white/20"
+      className="flex-1 py-1 rounded-lg text-xs font-semibold bg-white/10 border border-white/20"
     >
       Info
     </button>
+
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleSkipCooldown(t);
+      }}
+      disabled={remain <= 0 || skippingSlug === t.slug}
+      className={`flex-1 min-w-[100px]  py-1 rounded-lg text-xs font-semibold border transition
+        ${
+          remain > 0
+            ? tokenCount > 0
+              ? "bg-emerald-400/20 border-emerald-400/40 text-emerald-200"
+              : "bg-red-500/20 border-red-400/40 text-red-200"
+            : "bg-white/5 border-white/10 text-white/40 cursor-not-allowed"
+        }
+      `}
+    >
+      {remain > 0
+        ? tokenCount > 0
+          ? "Accelerate"
+          : "Get tokens"
+        : "No cooldown"}
+    </button>
   </div>
 
-  {/* Flip back */}
+  {/* DIVIDER */}
+  <div className="border-t border-white/10 my-2" />
+
+  {/* BOTTOM (stick to bottom) */}
+<div className="mt-auto grid grid-cols-3 gap-2">
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      handleStart(t);
+    }}
+    className={`col-span-2 w-full py-2 rounded-lg text-xs font-bold
+      ${locked ? "bg-white/10 text-white/60" : "bg-amber-300 text-gray-900"}
+    `}
+  >
+    Start
+  </button>
+
   <button
     onClick={(e) => {
       e.stopPropagation();
       toggleFlip(t.slug);
     }}
-    className="mt-3 py-2 text-xs rounded-lg bg-black/20 border border-white/20"
+    className="w-full py-2 rounded-lg text-xs font-bold bg-white/10 border border-white/20"
   >
-    ← Back
+    🔄
   </button>
 </div>
 
+</div>
               </div>
             </div>
           );
-        })}
-      </div>
+       })}
+  </motion.div>
+</AnimatePresence>
 
       
 
@@ -1342,11 +1400,12 @@ const funTests = useMemo(
 
     {/* FLOATING BUTTON — OUTSIDE ALL TRANSFORM CONTEXTS */}
     <button
-      onClick={() => router.push("/tests/completed")}
-      className="fixed bottom-6 right-6 z-[999] inline-flex items-center gap-2 px-4 py-3 rounded-full bg-yellow-400 text-gray-900 font-semibold hover:bg-yellow-300 shadow-2xl border border-yellow-300/70 transition"
+      onClick={() => setLeaderboardOpen(true)}
+      className="lg:hidden fixed bottom-6 right-6 z-[999] inline-flex items-center gap-2 px-4 py-3 rounded-full bg-yellow-400 text-gray-900 font-semibold hover:bg-yellow-300 shadow-2xl border border-yellow-300/70 transition"
     >
-      🏅 My Completed Tests
+      🏆 Daily Leaderboard
     </button>
+    
   </>
 );
 
