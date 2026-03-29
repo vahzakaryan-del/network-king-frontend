@@ -54,10 +54,11 @@ const interval = setInterval(async () => {
   attempts++;
 
   if (attempts > 60) { // stop after ~5 minutes
-    clearInterval(interval);
-    console.log("Stopped verification polling");
-    return;
-  }
+  clearInterval(interval);
+  console.log("Stopped verification polling");
+  setMessage("Verification timed out. Please resend the email.");
+  return;
+}
 
   try {
 
@@ -80,7 +81,7 @@ const interval = setInterval(async () => {
 
   return () => clearInterval(interval);
 
-}, [waitingVerification, formData.email]);
+}, [waitingVerification, formData.email, router]);
  
   useEffect(() => {
   const id = setInterval(() => setNowMs(Date.now()), 1000);
@@ -110,7 +111,7 @@ const isCoolingDown = cooldownSecondsLeft > 0;
   }
 
  if (name === "email") {
-  setEmailStarted(value.length > 0);
+  setEmailStarted(/.+@.+\..+/.test(value));
 
   setFormData((prev) => ({
     ...prev,
@@ -208,9 +209,75 @@ const isCoolingDown = cooldownSecondsLeft > 0;
               Join the Kingdom of
             </h2>
 
-            <h1 className="mt-1 text-3xl font-extrabold text-amber-300 drop-shadow-md sm:text-4xl">
+            <h1 className="mt-1 mb-1 text-3xl font-extrabold text-amber-300 drop-shadow-md sm:text-4xl">
               👑 Networ.King
             </h1>
+
+            <div className="h-px mt-4 mb-6 flex-1 bg-white/20" />
+
+            {!waitingVerification && (
+  <>
+  
+
+<div className="flex mb-2 flex-col items-center gap-2">
+
+  <GoogleLogin
+    theme="filled_black"
+    shape="pill"
+    size="large"
+    onSuccess={async (credentialResponse) => {
+      try {
+
+        const ref = refFromUrl || localStorage.getItem("ref") || "";
+
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: credentialResponse.credential ?? "",
+              ref: ref || undefined,
+            }),
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+  console.error("Google login failed");
+  setMessage("❌ Google login failed. Try again.");
+  return;
+}
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", String(data.user?.id ?? ""));
+        localStorage.setItem("userName", String(data.user?.name ?? ""));
+        localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+        localStorage.removeItem("ref");
+
+        router.push("/dashboard");
+
+      } catch (err) {
+        console.error("Google auth error", err);
+      }
+    }}
+    onError={() => setMessage("❌ Google login failed. Try again.")}
+  />
+
+  <p className="text-xs mt-4 text-gray-300 text-center leading-relaxed">
+
+By continuing, you agree to our 
+<Link href="/terms" className="text-amber-300 hover:underline">  Terms </Link>
+ and 
+<Link href="/privacy" className="text-amber-300 hover:underline"> Privacy Policy</Link>.
+</p>
+
+</div>
+</> )}
+
+<div className="h-px mt-4 flex-1 bg-white/20" />
+
 
             {(refFromUrl ||
               (typeof window !== "undefined" &&
@@ -263,7 +330,7 @@ const isCoolingDown = cooldownSecondsLeft > 0;
            onChange={handleChange}
            required
            minLength={8}
-           title="Password must be at least 6 characters"
+           title="Password must be at least 8 characters"
            autoComplete="new-password"
               className="w-full rounded-lg bg-white/20 p-3 text-white placeholder-gray-300 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-amber-400"
             />
@@ -277,15 +344,15 @@ const isCoolingDown = cooldownSecondsLeft > 0;
                 className="mt-0.5 h-4 w-4 accent-amber-400"
               />
               <span className="leading-relaxed">
-                I agree to the{" "}
+                I agree to the {" "}
                 <Link
                   href="/terms"
                   target="_blank"
                   className="font-semibold text-amber-300 hover:underline"
                 >
-                  Terms & Conditions
-                </Link>{" "}
-                and acknowledge the{" "}
+                   Terms & Conditions
+                </Link> {" "}
+                 and acknowledge the{" "}
                 <Link
                   href="/privacy"
                   target="_blank"
@@ -306,68 +373,7 @@ const isCoolingDown = cooldownSecondsLeft > 0;
             </button>
           </form>
           )}
-{!waitingVerification && (
-  <>
-  <div className="h-px mt-4 flex-1 bg-white/20" />
-<div className="my-4 text-center text-sm text-gray-300">
-  or continue with
-</div>
 
-<div className="flex flex-col items-center gap-2">
-
-  <GoogleLogin
-    theme="filled_black"
-    shape="pill"
-    size="large"
-    onSuccess={async (credentialResponse) => {
-      try {
-
-        const ref = refFromUrl || localStorage.getItem("ref") || "";
-
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              token: credentialResponse.credential ?? "",
-              ref: ref || undefined,
-            }),
-          }
-        );
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          console.error("Google login failed");
-          return;
-        }
-
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", String(data.user?.id ?? ""));
-        localStorage.setItem("userName", String(data.user?.name ?? ""));
-        localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
-        localStorage.removeItem("ref");
-
-        router.push("/dashboard");
-
-      } catch (err) {
-        console.error("Google auth error", err);
-      }
-    }}
-    onError={() => console.log("Google Login Failed")}
-  />
-
-  <p className="text-xs text-gray-300 text-center leading-relaxed">
-
-By continuing, you agree to our
-<Link href="/terms" className="text-amber-300 hover:underline"> Terms </Link>
- and 
-<Link href="/privacy" className="text-amber-300 hover:underline"> Privacy Policy</Link>.
-</p>
-
-</div>
-</> )}
 
           {waitingVerification && (
 
