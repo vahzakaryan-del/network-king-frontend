@@ -17,18 +17,33 @@ export default function AdminDailyTestsPage() {
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [todayBoard, setTodayBoard] = useState<any>(null);
+  const [schedule, setSchedule] = useState<any[]>([]);
 
+  
   useEffect(() => {
     if (!token) return;
 
     async function load() {
       try {
         // load tests
-        const testsRes = await fetch(`${API_BASE}/tests`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const testsData = await testsRes.json();
-        setTests(testsData.tests || []);
+        const testsRes = await fetch(`${API_BASE}/admin/tests`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+const testsData = await testsRes.json();
+
+if (!testsRes.ok) {
+  throw new Error(testsData?.error || "Failed to load tests");
+}
+
+setTests(testsData.tests || []);
+
+// 🔥 load schedule
+const schedRes = await fetch(`${API_BASE}/admin/daily-test-schedule`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+const schedData = await schedRes.json();
+setSchedule(schedData.schedules || []);
 
         // load today's leaderboard
         const boardRes = await fetch(
@@ -46,8 +61,10 @@ export default function AdminDailyTestsPage() {
       }
     }
 
-    load();
+    load();    
   }, [token]);
+
+
 
   async function scheduleTest() {
     if (!date || !selectedTestId) {
@@ -78,6 +95,8 @@ export default function AdminDailyTestsPage() {
 
   async function resetToday() {
     if (!confirm("Reset today's leaderboard?")) return;
+    
+    
 
     await fetch(
       `${API_BASE}/admin/debug/reset-today-leaderboard`,
@@ -91,9 +110,13 @@ export default function AdminDailyTestsPage() {
     window.location.reload();
   }
 
+  
+
   if (loading) {
     return <div className="p-10 text-white">Loading...</div>;
   }
+
+ 
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white p-10">
@@ -171,7 +194,30 @@ export default function AdminDailyTestsPage() {
           ) : (
             <div>No leaderboard created yet.</div>
           )}
+
+          <div className="mb-6">
+  <h2 className="text-xl mt-5 font-semibold mb-3">
+    Upcoming Schedule
+  </h2>
+
+  {schedule.length > 0 ? (
+    <div className="space-y-2">
+      {schedule.map((s) => (
+        <div key={s.date} className="bg-white/10 p-3 rounded">
+          <strong>{new Date(s.date).toISOString().slice(0, 10)}</strong>
+          {" → "}
+          {s.test?.title || "Unknown"}
         </div>
+      ))}
+    </div>
+  ) : (
+    <div>No scheduled tests</div>
+  )}
+</div>
+
+        </div>
+
+        
 
         <button
           onClick={() => router.push("/admin")}

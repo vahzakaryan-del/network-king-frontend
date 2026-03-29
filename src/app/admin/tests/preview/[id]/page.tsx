@@ -182,7 +182,11 @@ export default function AdminTestPreviewPage() {
               <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
                 <div className="shrink-0">
                   <img
-                    src={test.icon || "/placeholder.png"}
+                    src={
+  test.icon
+    ? `${process.env.NEXT_PUBLIC_API_URL}${test.icon}`
+    : "/placeholder.png"
+}
                     alt={test.title}
                     className="w-28 h-28 object-cover rounded-2xl border border-white/20 bg-white/10"
                     onError={(e) => ((e.currentTarget.src = "/placeholder.png"))}

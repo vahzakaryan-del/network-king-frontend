@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-const API = process.env.NEXT_PUBLIC_API_URL!;
+
 
 export default function AdminRoomsPage() {
   const [level, setLevel] = useState(1);
   const [description, setDescription] = useState("");
   const [about, setAbout] = useState("");
   const [loading, setLoading] = useState(false);
+   const router = useRouter();
+   const API = process.env.NEXT_PUBLIC_API_URL!;
 
   // 🔐 admin state
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -18,6 +21,7 @@ export default function AdminRoomsPage() {
   ========================= */
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) {
       setIsAdmin(false);
       return;
@@ -26,15 +30,22 @@ export default function AdminRoomsPage() {
     fetch(`${API}/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.role === "admin") {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Unauthorized");
+        return r.json();
       })
-      .catch(() => setIsAdmin(false));
+      .then((data) => {
+        console.log("PROFILE:", data);
+
+        // ✅ FIX: support both formats
+        const role = data?.role || data?.user?.role;
+
+        setIsAdmin(role?.toLowerCase() === "admin");
+      })
+      .catch((err) => {
+        console.error("Profile fetch failed:", err);
+        setIsAdmin(false);
+      });
   }, []);
 
   /* =========================
@@ -55,7 +66,13 @@ export default function AdminRoomsPage() {
         if (room) {
           setDescription(room.description || "");
           setAbout(room.about || "");
+        } else {
+          setDescription("");
+          setAbout("");
         }
+      })
+      .catch((err) => {
+        console.error("Failed to load levels:", err);
       });
   }, [level, isAdmin]);
 
@@ -84,6 +101,7 @@ export default function AdminRoomsPage() {
 
       alert("Saved ✅");
     } catch (err) {
+      console.error(err);
       alert("❌ Save failed");
     }
 
@@ -160,6 +178,13 @@ export default function AdminRoomsPage() {
       >
         {loading ? "Saving..." : "Save"}
       </button>
+
+      <button
+          onClick={() => router.push("/admin")}
+          className="mt-6 ml-4 bg-green-400/80  px-4 py-2 rounded border border-white/20"
+        >
+          ← Back to Admin
+        </button>
     </div>
   );
 }

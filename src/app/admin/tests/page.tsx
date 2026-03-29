@@ -21,6 +21,7 @@ type TestRow = {
   maxScore?: number | null;
   questionsCount?: number | null;
   isActive: boolean;
+  icon?: string;
   createdAt: string;
   badge?: { id: number; name: string; rarity: string } | null;
 };
@@ -114,6 +115,7 @@ export default function AdminTestsPage() {
   createdAt: t.createdAt,
   badge: t.badge,
   mode: t.mode,
+   icon: t.icon,
   externalUrl: t.externalUrl,
 }));
 
@@ -125,10 +127,17 @@ export default function AdminTestsPage() {
   }, [me]);
 
   // --------- filtered view ----------
-  const filtered = useMemo(() => {
-  // 🚨 Only active tests in main section
-  let arr = tests.filter((t) => t.isActive);
+const filtered = useMemo(() => {
+  let arr = [...tests];
 
+  // 🔥 status filter
+  if (status === "active") {
+    arr = arr.filter((t) => t.isActive);
+  } else if (status === "inactive") {
+    arr = arr.filter((t) => !t.isActive);
+  }
+
+  // search
   if (q.trim()) {
     const needle = q.trim().toLowerCase();
     arr = arr.filter(
@@ -139,12 +148,13 @@ export default function AdminTestsPage() {
     );
   }
 
+  // category
   if (category !== "all") {
     arr = arr.filter((t) => t.category === category);
   }
 
   return arr;
-}, [tests, q, category]);
+}, [tests, q, category, status]);
 
 
 
@@ -376,9 +386,19 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
                       {/* Title & Info */}
                       <div className="col-span-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-2xl pt-0.5">
-                            {t.category === "achievement" ? "🏅" : "🎯"}
-                          </div>
+                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/20 bg-white/5 flex items-center justify-center">
+  {t.icon ? (
+    <img
+      src={`${process.env.NEXT_PUBLIC_API_URL}${t.icon}`}
+      alt={t.title}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-xl">
+      {t.category === "achievement" ? "🏅" : "🎯"}
+    </span>
+  )}
+</div>
                           <div>
                             <div className="font-semibold">{t.title}</div>
                             <div className="text-xs text-white/70 line-clamp-1">
@@ -437,17 +457,11 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
                       <div className="col-span-2 text-right flex justify-end gap-2">
                         {/* Edit */}
                         <button
-                          onClick={() => router.push(`/admin/tests/${t.id}`)}
-                          className={`px-2 py-1 rounded text-xs border border-white/15 ${
-                            t.isActive
-                              ? "bg-white/10 hover:bg-white/20"
-                              : "bg-white/5 text-white/40 cursor-not-allowed"
-                          }`}
-                          disabled={!t.isActive}
-                          title={t.isActive ? "Edit test" : "Cannot edit archived test"}
-                        >
-                          ✏️ Edit
-                        </button>
+  onClick={() => router.push(`/admin/tests/${t.id}`)}
+  className="px-2 py-1 rounded text-xs border border-white/15 bg-white/10 hover:bg-white/20"
+>
+  ✏️ Edit
+</button>
 
                         {/* Preview */}
                         <button
@@ -463,10 +477,10 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
                         {t.isActive ? (
                           <button
                             onClick={() => archiveTest(t.id)}
-                            className="px-2 py-1 rounded bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-300/40 text-xs"
+                            className="px-2 py-1 rounded bg-red-500/50 hover:bg-yellow-500/30 border border-yellow-300/40 text-xs"
                             title="Archive test"
                           >
-                            📦 Archive
+                           Turn-off 🚫
                           </button>
                         ) : (
                           <>
@@ -475,7 +489,7 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
                               className="px-2 py-1 rounded bg-green-500/20 hover:bg-green-500/30 border border-green-300/40 text-xs"
                               title="Restore test"
                             >
-                              🔄
+                              Turn-on 🔄
                             </button>
                            
 
@@ -487,9 +501,19 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
                     {/* mobile card */}
                     <div className="md:hidden">
                       <div className="flex items-start gap-3">
-                        <div className="text-2xl">
-                          {t.category === "achievement" ? "🏅" : "🎯"}
-                        </div>
+                       <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/20 bg-white/5 flex items-center justify-center">
+  {t.icon ? (
+    <img
+      src={`${process.env.NEXT_PUBLIC_API_URL}${t.icon}`}
+      alt={t.title}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-xl">
+      {t.category === "achievement" ? "🏅" : "🎯"}
+    </span>
+  )}
+</div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <div className="font-semibold">{t.title}</div>
@@ -525,96 +549,7 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
           </motion.div>
         </div>
 
-        {/* ================= Archived Tests Section ================= */}
-        <motion.div
-          {...fade}
-          transition={{ duration: 0.35 }}
-          className="mt-10 rounded-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden"
-        >
-          {/* Toggle Header */}
-          <div
-            onClick={() => setShowArchived((prev) => !prev)}
-            className="cursor-pointer px-4 py-3 flex items-center justify-between bg-white/10 hover:bg-white/15 transition"
-          >
-            <div className="text-sm font-semibold text-white flex items-center gap-2">
-              📦 Archived Tests{" "}
-              <span className="text-xs text-white/60">
-                ({tests.filter((t) => !t.isActive).length})
-              </span>
-            </div>
-            <div className="text-white">{showArchived ? "▲ Hide" : "▼ Show"}</div>
-          </div>
-
-          {/* Archived List */}
-          {showArchived && (
-            <ul className="divide-y divide-white/10">
-              {tests.filter((t) => !t.isActive).length === 0 ? (
-                <div className="px-4 py-8 text-center text-white/60">
-                  No archived tests.
-                </div>
-              ) : (
-                tests
-                  .filter((t) => !t.isActive)
-                  .map((t) => (
-                    <li key={t.id} className="px-4 py-4 hover:bg-white/5 transition">
-                      <div className="hidden md:grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-4">
-                          <div className="flex items-start gap-3">
-                            <div className="text-2xl pt-0.5">
-                              {t.category === "achievement" ? "🏅" : "🎯"}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-white line-clamp-1">
-                                {t.title}
-                              </div>
-                              <div className="text-xs text-white/60 line-clamp-1">
-                                {t.description || "No description"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="col-span-2">
-                          <CategoryPill v={t.category} />
-                        </div>
- <div className="col-span-2 text-center">
-  <span className="text-sm">🏆{t.questionsCount ?? 0}</span>
-</div>
-
-                        
-
-                        <div className="col-span-2 text-center">
-                         <span className="text-sm">❔{t.questionsCount ?? 0}</span>
-
-                        </div>
-
-                        <div className="col-span-1 text-center">
-                          <StatusPill active={t.isActive} />
-                        </div>
-
-                        <div className="col-span-1 text-right">
-                          <div className="inline-flex gap-2">
-                            <button
-                              onClick={() => restoreTest(t.id)}
-                              className="px-2 py-1 rounded bg-green-500/20 hover:bg-green-500/30 border border-green-400/40 text-xs"
-                            >
-                              🔄 Restore
-                            </button>
-                            <button
-                              onClick={() => deleteTest(t.id)}
-                              className="px-2 py-1 rounded bg-red-500/20 hover:bg-red-500/30 border border-red-400/40 text-xs"
-                            >
-                              🗑 Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  ))
-              )}
-            </ul>
-          )}
-        </motion.div>
+      
       </main>
     </>
   );

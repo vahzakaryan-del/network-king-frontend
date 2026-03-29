@@ -1330,13 +1330,7 @@ const SectionEmojis = () => {
           </div>
         </div>
 
-        {/* Dev Payments Button */}
-        <button
-          onClick={() => router.push("/admin/payments")}
-          className="hidden md:flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl px-3 py-2"
-        >
-          PAYMENTS - FINANCIAL DATA
-        </button>
+      
 
         <div className="flex items-center gap-3">
           {me && (
@@ -1406,11 +1400,19 @@ const SectionEmojis = () => {
              </button>
 
               <button
-  onClick={() => router.push("/admin/auto-test")}
+  onClick={() => router.push("/admin/rooms")}
   className="px-4 py-2 rounded bg-blue-400 border border-white/15  hover:bg-pink-400/60 text-sm"
 >
   🚪 Lvl Descriptions
              </button>
+
+                     <button
+          onClick={() => router.push("/admin/payments")}
+         className="px-4 py-2 rounded bg-green-400 border border-white/15  hover:bg-pink-400/60 text-sm"
+  >
+          💰 PAYMENTS - FINANCIAL DATA
+        </button>
+
 
              </div>
             </div>
