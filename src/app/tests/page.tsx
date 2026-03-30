@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRef } from "react";
 import { startStripeCheckout } from "@/lib/startStripeCheckout";
 
 
@@ -66,6 +67,7 @@ type Entitlements = {
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
+
 
 export default function TestsIndexPage() {
   const router = useRouter();
@@ -1444,8 +1446,7 @@ const funTests = useMemo(
 </button>
     
   </>
-);
-
+);}
 
 
 function DailyLeaderboardModal({
@@ -1453,13 +1454,16 @@ function DailyLeaderboardModal({
 }: {
   onClose: () => void;
 }) {
+  const [showRules, setShowRules] = useState(false);
   const [tab, setTab] = useState<"today" | "yesterday" | "history">("today");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [myUserId, setMyUserId] = useState<number | null>(null);
- const API = process.env.NEXT_PUBLIC_API_URL!;
 
+const leaderboard = useMemo(() => {
+  return Array.isArray(data?.leaderboard) ? data.leaderboard : [];
+}, [data]);
 
 
 useEffect(() => {
@@ -1467,49 +1471,56 @@ useEffect(() => {
   if (id) setMyUserId(Number(id));
 }, []);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
 
-    const endpoint =
-      tab === "today"
-        ? "/daily-leaderboard/today"
-        : tab === "yesterday"
-        ? "/daily-leaderboard/yesterday"
-        : "/daily-leaderboard/history";
+  const endpoint =
+    tab === "today"
+      ? "/daily-leaderboard/today"
+      : tab === "yesterday"
+      ? "/daily-leaderboard/yesterday"
+      : "/daily-leaderboard/history";
 
-    setLoading(true);
+  setLoading(true);
 
-    fetch(`${API}${endpoint}`, {
-      headers: { Authorization: `Bearer ${token}` },
+  fetch(`${API}${endpoint}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      setData(d);
+      setLoading(false);
     })
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [tab]);
+    .catch(() => setLoading(false));
 
-  useEffect(() => {
+}, [tab]); // ✅ ONLY depends on tab
+
+
+useEffect(() => {
   if (tab !== "today") return;
 
-  const update = () => {
-    const now = new Date();
-    const tomorrowUTC = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + 1
-    ));
+  const interval = setInterval(() => {
+    setSecondsLeft((prev) => {
+      const now = new Date();
 
-    const diff = Math.floor((tomorrowUTC.getTime() - Date.now()) / 1000);
-    setSecondsLeft(diff > 0 ? diff : 0);
-  };
+      const tomorrowUTC = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1
+      ));
 
-  update();
-  const interval = setInterval(update, 1000);
+      const diff = Math.floor((tomorrowUTC.getTime() - Date.now()) / 1000);
+      const next = diff > 0 ? diff : 0;
+
+      // ✅ critical: prevent useless re-renders
+      return prev === next ? prev : next;
+    });
+  }, 1000);
+
   return () => clearInterval(interval);
 }, [tab]);
+
 
   return (
     <div className="fixed inset-0 z-[200] grid place-items-center bg-black/60 backdrop-blur-sm px-4">
@@ -1549,7 +1560,9 @@ useEffect(() => {
           {["today", "yesterday", "history"].map((t) => (
             <button
               key={t}
-              onClick={() => setTab(t as any)}
+              onClick={() => {
+  setTab(t as any);
+}}
               className={`flex-1 py-3 font-semibold ${
                 tab === t ? "bg-white/20" : "bg-white/5 hover:bg-white/10"
               }`}
@@ -1584,7 +1597,7 @@ useEffect(() => {
 {!loading &&
   tab === "today" &&
   data?.active !== false &&
-  data?.leaderboard?.length === 0 && (
+  leaderboard.length === 0 && (
     <div className="text-center text-white/70">
       No entries yet. Be the first 👑
     </div>
@@ -1598,7 +1611,7 @@ useEffect(() => {
 
           {!loading &&
             tab === "today" &&
-            data?.leaderboard?.map((entry: any, index: number) => (
+            leaderboard.map((entry: any, index: number) => (
               <div
   key={entry.id}
   onClick={() => window.location.href = `/profile/${entry.user.id}`}
@@ -1706,7 +1719,7 @@ useEffect(() => {
 
 {!loading &&
   tab === "yesterday" &&
-  data?.leaderboard?.map((entry: any, index: number) => (
+  leaderboard.map((entry: any, index: number) => (
     <div
       key={entry.id}
       onClick={() => window.location.href = `/profile/${entry.user.id}`}
@@ -1832,4 +1845,4 @@ useEffect(() => {
 
 
 
-}
+

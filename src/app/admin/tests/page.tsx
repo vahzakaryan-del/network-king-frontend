@@ -50,6 +50,32 @@ export default function AdminTestsPage() {
   const [category, setCategory] = useState<"all" | "achievement" | "fun">("all");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
 
+  const backfillImages = async (id: number) => {
+  const token = localStorage.getItem("token");
+  if (!token) return alert("No token");
+
+  if (!confirm("Generate images for ALL questions? This may cost money 💰"))
+    return;
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/backfill-images`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || "Failed");
+
+    alert("✅ Images generated");
+  } catch (err: any) {
+    alert(err.message);
+  }
+};
+
   const [showArchived, setShowArchived] = useState(false);
 
   // small animation helper
@@ -464,6 +490,7 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
 </button>
 
                         {/* Preview */}
+
                         <button
                           onClick={() => router.push(`/admin/tests/preview/${t.id}`)}
 
@@ -472,6 +499,14 @@ const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/ar
                         >
                           👁 Prev.
                         </button>
+
+                          {/* Create images */}
+                        <button
+  onClick={() => backfillImages(t.id)}
+  className="px-1 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 border border-purple-300/40 text-xs"
+>
+  🖼 Images
+</button>
 
                         {/* Archive / Restore / Delete */}
                         {t.isActive ? (
