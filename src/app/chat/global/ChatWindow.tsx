@@ -2,21 +2,101 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSocket } from "@/lib/socket";
 import type React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { asset } from "@/lib/assets";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
+import type { Socket } from "socket.io-client";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL!;
 const MAX_MESSAGE_LEN = 500;
 
 /* ----------------------------- shared helpers ----------------------------- */
 
+async function resolveMentions(
+  content: string,
+  mentionCache: Map<string, number>
+): Promise<number[]> {
+  const matches = [...content.matchAll(/@([a-zA-Z0-9_.\-']+)/g)];
+
+  const ids = new Set<number>();
+
+  for (const m of matches) {
+    const username = m[1].toLowerCase().replace(/\s+/g, "_");
+
+    // try cache first
+    const cached = mentionCache.get(username);
+    if (cached) {
+      ids.add(cached);
+      continue;
+    }
+
+    // fallback → ask backend
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${BACKEND_URL}/users/search?q=${username}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = await res.json();
+      const user = data?.users?.find(
+        (u: any) => u.name.toLowerCase() === username
+      );
+
+      if (user?.id) {
+        ids.add(user.id);
+      }
+    } catch {}
+  }
+
+  return Array.from(ids);
+}
+
 function parseLevel(channel: string) {
   const m = /^level-(\d+)$/.exec(channel);
   if (!m) return null;
   const n = Number(m[1]);
   return Number.isFinite(n) ? n : null;
+}
+
+function sanitizeOutgoingMessage(
+  content: string,
+  emojiMap: Map<string, AvailableEmoji>,
+  myLevel: number
+) {
+  return content.replace(/:([a-zA-Z0-9_]+):/g, (full, code) => {
+    const e = emojiMap.get(code);
+
+    // emoji doesn't exist → keep text
+    if (!e) return full;
+
+    // user not allowed → keep text
+    if (e.unlockLevel > myLevel) return full;
+
+    // allowed → keep (will render as emoji later)
+    return full;
+  });
+}
+
+function extractMentionUserIds(
+  content: string,
+  mentionCache: Map<string, number>
+): number[] {
+  const matches = [...content.matchAll(/@([a-zA-Z0-9_.\-']+)/g)];
+
+  const ids = new Set<number>();
+
+  for (const m of matches) {
+    const username = m[1].toLowerCase().replace(/\s+/g, "_");
+    const id = mentionCache.get(username);
+    if (id) ids.add(id);
+  }
+
+  return Array.from(ids);
 }
 
 const FlagIcon = ({ code }: { code?: string | null }) => {
@@ -51,6 +131,7 @@ const formatTs = (iso: string) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+  
 
 /* ------------------------------- shared types ------------------------------ */
 
@@ -242,11 +323,12 @@ function EmojiIcon({ e }: { e: AvailableEmoji }) {
 
 
 /* ------------------------------ Global Chat UI ----------------------------- */
-function GlobalChat({ channel }: { channel: string }) {
+function GlobalChat({ channel, socket }: { channel: string; socket: Socket }) {
   const router = useRouter();
 
   const [messages, setMessages] = useState<GlobalMessage[]>([]);
   const [text, setText] = useState("");
+  const [myLevel, setMyLevel] = useState<number>(1);
   const [showScroll, setShowScroll] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -256,7 +338,16 @@ function GlobalChat({ channel }: { channel: string }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(false);
 
-  
+  const [mentionOpen, setMentionOpen] = useState(false);
+const [mentionQuery, setMentionQuery] = useState("");
+const [mentionUsers, setMentionUsers] = useState<any[]>([]);
+const [mentionIndex, setMentionIndex] = useState(0);
+
+
+
+const [mentionCache, setMentionCache] = useState<Map<string, number>>(new Map());
+
+  const [emojiTab, setEmojiTab] = useState<"system" | "custom">("custom");
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -281,6 +372,21 @@ const emojiMap = useMemo(() => {
 }, [emojis]);
 
 
+
+const emojisByLevel = useMemo(() => {
+  const map: Record<number, AvailableEmoji[]> = {};
+
+  for (const e of emojis) {
+    if (!map[e.unlockLevel]) map[e.unlockLevel] = [];
+    map[e.unlockLevel].push(e);
+  }
+
+  return map;
+}, [emojis]);
+
+
+
+
   const channelRef = useRef(channel);
   useEffect(() => {
     channelRef.current = channel;
@@ -299,6 +405,53 @@ const emojiMap = useMemo(() => {
       .then((d) => setIsAdmin(d?.role === "admin"))
       .catch(() => setIsAdmin(false));
   }, []);
+
+  useEffect(() => {
+  if (!mentionOpen) return;
+
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const q = mentionQuery.trim();
+  if (!q) {
+    setMentionUsers([]);
+    return;
+  }
+
+  fetch(`${BACKEND_URL}/users/search?q=${encodeURIComponent(q)}`, {
+  headers: { Authorization: `Bearer ${token}` },
+})
+    .then((r) => r.json())
+    .then((d) => {
+      const users = Array.isArray(d?.users) ? d.users : [];
+setMentionUsers(users);
+
+setMentionCache((prev) => {
+  const next = new Map(prev);
+  for (const u of users) {
+    next.set(u.name.toLowerCase().replace(/\s+/g, "_"), u.id);
+  }
+  return next;
+});
+    })
+    .catch(() => setMentionUsers([]));
+}, [mentionQuery, mentionOpen]);
+
+  useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  fetch(`${BACKEND_URL}/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      if (typeof d?.currentLevel === "number") {
+        setMyLevel(d.currentLevel);
+      }
+    })
+    .catch(() => {});
+}, []);
 
   const canPost = channel !== "announcements" || isAdmin;
 
@@ -351,16 +504,54 @@ useEffect(() => {
   return () => window.removeEventListener("mousedown", onDown);
 }, [emojiOpen]);
 
-function renderFormattedContent(content: string, emojiMap: Map<string, AvailableEmoji>) {
+
+
+function insertSystemEmoji(emoji: any) {
+  const native = emoji.native;
+  setText((t) => (t ? t + native : native));
+}
+
+function insertMention(name: string, id?: number) {
+  const safeName = name.replace(/\s+/g, "_"); // ✅ THIS LINE
+
+  setText((prev) =>
+    prev.replace(/@([a-zA-Z0-9_]*)$/, `@${safeName} `)
+  );
+
+  if (id) {
+    setMentionCache((prev) => {
+      const next = new Map(prev);
+      next.set(safeName.toLowerCase(), id); // ✅ IMPORTANT
+      return next;
+    });
+  }
+
+  setMentionOpen(false);
+}
+
+function renderFormattedContent(
+  content: string,
+  emojiMap: Map<string, AvailableEmoji>,
+  senderLevel?: number | null
+) {
   const parts = content.split(/\*\*(.*?)\*\*/g);
 
   return parts.map((part, i) => {
     if (i % 2 === 1) {
-      return <strong key={i}>{renderContentWithEmojis(part, emojiMap)}</strong>;
+      return (
+        <strong key={i}>
+          {renderContentWithEmojis(part, emojiMap, senderLevel)}
+        </strong>
+      );
     }
-    return <span key={i}>{renderContentWithEmojis(part, emojiMap)}</span>;
+    return (
+      <span key={i}>
+        {renderContentWithEmojis(part, emojiMap, senderLevel)}
+      </span>
+    );
   });
 }
+
 
   async function markGlobalReadOnServer(channelName: string) {
     const token = localStorage.getItem("token");
@@ -405,13 +596,9 @@ function renderFormattedContent(content: string, emojiMap: Map<string, Available
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
-    const socket = getSocket();
     if (!socket) return;
 
-    if (!socket.connected) socket.connect();
-    socket.emit("auth", token);
-
+   
     socket.emit("channel_join", {
       token,
       channel: channelRef.current || "global",
@@ -419,12 +606,14 @@ function renderFormattedContent(content: string, emojiMap: Map<string, Available
     prevChannelRef.current = channelRef.current || "global";
 
    const onMessage = (msg: GlobalMessage) => {
-  const msgChannel = msg.channel || "global";
-  const activeChannel = channelRef.current || "global";
-  if (msgChannel !== activeChannel) return;
-
-  // ✅ PATCH: force correct premium for current user
   const myId = Number(localStorage.getItem("userId"));
+const isMine = msg.user?.id === myId;
+
+const msgChannel = msg.channel || "global";
+const activeChannel = channelRef.current || "global";
+
+// ✅ allow own messages always
+if (!isMine && msgChannel !== activeChannel) return;
   const myPremium = localStorage.getItem("isPremium") === "1";
 
   if (msg.user?.id === myId) {
@@ -502,13 +691,11 @@ function renderFormattedContent(content: string, emojiMap: Map<string, Available
       socket.off("channel_online_users", onChannelOnlineUsers);
       socket.off("global_online_users", onGlobalOnlineUsers);
     };
-  }, []);
-
+  }, [socket]);
   
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const socket = getSocket();
     if (!token || !socket) return;
 
     const next = channel || "global";
@@ -520,7 +707,9 @@ function renderFormattedContent(content: string, emojiMap: Map<string, Available
 
     socket.emit("channel_join", { token, channel: next });
     prevChannelRef.current = next;
-  }, [channel]);
+  }, [channel, socket]);
+
+  
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -571,32 +760,40 @@ function renderFormattedContent(content: string, emojiMap: Map<string, Available
     return () => el.removeEventListener("scroll", onScroll);
   }, [messages, loadingMore, hasMore]);
 
-  const sendGlobal = () => {
-    const token = localStorage.getItem("token");
-    const socket = getSocket();
-    const content = text.trim();
+ const sendGlobal = async () => {
+  const token = localStorage.getItem("token");
+  let content = text.trim();
+  if (!token || !socket || !content) return;
 
-    if (!token || !socket || !content) return;
-    const isAnnouncement = channel === "announcements";
+  const isAnnouncement = channel === "announcements";
+  if (!isAnnouncement && content.length > MAX_MESSAGE_LEN) return;
+  if (!canPost) return;
 
-if (!isAnnouncement && content.length > MAX_MESSAGE_LEN) return;
-if (!canPost) return;
+  // ✅ sanitize FIRST
+  content = sanitizeOutgoingMessage(content, emojiMap, myLevel);
 
-    setText("");
+  // ✅ THEN extract mentions (from final content)
+ const mentions = await resolveMentions(content, mentionCache);
 
-    
+  setText("");
 
-    if (!socket.connected) socket.connect();
-    socket.emit("auth", token);
+  const myId = Number(localStorage.getItem("userId"));
+const myName = localStorage.getItem("userName") || "You";
+const myAvatar = localStorage.getItem("avatar");
+const myPremium = localStorage.getItem("isPremium") === "1";
 
-    socket.emit("global_message", { token, content, channel });
 
-    const userId = Number(localStorage.getItem("userId"));
-    socket.emit("stop_typing", { id: userId, channel });
-  };
+  socket.emit("global_message", {
+    content,
+    channel,
+    mentions,
+  });
+
+  const userId = Number(localStorage.getItem("userId"));
+  socket.emit("stop_typing", { id: userId, channel });
+};
 
   const handleTyping = () => {
-    const socket = getSocket();
     if (!socket) return;
 
     const userId = Number(localStorage.getItem("userId"));
@@ -709,13 +906,17 @@ if (!canPost) return;
       </div>
 
       <div className="text-sm text-yellow-100 whitespace-pre-wrap leading-relaxed">
-        {renderFormattedContent(m.content, emojiMap)}
+        {renderFormattedContent(m.content, emojiMap, m.user?.currentLevel)}
       </div>
     </div>
   </div>
 ) : (
   <p className="text-sm text-gray-200 whitespace-pre-wrap leading-snug [overflow-wrap:anywhere]">
-    {renderContentWithEmojis(m.content, emojiMap)}
+    {renderContentWithEmojis(
+  m.content,
+  emojiMap,
+  m.user?.currentLevel
+)}
   </p>
 )}
 
@@ -753,45 +954,128 @@ if (!canPost) return;
     😊
   </button>
 
-  {emojiOpen && (
-    <div
-      data-emoji-popover
-      className="absolute bottom-14 left-3 w-[320px] max-w-[80vw] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3 z-[10000]"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-sm font-semibold">Unlocked emojis</div>
-        <button
-          type="button"
-          onClick={() => setEmojiOpen(false)}
-          className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-        >
-          close
-        </button>
-      </div>
+  
 
-      {emojiLoading ? (
-        <div className="text-sm text-white/60">Loading…</div>
-      ) : emojis.length === 0 ? (
-        <div className="text-sm text-white/60">No emojis yet.</div>
-      ) : (
-        <div className="grid grid-cols-10 gap-2 max-h-48 overflow-y-auto pr-1">
-          {emojis.map((e) => (
-            <button
-              type="button"
-              key={e.id}
-              onClick={() => insertEmoji(e)}
-              className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center"
-              title={`Unlock lvl ${e.unlockLevel}`}
-            >
-              <span className={e.type === "unicode" ? "text-lg" : ""}>
-                <EmojiIcon e={e} />
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+ {emojiOpen && (
+  <div
+    data-emoji-popover
+    className="absolute bottom-14 left-3 w-[320px] max-w-[80vw] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3 z-[10000]"
+  >
+    {/* HEADER */}
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-sm font-semibold">Emojis</div>
+
+      <button
+        type="button"
+        onClick={() => setEmojiOpen(false)}
+        className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
+      >
+        close
+      </button>
     </div>
-  )}
+
+    {/* TABS */}
+    <div className="flex gap-2 mb-3">
+
+      <button
+        onClick={() => setEmojiTab("custom")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "custom"
+  ? "bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-[0_0_10px_rgba(250,204,21,0.6)]"
+  : "bg-white/10"
+        }`}
+      >
+        👑 Level
+      </button>
+      <button
+        onClick={() => setEmojiTab("system")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "system"
+            ? "bg-amber-400 text-black"
+            : "bg-white/10"
+        }`}
+      >
+        😊 Classic
+      </button>
+
+      
+    </div>
+
+    {/* CONTENT */}
+    {emojiTab === "system" ? (
+      <div className="h-[300px] overflow-hidden">
+        <Picker
+          data={data}
+          onEmojiSelect={insertSystemEmoji}
+          theme="dark"
+        />
+      </div>
+    ) : emojiLoading ? (
+      <div className="text-sm text-white/60">Loading…</div>
+    ) : emojis.length === 0 ? (
+      <div className="text-sm text-white/60">No emojis yet.</div>
+    ) : (
+      <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
+
+  {/* CURRENT LEVEL */}
+  <div>
+    <div className="text-xs text-amber-300 mb-2 font-semibold tracking-wide">
+      Your Level ({myLevel})
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      {(emojisByLevel[myLevel] || []).map((e) => (
+        <button
+          key={e.id}
+          onClick={() => insertEmoji(e)}
+          className="
+            w-9 h-9 rounded-lg flex items-center justify-center
+            bg-gradient-to-br from-amber-400/20 to-yellow-300/10
+            border
+            hover:scale-110 active:scale-95 hover:shadow-[0_0_12px_rgba(250,204,21,0.6)]
+            transition
+          "
+        >
+          <EmojiIcon e={e} />
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* NEXT LEVEL PREVIEW */}
+  <div>
+    <div className="text-xs text-white/50 mb-2 flex items-center gap-2">
+      <span>Next Level ({myLevel + 1})</span>
+      <span className="text-red-400">🔒</span>
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      {(emojisByLevel[myLevel + 1] || []).map((e) => (
+  <div
+    key={e.id}
+    className="relative w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center"
+  >
+    {/* REAL EMOJI */}
+    <div className="opacity-80 blur-[1px] scale-95">
+      <EmojiIcon e={e} />
+    </div>
+
+    {/* DARK OVERLAY */}
+    <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
+
+    {/* LOCK ICON */}
+    <div className="absolute inset-0 flex items-center justify-center text-white text-xs">
+      🔒
+    </div>
+  </div>
+))}
+    </div>
+  </div>
+
+</div>
+    )}
+  </div>
+)}
 
   <textarea
   ref={textareaRef}
@@ -801,9 +1085,26 @@ if (!canPost) return;
   placeholder={`Message #${channel}`}
   value={text}
   onChange={(e) => {
-    setText(e.target.value);
-    if (canPost) handleTyping();
-  }}
+  const value = e.target.value;
+  setText(value);
+
+  if (canPost) handleTyping();
+
+  const match = value.match(/@([a-zA-Z0-9_.\-']*)$/);
+
+  if (match) {
+  const query = match[1];
+
+  setMentionOpen(true);
+  setMentionQuery(query);
+
+  if (query.length === 0) {
+    setMentionUsers([]); // empty → shows hint
+  }
+} else {
+  setMentionOpen(false);
+}
+}}
   onKeyDown={(e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -811,6 +1112,28 @@ if (!canPost) return;
     }
   }}
 />
+
+{mentionOpen && (
+  <div className="absolute bottom-16 left-3 w-64 bg-[#1e1f22] border border-white/10 rounded-lg shadow-xl z-[9999] max-h-48 overflow-y-auto">
+
+    {mentionUsers.length === 0 ? (
+      <div className="px-3 py-2 text-xs text-white/50">
+        Type a name to mention someone
+      </div>
+    ) : (
+      mentionUsers.map((u, i) => (
+        <button
+          key={u.id}
+          onClick={() => insertMention(u.name, u.id)}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/10"
+        >
+          <img src={avatarSrc(u.avatar)} className="w-6 h-6 rounded-full" />
+          <span>{u.name}</span>
+        </button>
+      ))
+    )}
+  </div>
+)}
 
   <button
     type="button"
@@ -844,38 +1167,57 @@ if (!canPost) return;
 
 function renderContentWithEmojis(
   content: string,
-  emojiMap: Map<string, AvailableEmoji>
+  emojiMap: Map<string, AvailableEmoji>,
+  senderLevel?: number | null
 ) {
   // split by :code: tokens
   const parts = content.split(/(:[a-zA-Z0-9_]+:)/g);
 
-  return parts.map((part, idx) => {
-    const m = /^:([a-zA-Z0-9_]+):$/.exec(part);
-    if (!m) return <span key={idx}>{part}</span>;
-
-    const code = m[1]; // without colons
-    const e = emojiMap.get(code);
-    if (!e) return <span key={idx}>{part}</span>;
-
-    if (e.type === "image") {
+return parts.map((part, idx) => {
+  const m = /^:([a-zA-Z0-9_]+):$/.exec(part);
+ if (!m) {
+  return part.split(/(@[a-zA-Z0-9_]+)/g).map((chunk, i2) => {
+    if (chunk.startsWith("@")) {
       return (
-        <img
-          key={idx}
-          src={asset(e.value)}
-          alt={e.label ?? code}
-          className="inline-block w-5 h-5 align-[-0.2em] mx-0.5"
-          style={{ objectFit: "contain" }}
-          draggable={false}
-        />
+        <span key={`${idx}-${i2}`} className="text-blue-400 font-semibold">
+          {chunk}
+        </span>
       );
     }
-
-    return (
-      <span key={idx} className="mx-0.5">
-        {e.value}
-      </span>
-    );
+    return <span key={`${idx}-${i2}`}>{chunk}</span>;
   });
+}
+
+  const code = m[1];
+  const e = emojiMap.get(code);
+
+  // ❌ emoji doesn't exist
+  if (!e) return <span key={idx}>{part}</span>;
+
+  // ❌ sender NOT allowed to use it → show raw text
+  if (!senderLevel || e.unlockLevel > senderLevel) {
+    return <span key={idx}>{part}</span>;
+  }
+
+  // ✅ VALID → show emoji FOR EVERYONE
+  if (e.type === "image") {
+    return (
+      <img
+        key={idx}
+        src={asset(e.value)}
+        alt={e.label ?? code}
+        className="inline-block w-5 h-5 align-[-0.2em] mx-0.5"
+        draggable={false}
+      />
+    );
+  }
+
+  return (
+    <span key={idx} className="mx-0.5">
+      {e.value}
+    </span>
+  );
+});
 }
 
 
@@ -883,14 +1225,18 @@ function renderContentWithEmojis(
 function LevelChat({
   channel,
   levelNumber,
+  socket,
   onLevelUnreadTotal,
   isMobile,
 }: {
   channel: string;
   levelNumber: number;
+  socket: Socket;
   onLevelUnreadTotal?: (levelChannelId: string, total: number) => void;
   isMobile?: boolean;
-}) {
+})
+
+{
   const router = useRouter();
 
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
@@ -900,6 +1246,13 @@ function LevelChat({
   const [membersOpen, setMembersOpen] = useState(false);
 
   const levelRoom = `level-${levelNumber}`;
+
+  const [mentionOpen, setMentionOpen] = useState(false);
+const [mentionQuery, setMentionQuery] = useState("");
+const [mentionUsers, setMentionUsers] = useState<any[]>([]);
+const [mentionIndex, setMentionIndex] = useState(0);
+const [mentionCache, setMentionCache] = useState<Map<string, number>>(new Map());
+
 
   const unreadKey = (lvl: number, subId: number) =>
     `unread:lvl:${lvl}:sub:${subId}`;
@@ -940,6 +1293,8 @@ function LevelChat({
   // ✅ members with access
   const [memberCount, setMemberCount] = useState<number | null>(null);
 
+  const [emojiTab, setEmojiTab] = useState<"system" | "custom">("custom");
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -978,7 +1333,37 @@ function LevelChat({
   }, [totalUnread, levelNumber, onLevelUnreadTotal]);
 
   useEffect(() => {
-    const socket = getSocket();
+  if (!mentionOpen) return;
+
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const q = mentionQuery.trim();
+  if (!q) {
+    setMentionUsers([]);
+    return;
+  }
+
+  fetch(`${BACKEND_URL}/levels/${levelNumber}/search-users?q=${encodeURIComponent(q)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      const users = Array.isArray(d?.users) ? d.users : [];
+setMentionUsers(users);
+
+setMentionCache((prev) => {
+  const next = new Map(prev);
+  for (const u of users) {
+    next.set(u.name.toLowerCase().replace(/\s+/g, "_"), u.id);
+  }
+  return next;
+});
+    })
+    .catch(() => setMentionUsers([]));
+}, [mentionQuery, mentionOpen]);
+
+  useEffect(() => {
     if (!socket) return;
 
     const onConnect = () => {
@@ -1011,6 +1396,7 @@ function LevelChat({
 
   const [messages, setMessages] = useState<LevelMessage[]>([]);
   const [text, setText] = useState("");
+  const [myLevel, setMyLevel] = useState<number>(1);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
 
   const [emojis, setEmojis] = useState<AvailableEmoji[]>([]);
@@ -1022,6 +1408,18 @@ function LevelChat({
   for (const e of emojis) m.set(e.code, e);
   return m;
 }, [emojis]);
+
+const emojisByLevel = useMemo(() => {
+  const map: Record<number, AvailableEmoji[]> = {};
+
+  for (const e of emojis) {
+    if (!map[e.unlockLevel]) map[e.unlockLevel] = [];
+    map[e.unlockLevel].push(e);
+  }
+
+  return map;
+}, [emojis]);
+
 
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -1040,11 +1438,8 @@ function LevelChat({
   const joinedLevelRoomRef = useRef<string | null>(null);
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const socket = getSocket();
     if (!token || !socket) return;
-
-    if (!socket.connected) socket.connect();
-    socket.emit("auth", token);
+    
 
     const prev = joinedLevelRoomRef.current;
     const next = levelRoom;
@@ -1062,7 +1457,7 @@ function LevelChat({
         joinedLevelRoomRef.current = null;
       }
     };
-  }, [levelRoom]);
+  }, [levelRoom, socket]);
 
   useEffect(() => {
   const el = textareaRef.current;
@@ -1073,7 +1468,6 @@ function LevelChat({
 }, [text]);
 
   useEffect(() => {
-    const socket = getSocket();
     if (!socket) return;
 
     const onChannelOnlineUsers = (payload: { channel: string; users: any[] }) => {
@@ -1104,50 +1498,65 @@ function LevelChat({
     setEmojiOpen(false);
   }, [channel]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoadingSubs(true);
+ useEffect(() => {
+  let cancelled = false;
+  setLoadingSubs(true);
 
-    fetch(`${BACKEND_URL}/chat/levels/${levelNumber}/subchannels`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return;
-        const list = Array.isArray(data) ? data : [];
-        setSubChannels(list);
+  const token = localStorage.getItem("token");
+  if (!token) {
+    setSubChannels([]);
+    setLoadingSubs(false);
+    return;
+  }
 
-        const map: Record<number, number> = {};
-        for (const sc of list) {
-          map[sc.id] = readUnreadFromStorage(levelNumber, sc.id);
-        }
-        setUnreadBySub(map);
+  fetch(`${BACKEND_URL}/chat/levels/${levelNumber}/subchannels`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((r) => r.json())
+    .then((data) => {
+      if (cancelled) return;
 
-        fetchUnreadCountsFromServer(levelNumber).then((data2) => {
-          if (!data2?.bySub) return;
+      const list = Array.isArray(data?.subChannels)
+        ? data.subChannels
+        : Array.isArray(data)
+        ? data
+        : [];
 
-          const next: Record<number, number> = { ...map };
-          for (const [subIdStr, count] of Object.entries(data2.bySub)) {
-            const subId = Number(subIdStr);
-            if (Number.isFinite(subId)) {
-              next[subId] = Number(count) || 0;
-              writeUnreadToStorage(levelNumber, subId, next[subId]);
-            }
+      setSubChannels(list);
+
+      const map: Record<number, number> = {};
+      for (const sc of list) {
+        map[sc.id] = readUnreadFromStorage(levelNumber, sc.id);
+      }
+      setUnreadBySub(map);
+
+      fetchUnreadCountsFromServer(levelNumber).then((data2) => {
+        if (!data2?.bySub) return;
+
+        const next: Record<number, number> = { ...map };
+        for (const [subIdStr, count] of Object.entries(data2.bySub)) {
+          const subId = Number(subIdStr);
+          if (Number.isFinite(subId)) {
+            next[subId] = Number(count) || 0;
+            writeUnreadToStorage(levelNumber, subId, next[subId]);
           }
-          setUnreadBySub(next);
-        });
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setSubChannels([]);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoadingSubs(false);
+        }
+        setUnreadBySub(next);
       });
+    })
+    .catch(() => {
+      if (cancelled) return;
+      setSubChannels([]);
+    })
+    .finally(() => {
+      if (cancelled) return;
+      setLoadingSubs(false);
+    });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [levelNumber]);
+  return () => {
+    cancelled = true;
+  };
+}, [levelNumber]);
 
   useEffect(() => {
     if (!activeSub) return;
@@ -1188,16 +1597,29 @@ function LevelChat({
   }, [levelNumber, activeSub]);
 
   useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  fetch(`${BACKEND_URL}/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      if (typeof d?.currentLevel === "number") {
+        setMyLevel(d.currentLevel);
+      }
+    })
+    .catch(() => {});
+}, []);
+
+  useEffect(() => {
     if (!activeSub) return;
 
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const socket = getSocket();
     if (!socket) return;
 
-    if (!socket.connected) socket.connect();
-    socket.emit("auth", token);
 
     socket.emit("join_level_sub", {
       token,
@@ -1212,7 +1634,6 @@ function LevelChat({
   }, [levelNumber, activeSub, levelRoom]);
 
   useEffect(() => {
-    const socket = getSocket();
     if (!socket) return;
 
     const onMsg = (msg: any) => {
@@ -1240,21 +1661,21 @@ function LevelChat({
         return;
       }
 
-      if (msg.subChannelId !== sub.id) {
-        if (isMine) return;
+     if (msg.subChannelId !== sub.id) {
+  if (!isMine) {
+    setUnreadBySub((prev) => {
+      const current =
+        prev[msg.subChannelId] ??
+        readUnreadFromStorage(lvl, msg.subChannelId);
+      const nextCount = current + 1;
 
-        setUnreadBySub((prev) => {
-          const current =
-            prev[msg.subChannelId] ??
-            readUnreadFromStorage(lvl, msg.subChannelId);
-          const nextCount = current + 1;
-
-          const next = { ...prev, [msg.subChannelId]: nextCount };
-          writeUnreadToStorage(lvl, msg.subChannelId, nextCount);
-          return next;
-        });
-        return;
-      }
+      const next = { ...prev, [msg.subChannelId]: nextCount };
+      writeUnreadToStorage(lvl, msg.subChannelId, nextCount);
+      return next;
+    });
+  }
+  return;
+}
 
       setMessages((prev) => [...prev, msg]);
       requestAnimationFrame(() =>
@@ -1267,7 +1688,7 @@ function LevelChat({
     return () => {
       socket.off("level_sub_message", onMsg);
     };
-  }, []);
+    }, [socket]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -1314,35 +1735,50 @@ function LevelChat({
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
   }, [emojiOpen]);
+async function sendLevelMessage() {
+  if (!activeSub) return;
 
-  async function sendLevelMessage() {
-    if (!activeSub) return;
+  const token = localStorage.getItem("token");
+  let content = text.trim();
+  if (!token || !socket || !content) return;
+  if (content.length > MAX_MESSAGE_LEN) return;
 
-    const token = localStorage.getItem("token");
-    const socket = getSocket();
-    const content = text.trim();
+  // ✅ sanitize FIRST
+  content = sanitizeOutgoingMessage(content, emojiMap, myLevel);
 
-    if (!token || !socket || !content) return;
-    if (content.length > MAX_MESSAGE_LEN) return;
+  // ✅ THEN extract mentions
+ const mentions = await resolveMentions(content, mentionCache);
 
-    setText("");
-    setEmojiOpen(false);
+  setText("");
+  setEmojiOpen(false);
 
-    if (!socket.connected) socket.connect();
-    socket.emit("auth", token);
+  const myId = Number(localStorage.getItem("userId"));
+const myName = localStorage.getItem("userName") || "You";
+const myAvatar = localStorage.getItem("avatar");
+const myPremium = localStorage.getItem("isPremium") === "1";
 
-    socket.emit("level_sub_message", {
-      token,
-      levelNumber,
-      subChannelId: activeSub.id,
-      content,
-    });
-  }
+
+
+  socket.emit("level_sub_message", {
+    token,
+    levelNumber,
+    subChannelId: activeSub.id,
+    content,
+    mentions,
+  });
+}
 
 function insertEmoji(e: AvailableEmoji) {
   const token = e.type === "unicode" ? e.value : `:${e.code}:`;
   setText((t) => (t ? `${t} ${token}` : token));
 }
+
+
+function insertSystemEmoji(emoji: any) {
+  const native = emoji.native;
+  setText((t) => (t ? t + native : native));
+}
+
 
   /* -------------------------- search UI -------------------------- */
   const [searchOpen, setSearchOpen] = useState(false);
@@ -1380,6 +1816,24 @@ function insertEmoji(e: AvailableEmoji) {
       setSearchLoading(false);
     }
   }
+
+ function insertMention(name: string, id?: number) {
+  const safeName = name.replace(/\s+/g, "_"); // ✅ THIS LINE
+
+  setText((prev) =>
+    prev.replace(/@([a-zA-Z0-9_]*)$/, `@${safeName} `)
+  );
+
+  if (id) {
+    setMentionCache((prev) => {
+      const next = new Map(prev);
+      next.set(safeName.toLowerCase(), id); // ✅ IMPORTANT
+      return next;
+    });
+  }
+
+  setMentionOpen(false);
+}
 
   useEffect(() => {
     if (!searchOpen && !membersOpen) return;
@@ -1657,7 +2111,7 @@ function insertEmoji(e: AvailableEmoji) {
   {/* ROW 1 */}
   <div className="relative flex items-center justify-center">
 
-       <button  className="absolute left-0 px-3 py-1 mt-2 rounded-md bg-white/10 hover:bg-white/15 text-sm"
+       <button  className="absolute right-0 px-3 py-1 mt-2 rounded-md bg-white/10 hover:bg-white/15 text-sm"
 >
       About
     </button>
@@ -1674,7 +2128,7 @@ function insertEmoji(e: AvailableEmoji) {
         setActiveSub(null);
         setEmojiOpen(false);
       }}
-      className="absolute right-0 px-3 py-1 mt-2 rounded-md bg-white/10 hover:bg-white/15 text-sm"
+      className="absolute left-0 px-3 py-1 mt-2 rounded-md bg-white/10 hover:bg-white/15 text-sm"
     >
       ← Back
     </button>
@@ -1740,7 +2194,11 @@ function insertEmoji(e: AvailableEmoji) {
                     </div>
 
                     <p className="text-sm text-gray-200 whitespace-pre-wrap leading-snug [overflow-wrap:anywhere]">
-  {renderContentWithEmojis(m.content, emojiMap)}
+  {renderContentWithEmojis(
+  m.content,
+  emojiMap,
+  m.user?.currentLevel
+)}
 </p>
 
                   </div>
@@ -1761,13 +2219,15 @@ function insertEmoji(e: AvailableEmoji) {
                 😊
               </button>
 
-              {emojiOpen && (
+             {emojiOpen && (
   <div
     data-emoji-popover
     className="absolute bottom-14 left-3 w-[320px] max-w-[80vw] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3 z-[10000]"
   >
+    {/* HEADER */}
     <div className="flex items-center justify-between mb-2">
-      <div className="text-sm font-semibold">Unlocked emojis</div>
+      <div className="text-sm font-semibold">Emojis</div>
+
       <button
         type="button"
         onClick={() => setEmojiOpen(false)}
@@ -1777,26 +2237,105 @@ function insertEmoji(e: AvailableEmoji) {
       </button>
     </div>
 
-    {emojiLoading ? (
+    {/* TABS */}
+    <div className="flex gap-2 mb-3">
+      
+
+      <button
+        onClick={() => setEmojiTab("custom")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "custom"
+  ? "bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-[0_0_10px_rgba(250,204,21,0.6)]"
+  : "bg-white/10"
+        }`}
+      >
+        👑 Level
+      </button>
+
+      <button
+        onClick={() => setEmojiTab("system")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "system"
+            ? "bg-amber-400 text-black"
+            : "bg-white/10"
+        }`}
+      >
+        😊 Classic
+      </button>
+    </div>
+
+    {/* CONTENT */}
+    {emojiTab === "system" ? (
+      <div className="h-[300px] overflow-hidden">
+        <Picker
+          data={data}
+          onEmojiSelect={insertSystemEmoji}
+          theme="dark"
+        />
+      </div>
+    ) : emojiLoading ? (
       <div className="text-sm text-white/60">Loading…</div>
     ) : emojis.length === 0 ? (
       <div className="text-sm text-white/60">No emojis yet.</div>
     ) : (
-      <div className="grid grid-cols-10 gap-2 max-h-48 overflow-y-auto pr-1">
-        {emojis.map((e) => (
-          <button
-            type="button"
-            key={e.id}
-            onClick={() => insertEmoji(e)}
-            className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center"
-            title={`Unlock lvl ${e.unlockLevel}`}
-          >
-            <span className={e.type === "unicode" ? "text-lg" : ""}>
-              <EmojiIcon e={e} />
-            </span>
-          </button>
-        ))}
-      </div>
+     <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
+
+  {/* CURRENT LEVEL */}
+  <div>
+    <div className="text-xs text-amber-300 mb-2 font-semibold tracking-wide">
+      Your Level ({myLevel})
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      {(emojisByLevel[myLevel] || []).map((e) => (
+        <button
+          key={e.id}
+          onClick={() => insertEmoji(e)}
+          className="
+            w-9 h-9 rounded-lg flex items-center justify-center
+            bg-gradient-to-br from-amber-400/20 to-yellow-300/10
+            border border-amber-400/30
+            hover:scale-110 active:scale-95 hover:shadow-[0_0_12px_rgba(250,204,21,0.6)]
+            transition
+          "
+        >
+          <EmojiIcon e={e} />
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* NEXT LEVEL PREVIEW */}
+  <div>
+    <div className="text-xs text-white/50 mb-2 flex items-center gap-2">
+      <span>Next Level ({myLevel + 1})</span>
+      <span className="text-red-400">🔒</span>
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      {(emojisByLevel[myLevel + 1] || []).map((e) => (
+  <div
+    key={e.id}
+    className="relative w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center"
+  >
+    {/* REAL EMOJI */}
+    <div className="opacity-40 blur-[1px] scale-95">
+      <EmojiIcon e={e} />
+    </div>
+
+    {/* DARK OVERLAY */}
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" />
+
+    {/* LOCK ICON */}
+    <div className="absolute inset-0 flex items-center justify-center text-white text-xs">
+      🔒
+    </div>
+  </div>
+))}
+    </div>
+  </div>
+
+</div>
     )}
   </div>
 )}
@@ -1809,9 +2348,26 @@ function insertEmoji(e: AvailableEmoji) {
   className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none resize-none overflow-hidden"
   placeholder={`Message #${activeSub?.name ?? ""}`}
   value={text}
-  onChange={(e) => {
-    setText(e.target.value);
-  }}
+ onChange={(e) => {
+  const value = e.target.value;
+  setText(value);
+
+  const match = value.match(/@([a-zA-Z0-9_.\-']*)$/);
+
+  if (match) {
+  const query = match[1];
+
+  setMentionOpen(true);
+  setMentionQuery(query);
+
+  
+  if (query.length === 0) {
+    setMentionUsers([]); // empty → shows hint
+  }
+} else {
+  setMentionOpen(false);
+}
+}}
   onKeyDown={(e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -1819,6 +2375,28 @@ function insertEmoji(e: AvailableEmoji) {
     }
   }}
 />
+
+{mentionOpen && (
+  <div className="absolute bottom-16 left-3 w-64 bg-[#1e1f22] border border-white/10 rounded-lg shadow-xl z-[9999] max-h-48 overflow-y-auto">
+
+    {mentionUsers.length === 0 ? (
+      <div className="px-3 py-2 text-xs text-white/50">
+        Type a name to mention someone
+      </div>
+    ) : (
+      mentionUsers.map((u, i) => (
+        <button
+          key={u.id}
+          onClick={() => insertMention(u.name, u.id)}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/10"
+        >
+          <img src={avatarSrc(u.avatar)} className="w-6 h-6 rounded-full" />
+          <span>{u.name}</span>
+        </button>
+      ))
+    )}
+  </div>
+)}
 
               <button
                 type="button"
@@ -1904,7 +2482,11 @@ function insertEmoji(e: AvailableEmoji) {
                       </div>
 
                      <p className="text-sm text-gray-200 whitespace-pre-wrap leading-snug [overflow-wrap:anywhere]">
-  {renderContentWithEmojis(m.content, emojiMap)}
+  {renderContentWithEmojis(
+  m.content,
+  emojiMap,
+  m.user?.currentLevel
+)}
 </p>
 
                     </div>
@@ -1926,45 +2508,125 @@ function insertEmoji(e: AvailableEmoji) {
                 </button>
 
                 {emojiOpen && (
-                  <div
-                    data-emoji-popover
-                    className="absolute bottom-14 left-3 w-[320px] max-w-[80vw] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-semibold">Unlocked emojis</div>
-                      <button
-                        type="button"
-                        onClick={() => setEmojiOpen(false)}
-                        className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-                      >
-                        close
-                      </button>
-                    </div>
-
-                    {emojiLoading ? (
-                      <div className="text-sm text-white/60">Loading…</div>
-                    ) : emojis.length === 0 ? (
-                      <div className="text-sm text-white/60">No emojis yet.</div>
-                    ) : (
-                      <div className="grid grid-cols-10 gap-2 max-h-48 overflow-y-auto pr-1">
-                        {emojis.map((e) => (
-  <button
-    type="button"
-    key={e.id}
-    onClick={() => insertEmoji(e)}
-    className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center"
-    title={`Unlock lvl ${e.unlockLevel}`}
+  <div
+    data-emoji-popover
+    className="absolute bottom-14 left-3 w-[320px] max-w-[80vw] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3 z-[10000]"
   >
-    <span className={e.type === "unicode" ? "text-lg" : ""}>
-      <EmojiIcon e={e} />
-    </span>
-  </button>
-))}
+    {/* HEADER */}
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-sm font-semibold">Emojis</div>
 
-                      </div>
-                    )}
-                  </div>
-                )}
+      <button
+        type="button"
+        onClick={() => setEmojiOpen(false)}
+        className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
+      >
+        close
+      </button>
+    </div>
+
+    {/* TABS */}
+    <div className="flex gap-2 mb-3">
+      
+
+      <button
+        onClick={() => setEmojiTab("custom")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "custom"
+  ? "bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-[0_0_10px_rgba(250,204,21,0.6)]"
+  : "bg-white/10"
+        }`}
+      >
+        👑 Level
+      </button>
+
+      <button
+        onClick={() => setEmojiTab("system")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "system"
+            ? "bg-amber-400 text-black"
+            : "bg-white/10"
+        }`}
+      >
+        😊 Classic
+      </button>
+    </div>
+
+    {/* CONTENT */}
+    {emojiTab === "system" ? (
+      <div className="h-[300px] overflow-hidden">
+        <Picker
+          data={data}
+          onEmojiSelect={insertSystemEmoji}
+          theme="dark"
+        />
+      </div>
+    ) : emojiLoading ? (
+      <div className="text-sm text-white/60">Loading…</div>
+    ) : emojis.length === 0 ? (
+      <div className="text-sm text-white/60">No emojis yet.</div>
+    ) : (
+     <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
+
+  {/* CURRENT LEVEL */}
+  <div>
+    <div className="text-xs text-amber-300 mb-2 font-semibold tracking-wide">
+      Your Level ({myLevel})
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      {(emojisByLevel[myLevel] || []).map((e) => (
+        <button
+          key={e.id}
+          onClick={() => insertEmoji(e)}
+          className="
+            w-9 h-9 rounded-lg flex items-center justify-center
+            bg-gradient-to-br from-amber-400/20 to-yellow-300/10
+            border border-amber-400/30
+            hover:scale-110 active:scale-95 hover:shadow-[0_0_12px_rgba(250,204,21,0.6)]
+            transition
+          "
+        >
+          <EmojiIcon e={e} />
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* NEXT LEVEL PREVIEW */}
+  <div>
+    <div className="text-xs text-white/50 mb-2 flex items-center gap-2">
+      <span>Next Level ({myLevel + 1})</span>
+      <span className="text-red-400">🔒</span>
+    </div>
+
+    <div className="flex gap-2 flex-wrap">
+      {(emojisByLevel[myLevel + 1] || []).map((e) => (
+  <div
+    key={e.id}
+    className="relative w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center"
+  >
+    {/* REAL EMOJI */}
+    <div className="opacity-40 blur-[1px] scale-95">
+      <EmojiIcon e={e} />
+    </div>
+
+    {/* DARK OVERLAY */}
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" />
+
+    {/* LOCK ICON */}
+    <div className="absolute inset-0 flex items-center justify-center text-white text-xs">
+      🔒
+    </div>
+  </div>
+))}
+    </div>
+  </div>
+
+</div>
+    )}
+  </div>
+)}
 
                 <textarea
   ref={textareaRef}
@@ -1974,8 +2636,24 @@ function insertEmoji(e: AvailableEmoji) {
   placeholder={`Message #${activeSub?.name ?? ""}`}
   value={text}
   onChange={(e) => {
-    setText(e.target.value);
-  }}
+  const value = e.target.value;
+  setText(value);
+
+  const match = value.match(/@([a-zA-Z0-9_.\-']*)$/);
+
+  if (match) {
+  const query = match[1];
+
+  setMentionOpen(true);
+  setMentionQuery(query);
+
+  if (query.length === 0) {
+    setMentionUsers([]); // empty → shows hint
+  }
+} else {
+  setMentionOpen(false);
+}
+}}
   onKeyDown={(e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -2072,29 +2750,34 @@ function insertEmoji(e: AvailableEmoji) {
   );
 }
 
+
+
 /* --------------------------------- wrapper -------------------------------- */
 
 export default function ChatWindow({
   channel,
+  socket,
   onLevelUnreadTotal,
   isMobile = false,
 }: {
   channel: string;
+  socket: Socket;
   onLevelUnreadTotal?: (levelChannelId: string, total: number) => void;
   isMobile?: boolean;
-}) {
+}){
   const levelNumber = useMemo(() => parseLevel(channel), [channel]);
 
   if (levelNumber == null) {
-    return <GlobalChat channel={channel} />;
+    return <GlobalChat channel={channel} socket={socket} />;
   }
 
   return (
-    <LevelChat
-      channel={channel}
-      levelNumber={levelNumber}
-      onLevelUnreadTotal={onLevelUnreadTotal}
-      isMobile={isMobile}
-    />
-  );
+  <LevelChat
+    channel={channel}
+    levelNumber={levelNumber}
+    socket={socket}
+    onLevelUnreadTotal={onLevelUnreadTotal}
+    isMobile={isMobile}
+  />
+);
 }

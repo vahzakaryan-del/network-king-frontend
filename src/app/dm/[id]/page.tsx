@@ -19,8 +19,7 @@ export default function DirectMessagePage() {
     const token = localStorage.getItem("token");
     if (!token) return router.push("/login");
 
-    // Identify socket
-    socket.emit("auth", token);
+ 
 
     // Load friend info
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {

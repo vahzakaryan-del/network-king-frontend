@@ -1,9 +1,12 @@
+//frontend\src\app\chat\global\UserList.tsx
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
 import { asset } from "@/lib/assets";
+import type { Socket } from "socket.io-client";
 
 // CDN-based flag renderer
 const FlagIcon = ({ code }: { code?: string | null }) => {
@@ -25,48 +28,34 @@ type User = {
   mainCountry?: string | null;
 };
 
-export default function UserList({ channel }: { channel: string }) {
+export default function UserList({ channel, socket }: { channel: string; socket: Socket }) {
   const [users, setUsers] = useState<User[]>([]);
   const router = useRouter();
 
-  // Always know the latest channel (prevents stale closures)
   const channelRef = useRef(channel);
 
   useEffect(() => {
     channelRef.current = channel;
   }, [channel]);
 
-  // Ensure socket is connected + authenticated
+  // ✅ REQUEST USERS
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+  if (!socket) return;
 
-    if (!socket.connected) socket.connect();
-
-    const token = localStorage.getItem("token");
-    if (token) socket.emit("auth", token);
-  }, []);
-
-  // Request online users when mounted or channel changes
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const active = channelRef.current || "global";
+  const active = channelRef.current || "global";
 
     if (active === "global") {
       socket.emit("get_global_online_users");
     } else {
       socket.emit("get_channel_online_users", { channel: active });
     }
-  }, [channel]);
+ }, [channel, socket]);
 
-  // Listen for server responses
+  // ✅ LISTENERS (SAFE)
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+  if (!socket) return;
 
-    const handleChannelUsers = (payload: {
+  const handleChannelUsers = (payload: {
       channel: string;
       users: User[];
     }) => {
@@ -88,12 +77,9 @@ export default function UserList({ channel }: { channel: string }) {
       setUsers(list);
     };
 
-    socket.on("channel_online_users", handleChannelUsers);
-    socket.on("global_online_users", handleGlobalUsers);
-
-    // Also re-request on reconnect (mobile sleep / tab switch)
     const handleReconnect = () => {
       const active = channelRef.current || "global";
+
       socket.emit(
         active === "global"
           ? "get_global_online_users"
@@ -102,6 +88,8 @@ export default function UserList({ channel }: { channel: string }) {
       );
     };
 
+    socket.on("channel_online_users", handleChannelUsers);
+    socket.on("global_online_users", handleGlobalUsers);
     socket.on("connect", handleReconnect);
 
     return () => {
@@ -109,10 +97,10 @@ export default function UserList({ channel }: { channel: string }) {
       socket.off("global_online_users", handleGlobalUsers);
       socket.off("connect", handleReconnect);
     };
-  }, []);
+  }, [socket]);
 
   const avatarSrc = (a?: string | null) =>
-  a ? asset(`avatars/${a}`) : asset("avatars/default.webp");
+    a ? asset(`avatars/${a}`) : asset("avatars/default.webp");
 
   return (
     <aside className="w-56 bg-[#1e1f22] border-l border-white/10 p-3 flex flex-col">
@@ -130,9 +118,9 @@ export default function UserList({ channel }: { channel: string }) {
                 onClick={() => router.push(`/profile/${u.id}`)}
                 className="w-8 h-8 rounded-full object-cover cursor-pointer hover:opacity-80"
                 onError={(e) =>
-  ((e.currentTarget as HTMLImageElement).src =
-    asset("avatars/default.webp"))
-}
+                  ((e.currentTarget as HTMLImageElement).src =
+                    asset("avatars/default.webp"))
+                }
               />
               <span
                 className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#1e1f22] animate-pulse"

@@ -251,26 +251,6 @@ useEffect(() => {
     .catch(console.error);
 }, [limit]);
 
-  
-
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const onMessage = (msg: any) => {
-      setPreview((prev) => {
-        const next = [...prev, msg];
-        return next.slice(-limit);
-      });
-    };
-
-    socket.on("global_message", onMessage);
-    return () => {
-      socket.off("global_message", onMessage);
-    };
-  }, [limit]);
-
-  
 
   return (
     <div
@@ -653,6 +633,7 @@ export default function DashboardPage() {
 
   // ✅ Mobile hamburger drawer
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
 
   // Core page state
   const [user, setUser] = useState<any>(null);
@@ -699,13 +680,18 @@ export default function DashboardPage() {
 const [newWhileOpenIds, setNewWhileOpenIds] = useState<Set<number>>(new Set());
 
 // Helper (immutable Set update)
-const addNewWhileOpen = useCallback((id: number) => {
-  setNewWhileOpenIds((prev) => {
-    const next = new Set(prev);
-    next.add(id);
-    return next;
-  });
+const addNewWhileOpenRef = useRef<(id: number) => void>(() => {});
+
+useEffect(() => {
+  addNewWhileOpenRef.current = (id: number) => {
+    setNewWhileOpenIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
 }, []);
+
 
 const clearNewWhileOpen = useCallback((id: number) => {
   setNewWhileOpenIds((prev) => {
@@ -1086,33 +1072,24 @@ useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
   
-    if (socket.connected) {
-  socket.emit("auth", token);
-} else {
-  socket.once("connect", () => {
-    socket.emit("auth", token);
-  });
-}
+  
 
     const onNotification = (note: NotificationItem) => {
-      setNotifications((prev) => {
-  if (prev.some((n) => n.id === note.id)) return prev;
-  return [note, ...prev].slice(0, 50);
-});
-      setUnreadCount((c) => {
-  if (note.read) return c;
+  // ✅ prevent duplicates
+  setNotifications((prev) => {
+    if (prev.some((n) => n.id === note.id)) return prev;
+    return [note, ...prev].slice(0, 50);
+  });
 
-  // avoid double count
-  if (notifications.some((n) => n.id === note.id)) return c;
+  setUnreadCount((c) => (note.read ? c : c + 1));
 
-  return c + 1;
-});
-
-      if (dropdownOpenRef.current) addNewWhileOpen(note.id);
-      
-
-    };
-
+ if (dropdownOpenRef.current) {
+  addNewWhileOpenRef.current(note.id);
+}else {
+    // 🔥 ONLY SHOW TOAST IF DROPDOWN CLOSED
+    showToast(note);
+  }
+};
 
 
     const onForceLogout = (payload: any) => {
@@ -1128,7 +1105,7 @@ useEffect(() => {
       socket.off("notification", onNotification);
       socket.off("force_logout", onForceLogout);
     };
-  }, [router, addNewWhileOpen]);
+ }, []);
 
   
 
@@ -1150,6 +1127,29 @@ useEffect(() => {
   };
 
 
+function showToast(note: NotificationItem) {
+  const el = document.createElement("div");
+
+  el.innerText = `${note.title}\n${note.message}`;
+
+  el.className = `
+    fixed top-4 right-4 z-[99999]
+    bg-[#1e1f22] text-white px-4 py-3 rounded-lg
+    border border-white/10 shadow-xl
+    cursor-pointer hover:scale-105 transition
+    whitespace-pre-line
+  `;
+
+  el.onclick = () => {
+    window.location.href = note.url || "/chat";
+  };
+
+  document.body.appendChild(el);
+
+  setTimeout(() => {
+    el.remove();
+  }, 4000);
+}
 
   async function markAsRead(id: number) {
     const token = localStorage.getItem("token");

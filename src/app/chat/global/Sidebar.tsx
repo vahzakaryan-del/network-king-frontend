@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 type UnreadMap = Record<string, number>;
 
@@ -53,28 +54,27 @@ export default function Sidebar({
 const [lockedToast, setLockedToast] = useState(false);
 const [shakeId, setShakeId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+ useEffect(() => {
+  let cancelled = false;
 
-    async function load() {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+  async function load() {
+    try {
+      const res = await apiFetch("/levels/mine");
+      const data = await res.json();
 
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/levels/mine`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        if (!cancelled && data?.level) setCurrentLevel(data.level);
-      } catch {}
+      if (!cancelled && data?.level) {
+        setCurrentLevel(data.level);
+      }
+    } catch {
+      if (!cancelled) setCurrentLevel(1);
     }
+  }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  load();
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   function handleChannelClick(id: string, unlocked: boolean) {
   if (!unlocked) {

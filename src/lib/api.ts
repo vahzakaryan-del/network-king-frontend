@@ -32,12 +32,10 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
       // remove token
       localStorage.removeItem("token");
 
-      // disconnect socket (important for your app)
-      try {
-        const { getSocket } = await import("@/lib/socket");
-        const socket = getSocket();
-        socket?.disconnect();
-      } catch {}
+     try {
+  const { disconnectSocket } = await import("@/lib/socket");
+  disconnectSocket();
+} catch {}
 
       // redirect immediately
       window.location.href = "/login?reason=session_expired";

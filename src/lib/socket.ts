@@ -1,6 +1,7 @@
-import { io, Socket } from "socket.io-client";
+//frontend\src\lib\socket.ts
 
-let socket: Socket | null = null;
+
+import { io, Socket } from "socket.io-client";
 
 export function getSocket(): Socket | null {
   if (typeof window === "undefined") return null;
@@ -8,21 +9,39 @@ export function getSocket(): Socket | null {
   const token = localStorage.getItem("token");
   if (!token) return null;
 
-  if (!socket) {
-    socket = io(process.env.NEXT_PUBLIC_API_URL!, {
-      transports: ["websocket"],
-      autoConnect: true, // ✅ IMPORTANT
-    });
-
-    // ✅ AUTH IMMEDIATELY ON FIRST CONNECT
-    socket.on("connect", () => {
-  socket!.emit("auth", token);
-});
-
-socket.on("auth_success", () => {
-  console.log("🟢 Socket READY");
-});
+  if ((window as any).__socket) {
+    console.log("♻️ Returning existing socket:", (window as any).__socket.id);
+    return (window as any).__socket;
   }
 
+  console.log("🆕 Creating NEW socket — called from:", new Error().stack);
+
+  const socket = io(process.env.NEXT_PUBLIC_API_URL!, {
+    transports: ["websocket"],
+    auth: { token },
+  });
+
+  socket.on("connect", () => {
+    console.log("🟢 Socket connected:", socket.id);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("🔴 Socket disconnected:", reason);
+    // ✅ Only clear singleton on intentional disconnect, not on transport errors
+    if (reason === "io client disconnect") {
+      delete (window as any).__socket;
+    }
+  });
+
+  (window as any).__socket = socket;
   return socket;
+}
+
+export function disconnectSocket() {
+  if (typeof window === "undefined") return;
+  const socket = (window as any).__socket;
+  if (socket) {
+    socket.disconnect();
+    delete (window as any).__socket;
+  }
 }

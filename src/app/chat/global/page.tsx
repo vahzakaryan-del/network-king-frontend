@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useMemo, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
@@ -27,10 +27,16 @@ function GlobalChatPageContent() {
   const [channel, setChannel] = useState(initial);
 
   const [currentLevel, setCurrentLevel] = useState<number | null>(null);
-
   const [unreadByChannel, setUnreadByChannel] = useState<UnreadMap>({});
-
   const [membersOpen, setMembersOpen] = useState(false);
+
+  const [socket, setSocket] = useState<any>(null);
+
+useEffect(() => {
+  const s = getSocket();
+  if (!s) return;
+  setSocket(s);
+}, []);
 
   const handleLevelUnreadTotal = useCallback(
     (levelChannelId: string, total: number) => {
@@ -48,7 +54,7 @@ function GlobalChatPageContent() {
   }, [params]);
 
   // -----------------------------------------------------------
-  // Fetch my currentLevel (GET /levels/mine)
+  // Fetch my currentLevel
   // -----------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
@@ -160,17 +166,12 @@ function GlobalChatPageContent() {
   }, [channel, router]);
 
   // -----------------------------------------------------------
-  // realtime refresh
+  // ✅ REALTIME (FIXED — NO getSocket HERE)
   // -----------------------------------------------------------
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const socket = getSocket();
-    if (!token || !socket) return;
+    if (!socket) return;
 
-    if (!socket.connected) socket.connect();
-    socket.emit("auth", token);
-
-    const onGlobal = () => refreshUnread();
+const onGlobal = () => refreshUnread();
     const onLevel = () => refreshUnread();
 
     socket.on("global_message", onGlobal);
@@ -180,7 +181,7 @@ function GlobalChatPageContent() {
       socket.off("global_message", onGlobal);
       socket.off("level_sub_message", onLevel);
     };
-  }, [refreshUnread]);
+  }, [socket, refreshUnread]);
 
   function prettyName(id: string) {
     if (id === "global") return "Global Chat";
@@ -226,13 +227,14 @@ function GlobalChatPageContent() {
           )}
 
           <ChatWindow
-            channel={channel}
-            onLevelUnreadTotal={handleLevelUnreadTotal}
-            isMobile={false}
-          />
+  channel={channel}
+  socket={socket}
+  onLevelUnreadTotal={handleLevelUnreadTotal}
+  isMobile
+/>
         </div>
 
-        <UserList channel={channel} />
+        <UserList channel={channel} socket={socket} />
       </main>
 
       <main className="md:hidden flex h-screen bg-[#2b2d31] text-white overflow-hidden">
@@ -252,37 +254,37 @@ function GlobalChatPageContent() {
               <div className="text-sm text-white/80 font-semibold truncate pr-2">
                 {headerName}
               </div>
- <div className="h-12 w-px bg-gradient-to-b from-white/10 via-white/60 to-white/10 opacity-70" />
-  
+
+              <div className="h-12 w-px bg-gradient-to-b from-white/10 via-white/60 to-white/10 opacity-70" />
+
               <div className="flex items-center gap-2">
                 {channel === "global" && (
                   <button
                     type="button"
                     onClick={() => setMembersOpen(true)}
-                  className="px-2 ml-1 mr-1 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/10 text-xs animate-pulse"
-                 >
+                    className="px-2 ml-1 mr-1 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/10 text-xs animate-pulse"
+                  >
                     Online 🙏
-                  </button> 
+                  </button>
                 )}
-              
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard")}
                   className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/10 text-xs"
                 >
-                 👑  Go back
+                  👑 Go back
                 </button>
               </div>
-              
             </div>
           )}
 
           <ChatWindow
-            channel={channel}
-            onLevelUnreadTotal={handleLevelUnreadTotal}
-            isMobile
-          />
+  channel={channel}
+  socket={socket}
+  onLevelUnreadTotal={handleLevelUnreadTotal}
+ isMobile={false}
+/>
         </div>
 
         {membersOpen && (
@@ -302,7 +304,7 @@ function GlobalChatPageContent() {
                 </button>
               </div>
 
-              <UserList channel={channel} />
+              <UserList channel={channel} socket={socket} />
             </div>
           </>
         )}
