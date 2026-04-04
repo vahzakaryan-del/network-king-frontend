@@ -12,6 +12,8 @@ export default function TestResultPage() {
   const { slug } = useParams();
   const searchParams = useSearchParams();
 
+  
+
   // INTERNAL test uses attemptId explicitly (?attempt=)
   const attemptId = searchParams.get("attempt");
 
@@ -20,6 +22,11 @@ export default function TestResultPage() {
   const [attempt, setAttempt] = useState<any>(null);
   const [badge, setBadge] = useState<any>(null);
   const [nextAttemptAt, setNextAttemptAt] = useState<any>(null);
+
+  const badgeUrl = badge?.icon
+  ? `${process.env.NEXT_PUBLIC_API_URL}${badge.icon}`
+  : `${process.env.NEXT_PUBLIC_API_URL}/badges/default.png`;
+
 
   // -----------------------------------------------------
   // FETCH RESULT
@@ -149,7 +156,7 @@ export default function TestResultPage() {
             <div className="mt-10 flex flex-col items-center">
               
               <BadgeScore
-  badgeUrl={badge.icon || "/badges/default.png"}
+  badgeUrl={badgeUrl}
   score={attempt.badgeScore}
   size={120}
   unit={test?.scoringType === "percentage" ? "percent" : "none"}
