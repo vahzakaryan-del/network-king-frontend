@@ -1141,7 +1141,7 @@ function showToast(note: NotificationItem) {
   `;
 
   el.onclick = () => {
-    window.location.href = note.url || "/chat";
+    router.push(note.url || "/chat");
   };
 
   document.body.appendChild(el);
@@ -1162,6 +1162,7 @@ function showToast(note: NotificationItem) {
 
   async function deleteNotification(id: number) {
   const token = localStorage.getItem("token");
+
 
   // find notification BEFORE deleting
   const notif = notifications.find((n) => n.id === id);
@@ -1448,18 +1449,20 @@ function showToast(note: NotificationItem) {
   const id = localStorage.getItem("userId") || "";
   const type = (n.type || "").toLowerCase();
 
-  let finalUrl: string;
+  let finalUrl = n.url || "/dashboard";
 
-  // ✅ smarter routing (STEP 3 partially here)
-  if (type === "friend_request") {
+// 🔒 override only when needed
+if (type === "friend_request") {
   finalUrl = "/friends?tab=requests&sub=incoming";
-} else if (type === "friend_accept") {
+}
+
+if (type === "friend_accept") {
   finalUrl = "/friends";
-  } else if (type === "badge" && id) {
-    finalUrl = `/profile/${id}`;
-  } else {
-    finalUrl = n.url ?? "/dashboard";
-  }
+}
+
+if (type === "badge" && id) {
+  finalUrl = `/profile/${id}`;
+}
 
   router.push(finalUrl);
   setDropdownOpen(false);
@@ -1481,6 +1484,17 @@ function showToast(note: NotificationItem) {
                         >
                           Delete
                         </button>
+
+
+                       <button
+  onClick={() => {
+    clearNewWhileOpen(n.id);
+    markAsRead(n.id);
+  }}
+  className="text-[11px] sm:text-xs px-2 py-1 rounded bg-gray-500/20 border border-gray-400/30 text-gray-200 hover:bg-gray-500/30"
+>
+  OK
+</button>
                       </div>
                     </div>
                   </div>
