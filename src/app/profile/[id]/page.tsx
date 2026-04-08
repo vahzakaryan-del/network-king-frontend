@@ -229,9 +229,9 @@ const [confirmBusy, setConfirmBusy] = useState(false);
 const [selectedPack, setSelectedPack] = useState<number | null>(null);
 
 const PACK_PRICES: Record<number, { amountCents: number; currency: string }> = {
-  3: { amountCents: 399, currency: "EUR" },
-  5: { amountCents: 599, currency: "EUR" },
-  10: { amountCents: 999, currency: "EUR" },
+  3: { amountCents: 297, currency: "EUR" },
+  5: { amountCents: 495, currency: "EUR" },
+  10: { amountCents: 990, currency: "EUR" },
 };
 
 const selectedPrice = selectedPack ? PACK_PRICES[selectedPack] : null;

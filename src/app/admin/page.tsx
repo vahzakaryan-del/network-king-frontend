@@ -18,7 +18,7 @@ type Profile = {
   role?: string;
 };
 
-type SectionKey = "home" | "tests" | "badges" | "avatars" | "emojis" | "settings";
+type SectionKey = "home" | "tests" | "badges" | "avatars" | "emojis" | "settings"  | "analytics";
 
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
@@ -64,6 +64,74 @@ export default function AdminPage() {
     () => ({ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }),
     []
   );
+
+  const SectionAnalytics = () => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/admin/analytics/overview`, {
+      headers: authHeaders(localStorage.getItem("token")),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="text-white/80">Loading analytics…</div>;
+  }
+
+  if (!data) {
+    return <div className="text-red-400">Failed to load analytics</div>;
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <h2 className="text-2xl font-bold text-amber-300 mb-4">
+        📊 Analytics Dashboard
+      </h2>
+
+      {/* TOP STATS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Stat label="Total Users" value={data.totalUsers} />
+        <Stat label="New Today" value={data.newUsersToday} />
+        <Stat label="Active (24h)" value={data.activeUsers24h} />
+        <Stat label="Messages Today" value={data.messagesToday} />
+      </div>
+
+      {/* USERS BY LEVEL */}
+      <div className="bg-white/10 border border-white/15 rounded-xl p-4">
+        <h3 className="text-lg font-semibold mb-3 text-amber-300">
+          Users by Level
+        </h3>
+
+        <div className="space-y-2">
+          {data.usersByLevel.map((l: any) => (
+            <div
+              key={l.currentLevel}
+              className="flex justify-between text-sm bg-white/5 px-3 py-2 rounded-lg"
+            >
+              <span>Level {l.currentLevel}</span>
+              <span className="font-bold">{l._count.currentLevel}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// small reusable stat card
+const Stat = ({ label, value }: { label: string; value: number }) => (
+  <div className="bg-white/10 border border-white/15 rounded-xl p-4 text-center">
+    <div className="text-sm text-white/70">{label}</div>
+    <div className="text-2xl font-bold text-amber-300">{value}</div>
+  </div>
+);
 
   // 🔔 Notification bubble
   const [notify, setNotify] = useState<string | null>(null);
@@ -1295,6 +1363,8 @@ const SectionEmojis = () => {
     switch (active) {
       case "tests":
         return <SectionTests />;
+        case "analytics":
+  return <SectionAnalytics />;
       case "emojis":
         return <SectionEmojis />;
       case "badges":
@@ -1363,9 +1433,11 @@ const SectionEmojis = () => {
           <div className="rounded-2xl p-4 bg-white/10 border border-white/15 shadow-2xl">
             <div className="text-sm text-white/80 mb-3">Navigation</div>
             <div className="flex flex-col gap-2">
+              <NavBtn id="analytics" label="Analytics" emoji="📊" />
               <NavBtn id="badges" label="Manage Badges" emoji="🎖️" />
               <NavBtn id="avatars" label="Manage Avatars" emoji="🖼️" />
               <NavBtn id="emojis" label="Manage Emojis" emoji="😄" />
+
 
             </div>
 

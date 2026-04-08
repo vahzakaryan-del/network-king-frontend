@@ -675,6 +675,7 @@ export default function DashboardPage() {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifTab, setNotifTab] = useState<"all" | "messages">("all");
 
   // New notifications that arrived while the dropdown was open
 const [newWhileOpenIds, setNewWhileOpenIds] = useState<Set<number>>(new Set());
@@ -1108,6 +1109,13 @@ useEffect(() => {
  }, []);
 
   
+ const messageNotifications = notifications.filter(
+  (n) => n.type === "dm"
+);
+
+const systemNotifications = notifications.filter(
+  (n) => n.type !== "dm"
+);
 
   /* -------------------------------------------------------
      Notifications helpers
@@ -1225,7 +1233,14 @@ function showToast(note: NotificationItem) {
   {/* Bell */}
   <div className="relative z-[9999]" ref={bellWrapMobileRef}>
     <button 
-      onClick={() => setDropdownOpen((v) => !v)}
+     onClick={() => {
+  const hasMessageNotifs = notifications.some(
+    (n) => n.type === "dm" && !n.read
+  );
+
+  setNotifTab(hasMessageNotifs ? "messages" : "all");
+  setDropdownOpen((v) => !v);
+}}
       className={`relative px-3 py-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition ${
         unreadCount > 0 ? "ring-2 ring-amber-400/60" : ""
       }`}
@@ -1339,7 +1354,14 @@ function showToast(note: NotificationItem) {
 
           <div className="relative z-[9999]" ref={bellWrapDesktopRef}>
             <button
-              onClick={() => setDropdownOpen((v) => !v)}
+              onClick={() => {
+  const hasMessageNotifs = notifications.some(
+    (n) => n.type === "dm" && !n.read
+  );
+
+  setNotifTab(hasMessageNotifs ? "messages" : "all");
+  setDropdownOpen((v) => !v);
+}}
               className={`relative px-3 py-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition ${
                 unreadCount > 0 ? "ring-2 ring-amber-400/60" : ""
               }`}
@@ -1381,7 +1403,29 @@ function showToast(note: NotificationItem) {
       >
         {/* Header */}
         <div className="sticky top-0 bg-slate-900/95 p-3 border-b border-white/10 flex items-center justify-between z-10">
-          <span className="font-semibold text-gray-100">Notifications</span>
+          <div className="flex items-center gap-2">
+  <button
+    onClick={() => setNotifTab("all")}
+    className={`px-2 py-1 rounded text-xs ${
+      notifTab === "all"
+        ? "bg-amber-400/30 text-amber-200"
+        : "text-gray-300 hover:bg-white/10"
+    }`}
+  >
+    🔔 All
+  </button>
+
+  <button
+    onClick={() => setNotifTab("messages")}
+    className={`px-2 py-1 rounded text-xs ${
+      notifTab === "messages"
+        ? "bg-emerald-400/30 text-emerald-200"
+        : "text-gray-300 hover:bg-white/10"
+    }`}
+  >
+    💬 Messages
+  </button>
+</div>
 
           <button
             onClick={deleteAllNotifications}
@@ -1391,122 +1435,132 @@ function showToast(note: NotificationItem) {
           </button>
         </div>
 
+        
+
         {/* Body: fills remaining height and scrolls */}
-        <div className="flex-1 overflow-auto">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-sm text-gray-300">No notifications yet.</div>
-          ) : (
-            <ul className="divide-y divide-white/10">
-              {notifications.map((n) => {
-  const isNewWhileOpen = newWhileOpenIds.has(n.id);
+<div className="flex-1 overflow-auto">
+  {(() => {
+    const visibleNotifications =
+      notifTab === "messages"
+        ? messageNotifications
+        : systemNotifications;
 
-  return (
-    <li
-      key={n.id}
-      className={[
-        "p-2 sm:p-3 transition relative",
-        !n.read ? "bg-amber-400/10" : "hover:bg-white/10",
-        isNewWhileOpen
-          ? "ring-2 ring-emerald-400/70 shadow-[0_0_18px_rgba(52,211,153,0.55)]"
-          : "",
-      ].join(" ")}
-    >
-                  <div className="flex items-start gap-2">
-                    <span
-                      className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
-                        n.read
-                          ? "bg-transparent border border-white/20"
-                          : "bg-amber-400"
-                      }`}
-                      title={n.read ? "Read" : "Unread"}
-                    />
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-white text-sm sm:text-base truncate">
-                          {n.title}
-                        </p>
-                        <span className="text-[9px] sm:text-[10px] text-gray-400 flex-shrink-0">
-                          {formatTime(n.createdAt)}
-                        </span>
-                      </div>
-
-                      <p className="text-xs sm:text-sm text-gray-200 mt-0.5 line-clamp-2 sm:line-clamp-none">
-                        {n.message}
-                      </p>
-
-                      <div className="flex gap-2 mt-2 flex-wrap">
-                        {n.url && (
-                          <button
-                            onClick={async () => {
-  clearNewWhileOpen(n.id);
-
-  // ✅ mark as read instantly
-  if (!n.read) {
-    await markAsRead(n.id);
-  }
-
-  const id = localStorage.getItem("userId") || "";
-  const type = (n.type || "").toLowerCase();
-
-  let finalUrl = n.url || "/dashboard";
-
-// 🔒 override only when needed
-if (type === "friend_request") {
-  finalUrl = "/friends?tab=requests&sub=incoming";
-}
-
-if (type === "friend_accept") {
-  finalUrl = "/friends";
-}
-
-if (type === "badge" && id) {
-  finalUrl = `/profile/${id}`;
-}
-
-  router.push(finalUrl);
-  setDropdownOpen(false);
-}}
-                            className="text-[11px] sm:text-xs px-2 py-1 rounded bg-amber-400/20 border border-amber-400/30 text-amber-200 hover:bg-amber-400/30"
-                          >
-                            Open
-                          </button>
-                        )}
-
-                        <button
-                        
-                          onClick={() => {
-  clearNewWhileOpen(n.id);
-  deleteNotification(n.id);
-}}
-
-                          className="text-[11px] sm:text-xs px-2 py-1 rounded bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
-                        >
-                          Delete
-                        </button>
-
-
-                       <button
-  onClick={() => {
-    clearNewWhileOpen(n.id);
-    markAsRead(n.id);
-  }}
-  className="text-[11px] sm:text-xs px-2 py-1 rounded bg-gray-500/20 border border-gray-400/30 text-gray-200 hover:bg-gray-500/30"
->
-  OK
-</button>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-             );
-})}
-            </ul>
-          )}
+    if (visibleNotifications.length === 0) {
+      return (
+        <div className="p-4 text-sm text-gray-300">
+          No notifications yet.
         </div>
-      </div>
-    </div>
-  </Portal>
+      );
+    }
+
+    return (
+      <ul className="divide-y divide-white/10">
+        {visibleNotifications.map((n) => {
+          const isNewWhileOpen = newWhileOpenIds.has(n.id);
+
+          return (
+            <li
+              key={n.id}
+              className={[
+                "p-2 sm:p-3 transition relative",
+                !n.read ? "bg-amber-400/10" : "hover:bg-white/10",
+                isNewWhileOpen
+                  ? "ring-2 ring-emerald-400/70 shadow-[0_0_18px_rgba(52,211,153,0.55)]"
+                  : "",
+              ].join(" ")}
+            >
+              <div className="flex items-start gap-2">
+                <span
+                  className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                    n.read
+                      ? "bg-transparent border border-white/20"
+                      : "bg-amber-400"
+                  }`}
+                  title={n.read ? "Read" : "Unread"}
+                />
+
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-white text-sm sm:text-base truncate">
+                      {n.title}
+                    </p>
+                    <span className="text-[9px] sm:text-[10px] text-gray-400 flex-shrink-0">
+                      {formatTime(n.createdAt)}
+                    </span>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-gray-200 mt-0.5 line-clamp-2 sm:line-clamp-none">
+                    {n.message}
+                  </p>
+
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {n.url && (
+                      <button
+                        onClick={async () => {
+                          clearNewWhileOpen(n.id);
+
+                          if (!n.read) {
+                            await markAsRead(n.id);
+                          }
+
+                          const id = localStorage.getItem("userId") || "";
+                          const type = (n.type || "").toLowerCase();
+
+                          let finalUrl = n.url || "/dashboard";
+
+                          if (type === "friend_request") {
+                            finalUrl = "/friends?tab=requests&sub=incoming";
+                          }
+
+                          if (type === "friend_accept") {
+                            finalUrl = "/friends";
+                          }
+
+                          if (type === "badge" && id) {
+                            finalUrl = `/profile/${id}`;
+                          }
+
+                          router.push(finalUrl);
+                          setDropdownOpen(false);
+                        }}
+                        className="text-[11px] sm:text-xs px-2 py-1 rounded bg-amber-400/20 border border-amber-400/30 text-amber-200 hover:bg-amber-400/30"
+                      >
+                        Open
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        clearNewWhileOpen(n.id);
+                        deleteNotification(n.id);
+                      }}
+                      className="text-[11px] sm:text-xs px-2 py-1 rounded bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
+                    >
+                      Delete
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        clearNewWhileOpen(n.id);
+                        markAsRead(n.id);
+                      }}
+                      className="text-[11px] sm:text-xs px-2 py-1 rounded bg-gray-500/20 border border-gray-400/30 text-gray-200 hover:bg-gray-500/30"
+                    >
+                      OK
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  })()}
+</div>
+</div>
+</div>
+</Portal>
 )}
 
 

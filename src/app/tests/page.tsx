@@ -101,6 +101,7 @@ export default function TestsIndexPage() {
   // ✅ NEW: nice modal for buying token pack (instead of window.confirm)
   const [buyModalTest, setBuyModalTest] = useState<TestRow | null>(null);
   const [buyingPack, setBuyingPack] = useState(false);
+  const [showMorePacks, setShowMorePacks] = useState(false);
 
   const [showRules, setShowRules] = useState(false);
 
@@ -127,32 +128,42 @@ export default function TestsIndexPage() {
   const createTokenPackPurchase = async (quantity = 5) => {
   if (buyingPack) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const token = localStorage.getItem("token");
+  if (!token) return;
 
-    try {
-      setBuyingPack(true);
+  try {
+    setBuyingPack(true);
 
-      const checkout = await fetch(`${API}/payments/checkout/token-pack`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ quantity }),
-      });
+    const checkout = await fetch(`${API}/payments/checkout/token-pack`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ quantity }),
+    });
 
-      const cData = await checkout.json().catch(() => ({}));
+    const cData = await checkout.json().catch(() => ({}));
 
-if (!checkout.ok) {
-  showToast(cData?.error || "Failed to create token pack purchase");
-  return;
-}
-
-    } finally {
-      setBuyingPack(false);
+    if (!checkout.ok) {
+      showToast(cData?.error || "Failed to create token pack purchase");
+      return;
     }
-  };
+
+    const purchaseId = cData?.purchase?.id;
+
+    if (!purchaseId) {
+      showToast("No purchase id returned");
+      return;
+    }
+
+    // 🔥 THIS IS WHAT YOU WERE MISSING
+    await startStripeCheckout(purchaseId, token);
+
+  } finally {
+    setBuyingPack(false);
+  }
+};
 
   // ------------------------------
   // Fetch helpers
@@ -513,10 +524,10 @@ const funTests = useMemo(
   {/* LEFT — TOKENS (PRIMARY) */}
   <div
     onClick={() => {
-      if (tokenCount <= 0 && tests.length > 0) {
-        setBuyModalTest(tests[0]);
-      }
-    }}
+  if (tests.length > 0) {
+    setBuyModalTest(tests[0]);
+  }
+}}
     className={`
       flex items-center gap-2 px-4 py-2 rounded-full
       backdrop-blur-md border shadow-sm cursor-pointer transition
@@ -848,7 +859,10 @@ const funTests = useMemo(
             {/* header */}
             <div className="px-5 pt-5 pb-4 relative">
               <button
-                onClick={() => setBuyModalTest(null)}
+                onClick={() => {
+  setBuyModalTest(null);
+  setShowMorePacks(false);
+}}
                 className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/10 hover:bg-black/15 border border-black/10 grid place-items-center transition"
                 aria-label="Close"
               >
@@ -884,13 +898,13 @@ const funTests = useMemo(
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <span className="text-sm line-through text-gray-600/70">
-                        €9.99
+                        €7.99
                       </span>
                       <span className="text-2xl font-extrabold text-emerald-700">
-                        €4.99
+                        €4.95
                       </span>
                       <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-sm">
-                        -50% DEAL
+                        -38% DEAL
                       </span>
                     </div>
                   </div>
@@ -900,7 +914,7 @@ const funTests = useMemo(
                       Best value
                     </div>
                     <div className="text-lg font-extrabold text-emerald-800">
-                      €0.99
+                       €0.99
                     </div>
                     <div className="text-[11px] font-semibold text-emerald-800/80">
                       per token
@@ -911,27 +925,67 @@ const funTests = useMemo(
               </div>
 
               {/* actions */}
-              <div className="mt-4 flex flex-col gap-2">
-                <button
-                  onClick={() => createTokenPackPurchase(5)}
-                  disabled={buyingPack}
-                  className="w-full py-3.5 rounded-2xl text-base font-extrabold tracking-tight
-                    bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600
-                    text-white shadow-lg border border-emerald-300/40
-                    hover:brightness-110 active:scale-[0.99] transition"
-                >
-                  {buyingPack ? "Processing…" : "Buy 5 tokens — $4.99"}
-                </button>
+             <div className="mt-4 flex flex-col gap-2">
 
-                <button
-                  onClick={() => setBuyModalTest(null)}
-                  disabled={buyingPack}
-                  className="w-full py-2.5 rounded-2xl text-sm font-semibold
-                    bg-black/10 hover:bg-black/15 border border-black/10 transition"
-                >
-                  Not now
-                </button>
-              </div>
+  {/* MAIN PACK */}
+  <button
+    onClick={() => createTokenPackPurchase(5)}
+    disabled={buyingPack}
+    className="w-full py-3.5 rounded-2xl text-base font-extrabold tracking-tight
+      bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600
+      text-white shadow-lg border border-emerald-300/40
+      hover:brightness-110 active:scale-[0.99] transition"
+  >
+    {buyingPack ? "Processing…" : "Buy 5 tokens — €4.95"}
+  </button>
+
+  {/* 👉 NEW: MORE OPTIONS */}
+  <button
+    onClick={() => setShowMorePacks((v) => !v)}
+    className="text-xs text-gray-700/70 hover:text-gray-900 underline underline-offset-2"
+  >
+    {showMorePacks ? "Hide options" : "+ more options"}
+  </button>
+
+  {showMorePacks && (
+    <div className="mt-3 grid grid-cols-2 gap-2">
+      
+      <button
+        onClick={() => createTokenPackPurchase(3)}
+        disabled={buyingPack}
+        className="py-2 rounded-xl text-sm font-bold
+          bg-white/70 border border-white/80
+          hover:bg-white transition"
+      >
+        3 tokens · €2.97
+      </button>
+
+      <button
+        onClick={() => createTokenPackPurchase(10)}
+        disabled={buyingPack}
+        className="py-2 rounded-xl text-sm font-bold
+          bg-white/70 border border-white/80
+          hover:bg-white transition"
+      >
+        10 tokens · €9.90
+      </button>
+
+    </div>
+  )}
+
+  {/* CLOSE */}
+  <button
+    onClick={() => {
+      setBuyModalTest(null);
+      setShowMorePacks(false);
+    }}
+    disabled={buyingPack}
+    className="w-full py-2.5 rounded-2xl text-sm font-semibold
+      bg-black/10 hover:bg-black/15 border border-black/10 transition"
+  >
+    Not now
+  </button>
+</div>
             </div>
           </div>
         </div>
@@ -961,11 +1015,11 @@ const funTests = useMemo(
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                if (tokenCount <= 0 && tests.length > 0) {
-                  setBuyModalTest(tests[0]); // opens the same modal
-                }
-              }}
+             onClick={() => {
+  if (tests.length > 0) {
+    setBuyModalTest(tests[0]);
+  }
+}}
               title={tokenCount > 0 ? "You have cooldown tokens" : "Buy cooldown tokens"}
               className={`px-3 py-2 rounded-xl border text-xs font-semibold transition
                 ${
@@ -1329,7 +1383,10 @@ const funTests = useMemo(
             {/* header */}
             <div className="px-5 pt-5 pb-4 relative">
               <button
-                onClick={() => setBuyModalTest(null)}
+                onClick={() => {
+  setBuyModalTest(null);
+  setShowMorePacks(false);
+}}
                 className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/10 hover:bg-black/15 border border-black/10 grid place-items-center transition"
                 aria-label="Close"
               >
@@ -1365,13 +1422,13 @@ const funTests = useMemo(
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <span className="text-sm line-through text-gray-600/70">
-                        $9.99
+                        €7.99
                       </span>
                       <span className="text-2xl font-extrabold text-emerald-700">
-                        $4.99
+                        €4.95
                       </span>
                       <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-sm">
-                        -50% DEAL
+                        -38% DEAL
                       </span>
                     </div>
                   </div>
@@ -1381,7 +1438,7 @@ const funTests = useMemo(
                       Best value
                     </div>
                     <div className="text-lg font-extrabold text-emerald-800">
-                      $0.99
+                      €0.99
                     </div>
                     <div className="text-[11px] font-semibold text-emerald-800/80">
                       per token
@@ -1393,26 +1450,66 @@ const funTests = useMemo(
 
               {/* actions */}
               <div className="mt-4 flex flex-col gap-2">
-                <button
-                  onClick={() => createTokenPackPurchase(5)}
-                  disabled={buyingPack}
-                  className="w-full py-3.5 rounded-2xl text-base font-extrabold tracking-tight
-                    bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600
-                    text-white shadow-lg border border-emerald-300/40
-                    hover:brightness-110 active:scale-[0.99] transition"
-                >
-                  {buyingPack ? "Processing…" : "Buy 5 tokens — $4.99"}
-                </button>
 
-                <button
-                  onClick={() => setBuyModalTest(null)}
-                  disabled={buyingPack}
-                  className="w-full py-2.5 rounded-2xl text-sm font-semibold
-                    bg-black/10 hover:bg-black/15 border border-black/10 transition"
-                >
-                  Not now
-                </button>
-              </div>
+  {/* MAIN PACK */}
+  <button
+    onClick={() => createTokenPackPurchase(5)}
+    disabled={buyingPack}
+    className="w-full py-3.5 rounded-2xl text-base font-extrabold tracking-tight
+      bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600
+      text-white shadow-lg border border-emerald-300/40
+      hover:brightness-110 active:scale-[0.99] transition"
+  >
+    {buyingPack ? "Processing…" : "Buy 5 tokens — €4.95"}
+  </button>
+
+  {/* 👉 MORE OPTIONS */}
+  <button
+    onClick={() => setShowMorePacks((v) => !v)}
+    className="text-xs text-gray-700/70 hover:text-gray-900 underline underline-offset-2"
+  >
+    {showMorePacks ? "Hide options" : "+ more options"}
+  </button>
+
+  {showMorePacks && (
+    <div className="mt-3 grid grid-cols-2 gap-2">
+      
+      <button
+        onClick={() => createTokenPackPurchase(3)}
+        disabled={buyingPack}
+        className="py-2 rounded-xl text-sm font-bold
+          bg-white/70 border border-white/80
+          hover:bg-white transition"
+      >
+        3 tokens · €2.97
+      </button>
+
+      <button
+        onClick={() => createTokenPackPurchase(10)}
+        disabled={buyingPack}
+        className="py-2 rounded-xl text-sm font-bold
+          bg-white/70 border border-white/80
+          hover:bg-white transition"
+      >
+        10 tokens · €9.90
+      </button>
+
+    </div>
+  )}
+
+  {/* CLOSE */}
+  <button
+    onClick={() => {
+      setBuyModalTest(null);
+      setShowMorePacks(false);
+    }}
+    disabled={buyingPack}
+    className="w-full py-2.5 rounded-2xl text-sm font-semibold
+      bg-black/10 hover:bg-black/15 border border-black/10 transition"
+  >
+    Not now
+  </button>
+</div>
             </div>
           </div>
         </div>
