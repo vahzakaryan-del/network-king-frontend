@@ -80,7 +80,7 @@ export default function TestsIndexPage() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [initialOrderById, setInitialOrderById] = useState<Record<number, number>>({});
 
-
+  const [highlightAccelerate, setHighlightAccelerate] = useState<Record<number, boolean>>({});
   const [skippingSlug, setSkippingSlug] = useState<string | null>(null);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -92,7 +92,7 @@ export default function TestsIndexPage() {
   const [bypassActive, setBypassActive] = useState<Record<number, boolean>>({});
 
   // MOBILE STATES
-  const [mobileCategory, setMobileCategory] = useState<"fun" | "achievement">("fun");
+  const [mobileCategory, setMobileCategory] = useState<"fun" | "achievement">("achievement");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
   const [mobileLimit, setMobileLimit] = useState(10);
@@ -393,15 +393,53 @@ const funTests = useMemo(
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        if (data?.error === "Test on cooldown" && data?.nextAttemptAt) {
-          const d = new Date(data.nextAttemptAt);
-          showToast(`Retake available on ${d.toLocaleString()}`);
-        } else {
-          showToast(data?.error || "Failed to start test");
-        }
-        return;
-      }
+     if (!res.ok) {
+  if (data?.error === "Test on cooldown" && data?.nextAttemptAt) {
+    const d = new Date(data.nextAttemptAt);
+
+    showToast(`Retake available on ${d.toLocaleString()}`);
+
+    const tokens = entitlements?.cooldownSkipTokens ?? 0;
+
+    // ✅ DESKTOP + MOBILE LOGIC
+
+    // 1. highlight accelerate
+    setCooldownBypassed((prev) => ({
+      ...prev,
+      [t.id]: false, // ensure it's NOT bypassed
+    }));
+
+    // 🔥 trigger visual hint
+    setHighlightAccelerate((prev) => ({
+      ...prev,
+      [t.id]: true,
+    }));
+
+    // remove highlight after 3s
+    setTimeout(() => {
+      setHighlightAccelerate((prev) => ({
+        ...prev,
+        [t.id]: false,
+      }));
+    }, 3000);
+
+    // 2. mobile → flip card
+    setMobileFlipped((prev) => ({
+      ...prev,
+      [t.slug]: true,
+    }));
+
+    // 3. no tokens → auto open modal
+    if (tokens <= 0) {
+      setTimeout(() => {
+        setBuyModalTest(t);
+      }, 1500);
+    }
+  } else {
+    showToast(data?.error || "Failed to start test");
+  }
+  return;
+}
 
       await Promise.all([refreshAttempts(), refreshCooldownOverrides(), refreshEntitlements()]);
 
@@ -532,10 +570,10 @@ const funTests = useMemo(
       flex items-center gap-2 px-4 py-2 rounded-full
       backdrop-blur-md border shadow-sm cursor-pointer transition
       ${
-        tokenCount > 0
-          ? "bg-white/10 border-white/20 text-white/90"
-          : "bg-gradient-to-r from-yellow-400/30 to-amber-400/30 border-yellow-300/40 text-yellow-200 hover:brightness-110"
-      }
+  tokenCount > 0
+    ? "bg-white/10 border-white/20 text-white/90 hover:bg-white/20 hover:border-white/40 cursor-pointer"
+    : "bg-gradient-to-r from-yellow-400/30 to-amber-400/30 border-yellow-300/40 text-yellow-200 hover:brightness-110 cursor-pointer"
+}
     `}
   >
     <span className="text-sm">🔶</span>
@@ -597,6 +635,18 @@ const funTests = useMemo(
 
     <div className="flex items-center justify-center gap-2 bg-white/10 border border-white/20 rounded-full p-1 backdrop-blur-md">
 
+
+<button
+    onClick={() => setMobileCategory("achievement")}
+    className={`px-4 py-1 rounded-full text-xs font-bold transition ${
+      mobileCategory === "achievement"
+        ? "bg-white text-black"
+        : "text-white/60"
+    }`}
+  >
+    🏅 Achievement
+  </button>
+
   <button
     onClick={() => setMobileCategory("fun")}
     className={`px-4 py-1 rounded-full text-xs font-bold transition ${
@@ -608,17 +658,7 @@ const funTests = useMemo(
     🎯 Fun
   </button>
 
-  <button
-    onClick={() => setMobileCategory("achievement")}
-    className={`px-4 py-1 rounded-full text-xs font-bold transition ${
-      mobileCategory === "achievement"
-        ? "bg-white text-black"
-        : "text-white/60"
-    }`}
-  >
-    🏅 Achievement
-  </button>
-
+  
 </div>
 
     <span className="text-white/70 text-lg animate-pulse">→</span>
@@ -641,13 +681,13 @@ const funTests = useMemo(
   drag="x"
   dragConstraints={{ left: 0, right: 0 }}
   dragElastic={0.2}
-  onDragEnd={(e, info) => {
-    if (info.offset.x < -80) {
-      setMobileCategory("achievement");
-    } else if (info.offset.x > 80) {
-      setMobileCategory("fun");
-    }
-  }}
+ onDragEnd={(e, info) => {
+  if (info.offset.x < -80) {
+    setMobileCategory("fun");
+  } else if (info.offset.x > 80) {
+    setMobileCategory("achievement");
+  }
+}}
 
   className="relative z-10 max-w-2xl mx-auto px-4 pb-10 grid grid-cols-2 gap-4"
  
@@ -756,7 +796,10 @@ const funTests = useMemo(
 </div>
 
   {/* ACTIONS */}
-  <div className="flex gap-2 mt-3 flex-wrap">
+ <div className="flex flex-col items-center mt-3">
+
+  {/* BUTTON ROW */}
+  <div className="flex gap-2 w-full">
     <button
       onClick={(e) => {
         e.stopPropagation();
@@ -773,7 +816,12 @@ const funTests = useMemo(
         handleSkipCooldown(t);
       }}
       disabled={remain <= 0 || skippingSlug === t.slug}
-      className={`flex-1 min-w-[100px]  py-1 rounded-lg text-xs font-semibold border transition
+      className={`flex-1 min-w-[100px] py-1 rounded-lg text-xs font-semibold border transition relative
+        ${
+          highlightAccelerate[t.id]
+            ? "animate-pulse ring-2 ring-amber-300"
+            : ""
+        }
         ${
           remain > 0
             ? tokenCount > 0
@@ -786,10 +834,19 @@ const funTests = useMemo(
       {remain > 0
         ? tokenCount > 0
           ? "Accelerate"
-          : "Get tokens"
+          : "Accelerate"
         : "No cooldown"}
     </button>
   </div>
+
+  {/* 👇 ARROW (THIS IS THE NEW PART) */}
+  {highlightAccelerate[t.id] && remain > 0 && (
+    <div className="mt-1 flex justify-center">
+      <span className="text-lg justify-center animate-bounce">⬆️</span>
+    </div>
+  )}
+
+</div>
 
   {/* DIVIDER */}
   <div className="border-t border-white/10 my-2" />
@@ -1022,21 +1079,34 @@ const funTests = useMemo(
 }}
               title={tokenCount > 0 ? "You have cooldown tokens" : "Buy cooldown tokens"}
               className={`px-3 py-2 rounded-xl border text-xs font-semibold transition
-                ${
-                  tokenCount > 0
-                    ? "bg-white/10 border-white/20 text-white/90 cursor-default"
+               ${
+  tokenCount > 0
+    ? "bg-white/10 border-white/20 text-white/90 hover:bg-white/20 hover:border-white/40 cursor-pointer"
                     : "bg-yellow-400/20 border-yellow-300/40 text-yellow-200 hover:bg-yellow-400/30 hover:border-yellow-300/70"
                 }`}
             >
               Cooldown tokens : 🔶 <span className="font-extrabold">{tokenCount}</span>
             </button>
 
-            <button
-  onClick={() => setLeaderboardOpen(true)}
-  className="px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-gray-900 font-semibold shadow-lg border border-white/20 hover:scale-[1.02] hover:brightness-110 transition-all duration-200"
->
-  🏆 Daily Leaderboard
-</button>
+          <div className="relative">
+
+
+  {/* BUTTON */}
+  <button
+    onClick={() => setLeaderboardOpen(true)}
+    className="relative z-10 px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-gray-900 font-semibold shadow-lg border border-white/20 hover:scale-[1.02] hover:brightness-110 transition-all duration-200 flex flex-col items-center leading-tight"
+  >
+    <div className="flex items-center gap-2">
+      🏆 <span>Daily Leaderboard</span>
+    </div>
+
+    {leaderboardSecondsLeft !== null && (
+      <div className="text-[10px] mt-1 font-semibold opacity-80">
+        ⏳ {formatCountdown(leaderboardSecondsLeft)}
+      </div>
+    )}
+  </button>
+</div>
 
             <button
               onClick={() => router.push("/training")}
@@ -1153,7 +1223,12 @@ const funTests = useMemo(
                                   ? "Consumes one Token 🔶"
                                   : "Buy cooldown tokens"
                             }
-                            className={`px-2 py-1 rounded-md text-[10px] font-semibold border transition leading-tight
+                            className={`px-2 py-1 rounded-md text-[10px] font-semibold border transition
+  ${
+    highlightAccelerate[t.id]
+      ? "animate-pulse ring-2 ring-amber-300 scale-105"
+      : ""
+  }
                               ${
                                 skippingSlug === t.slug
                                   ? "bg-white/10 border-white/20 text-white/60 cursor-not-allowed"
@@ -1167,8 +1242,18 @@ const funTests = useMemo(
                               : tokenCount > 0
                                 ? "Accelerate"
                                 : "Accelerate"}
+
+                                
                           </button>
+
+                          
                         )}
+
+                        {remain > 0 && !locked && !bypassNow && highlightAccelerate[t.id] && (
+  <div className="col-span-2 flex justify-center ml-6 -mt-1">
+    <span className="text-lg animate-bounce">⬆️</span>
+  </div>
+)}
                       </div>
                     </div>
 
@@ -1223,7 +1308,7 @@ const funTests = useMemo(
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl md:text-2xl font-bold">🎯 Tests for Fun</h2>
-            <span className="text-xs text-white/70">Replay anytime</span>
+            <span className="text-xs text-white/70">New Tests Every Day</span>
           </div>
 
           {funTests.length === 0 ? (

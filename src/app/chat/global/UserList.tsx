@@ -39,17 +39,29 @@ export default function UserList({ channel, socket }: { channel: string; socket:
   }, [channel]);
 
   // ✅ REQUEST USERS
-  useEffect(() => {
+ useEffect(() => {
   if (!socket) return;
 
-  const active = channelRef.current || "global";
+  const requestUsers = () => {
+    const active = channelRef.current || "global";
 
     if (active === "global") {
       socket.emit("get_global_online_users");
     } else {
       socket.emit("get_channel_online_users", { channel: active });
     }
- }, [channel, socket]);
+  };
+
+  // ✅ RUN ON CONNECT (THIS FIXES YOUR ISSUE)
+  socket.on("connect", requestUsers);
+
+  // also run immediately
+  requestUsers();
+
+  return () => {
+    socket.off("connect", requestUsers);
+  };
+}, [socket]);
 
   // ✅ LISTENERS (SAFE)
   useEffect(() => {

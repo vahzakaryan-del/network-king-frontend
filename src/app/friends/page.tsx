@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { asset } from "@/lib/assets";
+import { getSocket } from "@/lib/socket";
+import { useRef } from "react";
 
 function FriendsPageContent() {
   const [friends, setFriends] = useState<any[]>([]);
@@ -17,6 +19,7 @@ const [invitedUsers, setInvitedUsers] = useState<any[]>([]);
 const [invitedLoading, setInvitedLoading] = useState(false);
 const [invitedError, setInvitedError] = useState("");
 
+const onlineSetRef = useRef<Set<number>>(new Set());
 
   const [tab, setTab] = useState<"friends" | "requests">("friends");
   const [requestsSub, setRequestsSub] = useState<"incoming" | "outgoing">(
@@ -86,6 +89,44 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
     loadRecommended();
   }
 
+  useEffect(() => {
+  const socket = getSocket();
+  if (!socket) return;
+
+  const updateOnlineState = () => {
+    setFriends((prev) =>
+      prev.map((f) => ({
+        ...f,
+        online: onlineSetRef.current.has(f.id),
+      }))
+    );
+  };
+
+  socket.on("online_users", (users) => {
+    onlineSetRef.current = new Set(users);
+    updateOnlineState();
+  });
+
+  socket.on("user_online", ({ userId }) => {
+    onlineSetRef.current.add(userId);
+    updateOnlineState();
+  });
+
+  socket.on("user_offline", ({ userId }) => {
+    onlineSetRef.current.delete(userId);
+    updateOnlineState();
+  });
+
+  // 🔥 IMPORTANT → get initial state
+  socket.emit("get_online_users");
+
+  return () => {
+    socket.off("online_users");
+    socket.off("user_online");
+    socket.off("user_offline");
+  };
+}, []);
+
   // Sync state from URL (so notifications can deep-link you)
   useEffect(() => {
     const urlTab =
@@ -110,20 +151,7 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
     router.replace(`/friends?${params.toString()}`);
   }
 }, [searchParams, router]);
-  // Load friends, requests, recommended
-  useEffect(() => {
-    if (!token) return;
 
-    // first load instantly
-    refreshAll();
-
-    // then refresh regularly (online dots + last seen)
-    const id = setInterval(() => {
-      refreshAll();
-    }, 15000); // 15s
-
-    return () => clearInterval(id);
-  }, [token]);
 
   useEffect(() => {
   if (!token) return;
@@ -196,12 +224,18 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
   }, [token]);
 
   async function loadFriends() {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    setFriends(data.friends || []);
-  }
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+
+  const users = (data.friends || []).map((f: any) => ({
+    ...f,
+    online: onlineSetRef.current.has(f.id),
+  }));
+
+  setFriends(users);
+}
 
   async function loadInvitedUsers() {
   if (!token) return;

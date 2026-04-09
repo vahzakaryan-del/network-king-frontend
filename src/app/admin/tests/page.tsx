@@ -50,23 +50,31 @@ export default function AdminTestsPage() {
   const [category, setCategory] = useState<"all" | "achievement" | "fun">("all");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
 
-  const backfillImages = async (id: number) => {
+ const backfillImages = async (id: number) => {
   const token = localStorage.getItem("token");
   if (!token) return alert("No token");
 
   if (!confirm("Generate images for ALL questions? This may cost money 💰"))
     return;
-
+console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/admin/tests/${id}/backfill-images`,
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backfill/${id}/backfill-images`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       }
     );
 
-    const data = await res.json();
+    // 👇 IMPORTANT FIX
+    const text = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("❌ Non-JSON response:", text);
+      throw new Error("Server returned invalid response");
+    }
 
     if (!res.ok) throw new Error(data.error || "Failed");
 

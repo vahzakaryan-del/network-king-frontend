@@ -25,6 +25,8 @@ export default function DirectMessagePage() {
   const [isOnline, setIsOnline] = useState(false);
 
   const [isTyping, setIsTyping] = useState(false);
+
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const typingTimeoutRef = useRef<any>(null);
 const payloadIdRef = useRef<number | null>(null);
   /* ================= INIT ================= */
@@ -41,7 +43,13 @@ function isVisible() {
 
     
 
+    if (socket.connected) {
+  socket.emit("dm_join", { withUserId: Number(id) });
+} else {
+  socket.on("connect", () => {
     socket.emit("dm_join", { withUserId: Number(id) });
+  });
+}
 
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
@@ -81,6 +89,9 @@ fetch(`${process.env.NEXT_PUBLIC_API_URL}/dm/${id}/read`, {
   });
 });
 
+socket.on("auth_ready", () => {
+  setIsAuthReady(true);
+});
     
 //user is online?
 
@@ -167,6 +178,7 @@ return () => {
   socket.off("dm_seen");
   socket.off("user_online");
   socket.off("user_offline");
+  socket.off("auth_ready");
 };
   }, [id]);
 
@@ -324,20 +336,17 @@ return () => {
   setNewMsg(e.target.value);
 
   const socket = getSocket();
-  if (!socket) return;
+  if (!socket || !socket.connected) return; // ✅ KEY FIX
 
-  const token = localStorage.getItem("token");
-socket.emit("auth", token);
-
- if (!typingTimeoutRef.current) {
-  socket.emit("dm_typing", { toUserId: Number(id) });
-}
+  if (!typingTimeoutRef.current) {
+    socket.emit("dm_typing", { toUserId: Number(id) });
+  }
 
   clearTimeout(typingTimeoutRef.current);
 
-typingTimeoutRef.current = setTimeout(() => {
+  typingTimeoutRef.current = setTimeout(() => {
     socket.emit("dm_stop_typing", { toUserId: Number(id) });
-  }, 1000);
+  }, 3000);
 }}
   placeholder="Message..."
   rows={1}
