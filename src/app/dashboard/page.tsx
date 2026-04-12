@@ -175,12 +175,24 @@ function BadgeStack({
 
   return (
     <>
-      {/* ✅ Mobile compact row */}
-    <div className="flex md:hidden flex-col items-end gap-1">
+      {/* ✅ Mobile compact row (WITH hierarchy now) */}
+<div className="flex md:hidden flex-col items-end gap-1">
   <div className="flex items-center gap-2">
-    {top3.slice(0, 3).map((b, i) => (
-      <BadgeMedallion key={i} badge={b} size={70} />
-    ))}
+    {top3[0] && (
+      <div className="scale-102">
+        <BadgeMedallion badge={top3[0]} size={70} />
+      </div>
+    )}
+    {top3[1] && (
+      <div className="scale-95 opacity-90">
+        <BadgeMedallion badge={top3[1]} size={65} />
+      </div>
+    )}
+    {top3[2] && (
+      <div className="scale-90 opacity-80">
+        <BadgeMedallion badge={top3[2]} size={60} />
+      </div>
+    )}
   </div>
 
   {isOnlyDefaultBadge && (
@@ -224,9 +236,15 @@ function BadgeStack({
 }
 
 // ✅ GLOBAL CHAT PREVIEW (now supports limit)
-function GlobalChatPreview({ limit = 3, compact = false }: { limit?: number; compact?: boolean }) {
-
-  const [preview, setPreview] = useState<any[]>([]);
+function GlobalChatPreview({
+  data = [],
+  limit = 3,
+  compact = false,
+}: {
+  data?: any[];
+  limit?: number;
+  compact?: boolean;
+})  {
   const router = useRouter();
   
 
@@ -243,14 +261,6 @@ function GlobalChatPreview({ limit = 3, compact = false }: { limit?: number; com
     return "just now";
   };
 
-useEffect(() => {
-  if (typeof window === "undefined") return;
-  apiFetch(`/global/preview`)
-    .then((res) => res.json())
-    .then((data) => setPreview((data || []).slice(-limit)))
-    .catch(console.error);
-}, [limit]);
-
 
   return (
     <div
@@ -260,14 +270,14 @@ useEffect(() => {
   ].join(" ")}
 >
 
-      {preview.length === 0 ? (
+     {(data?.length ?? 0) === 0 ? (
         <p className="text-gray-400 text-center text-sm opacity-80">
           💬 No recent messages yet. Be the first to say hi!
         </p>
       ) : (
         <div className="space-y-2 text-sm text-gray-100">
           <AnimatePresence>
-            {preview.map((m) => (
+          {(data ?? []).slice(-limit).map((m) => (
               <motion.button
                 key={m.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -308,34 +318,24 @@ useEffect(() => {
 }
 
 // ✅ Tests preview (now supports limit)
-function TestPreview({ limit = 6 }: { limit?: number }) {
+function TestPreview({
+  data = [],
+  limit = 6,
+}: {
+  data?: any[];
+  limit?: number;
+}) {
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function loadTests() {
-    setLoading(true);
-    try {
-    const res = await apiFetch(`/admin/tests/preview`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        const shuffled = data.sort(() => 0.5 - Math.random());
-        setTests(shuffled.slice(0, limit));
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+ useEffect(() => {
+  if (Array.isArray(data)) {
+    const shuffled = [...data].sort(() => 0.5 - Math.random());
+    setTests(shuffled.slice(0, limit));
   }
+}, [data, limit]);
 
-  
-  
-
-  useEffect(() => {
-    loadTests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit]);
 
   const categoryLabel = (cat?: string) => {
     const c = (cat || "").toLowerCase();
@@ -363,24 +363,17 @@ function TestPreview({ limit = 6 }: { limit?: number }) {
     <div className="relative flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-base md:text-lg font-semibold text-white">Available Tests</h3>
-        <button
-          onClick={loadTests}
-          disabled={loading}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/20 text-sm transition 
-            ${loading ? "bg-white/10 text-gray-400 cursor-wait" : "bg-white/10 hover:bg-white/20 text-white"}`}
-        >
-          {loading ? "⏳ Refreshing..." : "🔄 Refresh"}
-        </button>
+       
       </div>
 
-      {tests.length === 0 && !loading ? (
+     {tests.length === 0 ? (
         <div className="flex-1 rounded-lg bg-white/5 border border-white/10 grid place-items-center text-gray-300 p-6">
           <p className="opacity-80">No tests available yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <AnimatePresence>
-            {tests.map((t) => (
+            {tests.slice(0, limit).map((t) => (
               <motion.button
                 key={t.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -411,23 +404,17 @@ function TestPreview({ limit = 6 }: { limit?: number }) {
 }
 
 // ✅ Friends preview (now supports limit)
-function FriendsPreview({ limit = 4 }: { limit?: number }) {
-  const [friends, setFriends] = useState<any[]>([]);
+function FriendsPreview({
+  data = [],
+  limit = 4,
+}: {
+  data?: any[];
+  limit?: number;
+}) {
+ 
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    apiFetch(`/friends/preview`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setFriends(data);
-      })
-      .catch(console.error);
-  }, []);
-
-  const shown = friends.slice(0, limit);
+ const shown = data.slice(0, limit);
 
   if (shown.length === 0) {
     return (
@@ -471,30 +458,16 @@ function FriendsPreview({ limit = 4 }: { limit?: number }) {
 
 //DAILY LEADERBOARD ON MOBILE
 
-function DailyLeaderboardPreview() {
+function DailyLeaderboardPreview({ data }: { data?: any }) {
   const router = useRouter();
 
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [loading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number>(0);
 
   const API = process.env.NEXT_PUBLIC_API_URL!;
 
-  // fetch today's leaderboard
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
 
-    fetch(`${API}/daily-leaderboard/today`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
 
   // countdown (same logic as modal)
   useEffect(() => {
@@ -523,7 +496,9 @@ function DailyLeaderboardPreview() {
     return `${h}h ${m}m`;
   };
 
-  const top3 = data?.leaderboard?.slice(0, 3) || [];
+const top3 = Array.isArray(data?.entries)
+  ? [...data.entries].sort((a, b) => b.score - a.score).slice(0, 3)
+  : [];
 
   return (
     <div className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-3 flex flex-col">
@@ -578,7 +553,7 @@ function DailyLeaderboardPreview() {
       {/* Avatar */}
       <img
         src={
-          entry.user.avatar
+         entry.user?.avatar
             ? `${API}/avatars/${entry.user.avatar}`
             : "/placeholder.png"
         }
@@ -588,7 +563,7 @@ function DailyLeaderboardPreview() {
 
       {/* Name */}
       <div className="text-[11px] font-semibold mt-1 text-center truncate max-w-[80px]">
-        {entry.user.name}
+        {entry.user?.name}
       </div>
     </div>
   ))}
@@ -711,12 +686,9 @@ useEffect(() => {
   if (dropdownOpen) {
     wasOpenRef.current = true;
 
-    // only initialize ON OPEN, not on every notifications change
-    setNewWhileOpenIds(
-      new Set(notifications.filter((n) => !n.read).map((n) => n.id))
-    );
+    // ✅ ONLY reset to empty when opening
+    setNewWhileOpenIds(new Set());
   }
-  // ❌ REMOVE notifications from deps
 }, [dropdownOpen]);
 
 
@@ -733,20 +705,7 @@ const bellWrapDesktopRef = useRef<HTMLDivElement>(null);
 
 
   // Fetch levels + my current level
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    apiFetch(`/levels`)
-      .then((r) => r.json())
-      .then((d) => setLevels(d.levels || []))
-      .catch(() => {});
-
-    apiFetch(`/levels/mine`)
-      .then((r) => r.json())
-      .then((d) => setCurrentLevel(d.level || 1))
-      .catch(() => {});
-  }, []);
+ 
 
   //onboarding useeffect
 
@@ -801,23 +760,7 @@ const wasOpenRef = useRef(false);
 
 
   // Premium
-  useEffect(() => {
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  apiFetch(`/me/entitlements`)
-    .then((r) => r.json())
-    .then((data) => {
-      const premium = !!data?.isPremium;
-
-      setIsPremium(premium);
-
-      // ✅ STEP 1 — SAVE TO LOCALSTORAGE
-      localStorage.setItem("isPremium", premium ? "1" : "0");
-    })
-    .catch(() => {});
-}, []);
-
+  
   // Motion helper
   const fastFade = useMemo(
     () => ({ initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } }),
@@ -981,6 +924,20 @@ const [wheelSize, setWheelSize] = useState(320);
 const radius = wheelSize * 0.35;
 const pointerSize = wheelSize * 0.04;
 
+const [globalPreview, setGlobalPreview] = useState<any[]>([]);
+const [friendsPreview, setFriendsPreview] = useState<any[]>([]);
+
+const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
+
+const friendsWithPresence = useMemo(() => {
+  return friendsPreview.map((f) => ({
+    ...f,
+    online: onlineUsers.includes(f.id),
+  }));
+}, [friendsPreview, onlineUsers]);
+const [testsPreview, setTestsPreview] = useState<any[]>([]);
+const [leaderboard, setLeaderboard] = useState<any>(null);
+
 useEffect(() => {
   function update() {
     requestAnimationFrame(() => {
@@ -1011,50 +968,54 @@ useEffect(() => {
      Load profile + notifications
      ------------------------------------------------------- */
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setMessage("❌ Please log in first.");
-      setTimeout(() => router.push("/login"), 1200);
-      return;
-    }
+  const token = localStorage.getItem("token");
 
-    apiFetch(`/profile`)
-      .then(async (res) => {
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to load profile");
-        }
-        return res.json();
-      })
-      .then((data) => {
-  setUser(data.user);
-  setMessage("");
-
-  // ✅ Onboarding trigger
-  if (!data.user?.hasSeenOnboarding) {
-    setTimeout(() => {
-      setShowOnboarding(true);
-    }, 500); // small delay so UI renders first
+  if (!token) {
+    setMessage("❌ Please log in first.");
+    setTimeout(() => router.push("/login"), 1200);
+    return;
   }
-})
-      .catch((err) => {
-  console.error(err);
-});
 
-   apiFetch(`/notifications/unread-count`)
-      .then((r) => r.json())
-      .then((d) => setUnreadCount(d.unread ?? 0))
-      .catch(() => {});
+  apiFetch(`/dashboard`)
+    .then(async (res) => {
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to load dashboard");
+      }
+      return res.json();
+    })
+.then((resData) => {
+      // 👤 USER
+     setUser(resData.user);
 
-    apiFetch(`/notifications`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (Array.isArray(d.notifications)) {
-          setNotifications(d.notifications as NotificationItem[]);
-        }
-      })
-      .catch(() => {});
-  }, [router]);
+      // 🔔 NOTIFICATIONS
+      setNotifications(resData.notifications || []);
+setUnreadCount(resData.unreadCount || 0);
+
+      // 🏰 LEVELS
+      setLevels(resData.levels || []);
+setCurrentLevel(resData.currentLevel || 1);
+
+      // 💎 PREMIUM
+      setIsPremium(!!resData.isPremium);
+      localStorage.setItem("isPremium", resData.isPremium ? "1" : "0");
+
+     setGlobalPreview(resData.globalPreview || []);
+setFriendsPreview(resData.friendsPreview || []);
+setTestsPreview(resData.testsPreview || []);
+setLeaderboard(resData.leaderboard || null);
+
+      // 🎯 OPTIONAL: onboarding
+      if (!resData.user?.hasSeenOnboarding) {
+        setTimeout(() => setShowOnboarding(true), 500);
+      }
+
+      setMessage("");
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+}, [router]);
 
   
 useEffect(() => {
@@ -1062,6 +1023,7 @@ useEffect(() => {
     loadLotteryStatus();
   }
 }, [mobileMenuOpen, loadLotteryStatus]);
+
 
   /* -------------------------------------------------------
      Socket.IO events
@@ -1072,6 +1034,27 @@ useEffect(() => {
 
     const socket = getSocket();
     if (!socket) return;
+
+    // ✅ INITIAL ONLINE USERS
+socket.on("online_users", (ids: number[]) => {
+  setOnlineUsers(ids);
+});
+
+// ✅ USER ONLINE
+socket.on("user_online", ({ userId }) => {
+  setOnlineUsers((prev) => {
+    if (prev.includes(userId)) return prev;
+    return [...prev, userId];
+  });
+});
+
+// ✅ USER OFFLINE
+socket.on("user_offline", ({ userId }) => {
+  setOnlineUsers((prev) => prev.filter((id) => id !== userId));
+});
+
+// 🔥 GET INITIAL STATE
+socket.emit("get_online_users");
   
   
 
@@ -1105,6 +1088,10 @@ useEffect(() => {
     return () => {
       socket.off("notification", onNotification);
       socket.off("force_logout", onForceLogout);
+
+      socket.off("online_users");
+  socket.off("user_online");
+  socket.off("user_offline");
     };
  }, []);
 
@@ -1736,7 +1723,7 @@ function showToast(note: NotificationItem) {
                     router.push("/admin");
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full mb-3 px-4 py-3 rounded-xl bg-amber-500 text-gray-900 font-semibold"
+                  className="w-full mb-3 mt-2 px-4 py-3 rounded-xl bg-amber-500 text-gray-900 font-semibold"
                 >
                   🛠 Admin Panel
                 </button>
@@ -1876,10 +1863,15 @@ function showToast(note: NotificationItem) {
 >
   <BadgeStack
     badges={
-      Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0
-        ? user.featuredBadges
-        : user.badges || []
-    }
+  Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0
+    ? user.featuredBadges
+    : (user.badges || []).map((b: any) => ({
+        ...b.badge,
+        badgeScore: b.badgeScore ?? null,
+badgeScoreColor: b.badgeScoreColor ?? null,
+badgeScoreUnit: b.badgeScoreUnit ?? "percent",
+      }))
+}
     isFeatured={Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0}
   />
 </div>
@@ -1945,7 +1937,7 @@ function showToast(note: NotificationItem) {
           >
             <h2 className="text-lg font-bold text-amber-300 mb-2">🌐 Global Chat</h2>
 
-            <GlobalChatPreview limit={1} compact />
+           <GlobalChatPreview data={globalPreview} limit={1} compact />
 
 
             <div className="mt-3">
@@ -1973,7 +1965,7 @@ function showToast(note: NotificationItem) {
             </p>
 
             <div className="flex-1">
-              <TestPreview limit={4} />
+            <TestPreview data={testsPreview} limit={4} />
             </div>
 
             <button
@@ -1989,7 +1981,7 @@ function showToast(note: NotificationItem) {
   {...fastFade}
   transition={{ delay: 0.09, duration: 0.45 }}
 >
-  <DailyLeaderboardPreview />
+ <DailyLeaderboardPreview data={leaderboard} />
 </motion.div>
 
 
@@ -2015,8 +2007,12 @@ function showToast(note: NotificationItem) {
               </button>
             </div>
 
+
             <div className="flex-1">
-              <FriendsPreview limit={2} />
+
+              
+              
+             <FriendsPreview data={friendsWithPresence} limit={2} />
             </div>
 
             <button
@@ -2121,11 +2117,16 @@ function showToast(note: NotificationItem) {
                   </div>
 
                   <BadgeStack
-                    badges={
-                      Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0
-                        ? user.featuredBadges
-                        : user.badges || []
-                    }
+                   badges={
+  Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0
+    ? user.featuredBadges
+    : (user.badges || []).map((b: any) => ({
+        ...b.badge,
+        badgeScore: b.badgeScore ?? null,
+badgeScoreColor: b.badgeScoreColor ?? null,
+badgeScoreUnit: b.badgeScoreUnit ?? "percent",
+      }))
+}
                     isFeatured={Array.isArray(user?.featuredBadges) && user.featuredBadges.length > 0}
                   />
                 </div>
@@ -2196,7 +2197,7 @@ function showToast(note: NotificationItem) {
               className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-6 min-h-[280px] flex flex-col"
             >
               <h2 className="text-2xl font-bold text-amber-300 mb-2">🌐 Global Chat</h2>
-              <GlobalChatPreview limit={3} />
+              <GlobalChatPreview data={globalPreview} limit={3} />
               <div className="mt-auto pt-4">
                 <button
                   onClick={() => router.push("/chat/global")}
@@ -2285,7 +2286,7 @@ function showToast(note: NotificationItem) {
                 </div>
 
                 <div className="flex-1">
-                  <FriendsPreview limit={4} />
+                <FriendsPreview data={friendsWithPresence} />
                 </div>
 
                 <button
@@ -2367,7 +2368,7 @@ function showToast(note: NotificationItem) {
                 Take IQ, EQ, and other skill tests. Showcase your results as badges.
               </p>
               <div className="flex-1">
-                <TestPreview limit={6} />
+               <TestPreview data={testsPreview} limit={6} />
               </div>
               <button
                 onClick={() => router.push("/tests")}

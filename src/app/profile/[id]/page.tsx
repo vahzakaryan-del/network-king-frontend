@@ -1213,7 +1213,7 @@ const fmtMoney = (cents: number, currency = "EUR") =>
 
         setFriendBusy(true);
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/requests`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends/request`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1591,12 +1591,15 @@ setBuyTokensOpen(true);
     🌟 Recent Badges
   </h3>
 
-  <button
-    onClick={() => router.push(`/profile/${profileId}/badges`)}
-    className="text-xs px-3 py-1 mt-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15"
-  >
-    View all
-  </button>
+<button
+  onClick={() => router.push(`/profile/${profileId}/badges`)}
+  className="relative overflow-hidden shimmer text-xs px-3 py-1 mt-1 rounded-lg 
+             bg-white/10 hover:bg-white/20 border border-white/15"
+>
+  View all
+</button>
+
+  
 </div>
             </div>
 
@@ -1891,15 +1894,13 @@ setBuyTokensOpen(true);
                       
               <div className="hidden lg:flex items-center justify-between mb-3 mt-6">
   <h3 className="font-bold text-lg">🌟 Recent Badges</h3>
-
-  {isSelf && (
-    <button
-      onClick={() => router.push(`/profile/${profileId}/badges`)}
-      className="text-xs px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15"
-    >
-      View all
-    </button>
-  )}
+<button
+  onClick={() => router.push(`/profile/${profileId}/badges`)}
+  className="relative overflow-hidden shimmer text-xs px-3 py-1 mt-1 rounded-lg 
+             bg-white/10 hover:bg-white/20 border border-white/15"
+>
+  View all
+</button>
 </div>
 
 <div className="hidden lg:grid grid-cols-3 gap-3 mt-6">

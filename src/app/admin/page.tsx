@@ -183,6 +183,11 @@ const Stat = ({ label, value }: { label: string; value: number }) => (
       </main>
     );
   }
+  
+  if (!me || me.role !== "admin") {
+  return null;
+}
+  
 
   const NavBtn = ({
     id,
@@ -1483,6 +1488,13 @@ const SectionEmojis = () => {
          className="px-4 py-2 rounded bg-green-400 border border-white/15  hover:bg-pink-400/60 text-sm"
   >
           💰 PAYMENTS - FINANCIAL DATA
+        </button>
+
+        <button
+          onClick={() => router.push("/admin/emoji-pack")}
+         className="px-4 py-2 rounded bg-red-600 border border-white/15  hover:bg-pink-400/60 text-sm"
+  >
+          Create emojis (prompt)
         </button>
 
 

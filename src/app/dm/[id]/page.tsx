@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { asset } from "@/lib/assets";
@@ -18,13 +18,17 @@ export default function DirectMessagePage() {
   const [newMsg, setNewMsg] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [myId, setMyId] = useState<number | null>(null);
-
+  const [myLevel, setMyLevel] = useState<number>(1);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const [emojiTab, setEmojiTab] = useState<"system" | "custom">("custom");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isOnline, setIsOnline] = useState(false);
 
   const [isTyping, setIsTyping] = useState(false);
+
+  const [emojis, setEmojis] = useState<AvailableEmoji[]>([]);
 
   const [isAuthReady, setIsAuthReady] = useState(false);
   const typingTimeoutRef = useRef<any>(null);
@@ -33,6 +37,107 @@ const payloadIdRef = useRef<number | null>(null);
 function isVisible() {
   return document.visibilityState === "visible";
 }
+
+const emojisByLevel = useMemo(() => {
+  const map: Record<number, AvailableEmoji[]> = {};
+
+  for (const e of emojis) {
+    if (!map[e.unlockLevel]) map[e.unlockLevel] = [];
+    map[e.unlockLevel].push(e);
+  }
+
+  return map;
+}, [emojis]);
+
+function insertEmoji(e: AvailableEmoji) {
+  const token = e.type === "image" ? `:${e.code}:` : e.value;
+  setNewMsg((t) => (t ? `${t} ${token}` : token));
+}
+function isEmojiOnlyMessage(
+  content: string,
+  emojiMap: Map<string, AvailableEmoji>
+) {
+  const parts = content.trim().split(/\s+/);
+
+  if (parts.length === 0) return false;
+
+  return parts.every((part) => {
+    // custom emoji
+    if (/^:[a-zA-Z0-9_]+:$/.test(part)) {
+      const code = part.slice(1, -1);
+      return emojiMap.has(code);
+    }
+
+    // unicode emoji (basic check)
+    return /\p{Extended_Pictographic}/u.test(part);
+  });
+}
+
+function renderContentWithEmojis(
+  content: string,
+  emojiMap: Map<string, AvailableEmoji>,
+  senderLevel?: number | null
+) {
+  // split by :code: tokens
+  const parts = content.split(/(:[a-zA-Z0-9_]+:)/g);
+
+return parts.map((part, idx) => {
+  const m = /^:([a-zA-Z0-9_]+):$/.exec(part);
+ if (!m) {
+  return part.split(/(@[a-zA-Z0-9_]+)/g).map((chunk, i2) => {
+    if (chunk.startsWith("@")) {
+      return (
+        <span key={`${idx}-${i2}`} className="text-blue-400 font-semibold">
+          {chunk}
+        </span>
+      );
+    }
+    return <span key={`${idx}-${i2}`}>{chunk}</span>;
+  });
+}
+
+  const code = m[1];
+  const e = emojiMap.get(code);
+
+  // ❌ emoji doesn't exist
+  if (!e) return <span key={idx}>{part}</span>;
+
+
+  // ✅ VALID → show emoji FOR EVERYONE
+ const isBig = isEmojiOnlyMessage(content, emojiMap);
+
+if (e.type === "image") {
+  return (
+    <img
+      key={idx}
+      src={asset(e.value)}
+      alt={e.label ?? code}
+      className={`inline-block mx-0.5 ${
+        isBig
+          ? "w-14 h-14 align-middle"
+          : "inline-block w-10 h-10 align-[-0.3em] mx-0.5"
+      }`}
+      draggable={false}
+    />
+  );
+}
+
+  return (
+    <span key={idx} className="mx-0.5">
+      {e.value}
+    </span>
+  );
+});
+}
+
+type AvailableEmoji = {
+  id: number;
+  code: string;
+  type: "unicode" | "image";
+  value: string;
+  label?: string | null;
+  unlockLevel: number;
+};
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -183,6 +288,31 @@ return () => {
   }, [id]);
 
 
+
+  useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/emojis/available`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((r) => r.json())
+    .then((d) => {
+  setEmojis(Array.isArray(d?.emojis) ? d.emojis : []);
+  
+  if (typeof d?.level === "number") {
+    setMyLevel(d.level);
+  }
+});
+    
+}, []);
+
+const emojiMap = useMemo(() => {
+  const m = new Map<string, AvailableEmoji>();
+  for (const e of emojis) m.set(e.code, e);
+  return m;
+}, [emojis]);
+
   useEffect(() => {
   const el = textareaRef.current;
   if (!el) return;
@@ -285,7 +415,9 @@ return () => {
                       : "bg-white/20 rounded-bl-none"
                   }`}
                 >
-                  <p className="text-sm break-words">{m.content}</p>
+                <p className="text-sm break-words">
+  {renderContentWithEmojis(m.content, emojiMap)}
+</p>
 
                   <p
   className={`text-[10px] text-right mt-1 ${
@@ -367,16 +499,109 @@ className="flex-1 min-w-0 px-3 py-2 bg-white/20 rounded-lg outline-none text-sm 
           </button>
 
           {/* EMOJI PICKER */}
-          {showEmoji && (
-            <div className="absolute bottom-14 left-1/2 -translate-x-1/2 w-[95%] max-w-[320px] z-50">
-              <Picker
-                data={data}
-                onEmojiSelect={(e: any) =>
-                  setNewMsg((prev) => prev + e.native)
-                }
+        
+                      {showEmoji && (
+  <div className="absolute bottom-14 left-0 w-[380px] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3 z-50">
+
+    {/* HEADER */}
+    <div className="flex justify-between items-center mb-2">
+      <div className="text-sm font-semibold">Emojis</div>
+      <button
+        onClick={() => setShowEmoji(false)}
+        className="text-xs px-2 py-1 bg-white/10 rounded"
+      >
+        close
+      </button>
+    </div>
+
+    {/* TABS */}
+    <div className="flex gap-2 mb-3">
+      <button
+        onClick={() => setEmojiTab("custom")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "custom"
+            ? "bg-amber-400 text-black"
+            : "bg-white/10"
+        }`}
+      >
+        👑 Level
+      </button>
+
+      <button
+        onClick={() => setEmojiTab("system")}
+        className={`px-2 py-1 text-xs rounded ${
+          emojiTab === "system"
+            ? "bg-amber-400 text-black"
+            : "bg-white/10"
+        }`}
+      >
+        😊 Classic
+      </button>
+    </div>
+
+    {/* CONTENT */}
+    {emojiTab === "system" ? (
+      <div className="h-[240px] overflow-hidden">
+        <Picker
+          data={data}
+          onEmojiSelect={(e: any) =>
+            setNewMsg((prev) => prev + e.native)
+          }
+          theme="dark"
+         
+        />
+      </div>
+    ) : (
+      <div className="max-h-60 overflow-y-auto flex flex-wrap gap-2">
+       {emojis
+  .filter((e) => e.unlockLevel <= myLevel)
+  .map((e) => (
+          <button
+            key={e.id}
+            onClick={() => insertEmoji(e)}
+            className="w-12 h-12 flex items-center justify-center rounded-lg bg-white/10 hover:scale-110 transition"
+          >
+            {e.type === "image" ? (
+              <img
+                src={asset(e.value)}
+                className="w-10 h-10"
               />
-            </div>
-          )}
+            ) : (
+              <span>{e.value}</span>
+            )}
+          </button>
+        ))}
+
+        <div className="mt-3">
+  <div className="text-xs text-white/50 mb-2 flex items-center gap-2">
+    <span>Next Level ({myLevel + 1})</span>
+    <span className="text-red-400">🔒</span>
+  </div>
+
+  <div className="flex gap-2 flex-wrap">
+    {(emojisByLevel[myLevel + 1] || []).map((e) => (
+      <div
+        key={e.id}
+        className="relative w-10 h-10 flex items-center justify-center rounded-lg overflow-hidden"
+      >
+        <div className="opacity-40 blur-[1px] scale-95">
+          <img src={asset(e.value)} className="w-7 h-7" />
+        </div>
+
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 flex items-center justify-center text-xs">
+          🔒
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+      </div>
+    )}
+  </div>
+)}
+            
+          
         </div>
       </div>
     </div>

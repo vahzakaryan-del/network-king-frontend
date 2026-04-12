@@ -311,7 +311,7 @@ function EmojiIcon({ e }: { e: AvailableEmoji }) {
       <img
         src={asset(e.value)}
         alt={e.label ?? e.code}
-        className="w-5 h-5"
+        className="w-11 h-11"
         style={{ objectFit: "contain" }}
         draggable={false}
       />
@@ -437,21 +437,6 @@ setMentionCache((prev) => {
     .catch(() => setMentionUsers([]));
 }, [mentionQuery, mentionOpen]);
 
-  useEffect(() => {
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  fetch(`${BACKEND_URL}/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-    .then((r) => r.json())
-    .then((d) => {
-      if (typeof d?.currentLevel === "number") {
-        setMyLevel(d.currentLevel);
-      }
-    })
-    .catch(() => {});
-}, []);
 
   const canPost = channel !== "announcements" || isAdmin;
 
@@ -577,6 +562,10 @@ function renderFormattedContent(
     .then((d) => {
       if (cancelled) return;
       setEmojis(Array.isArray(d?.emojis) ? d.emojis : []);
+
+      if (typeof d?.level === "number") {
+    setMyLevel(d.level);
+  }
     })
     .catch(() => {
       if (cancelled) return;
@@ -959,8 +948,13 @@ const myPremium = localStorage.getItem("isPremium") === "1";
  {emojiOpen && (
   <div
     data-emoji-popover
-    className="absolute bottom-14 left-3 w-[320px] max-w-[80vw] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3 z-[10000]"
-  >
+className="
+  fixed bottom-20 left-1/2 -translate-x-1/2   /* mobile */
+  sm:absolute sm:bottom-14 sm:left-1 sm:translate-x-0
+  w-[380px]  max-w-[90vw]
+  bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3
+  z-[999999]
+" >
     {/* HEADER */}
     <div className="flex items-center justify-between mb-2">
       <div className="text-sm font-semibold">Emojis</div>
@@ -1003,7 +997,7 @@ const myPremium = localStorage.getItem("isPremium") === "1";
 
     {/* CONTENT */}
     {emojiTab === "system" ? (
-      <div className="h-[300px] overflow-hidden">
+      <div className="h-[260px] overflow-hidden">
         <Picker
           data={data}
           onEmojiSelect={insertSystemEmoji}
@@ -1024,7 +1018,9 @@ const myPremium = localStorage.getItem("isPremium") === "1";
     </div>
 
     <div className="flex gap-2 flex-wrap">
-      {(emojisByLevel[myLevel] || []).map((e) => (
+      {emojis
+  .filter((e) => e.unlockLevel <= myLevel)
+  .map((e) => (
         <button
           key={e.id}
           onClick={() => insertEmoji(e)}
@@ -1165,6 +1161,25 @@ const myPremium = localStorage.getItem("isPremium") === "1";
   );
 }
 
+function isEmojiOnlyMessage(
+  content: string,
+  emojiMap: Map<string, AvailableEmoji>
+) {
+  const parts = content.trim().split(/\s+/);
+
+  if (parts.length === 0) return false;
+
+  return parts.every((part) => {
+    // custom emoji
+    if (/^:[a-zA-Z0-9_]+:$/.test(part)) {
+      const code = part.slice(1, -1);
+      return emojiMap.has(code);
+    }
+
+    // unicode emoji (basic check)
+    return /\p{Extended_Pictographic}/u.test(part);
+  });
+}
 function renderContentWithEmojis(
   content: string,
   emojiMap: Map<string, AvailableEmoji>,
@@ -1200,17 +1215,23 @@ return parts.map((part, idx) => {
   }
 
   // ✅ VALID → show emoji FOR EVERYONE
-  if (e.type === "image") {
-    return (
-      <img
-        key={idx}
-        src={asset(e.value)}
-        alt={e.label ?? code}
-        className="inline-block w-5 h-5 align-[-0.2em] mx-0.5"
-        draggable={false}
-      />
-    );
-  }
+ const isBig = isEmojiOnlyMessage(content, emojiMap);
+
+if (e.type === "image") {
+  return (
+    <img
+      key={idx}
+      src={asset(e.value)}
+      alt={e.label ?? code}
+      className={`inline-block mx-0.5 ${
+        isBig
+          ? "w-14 h-14 align-middle"
+          : "inline-block w-10 h-10 align-[-0.3em] mx-0.5"
+      }`}
+      draggable={false}
+    />
+  );
+}
 
   return (
     <span key={idx} className="mx-0.5">
@@ -1596,21 +1617,7 @@ const emojisByLevel = useMemo(() => {
     };
   }, [levelNumber, activeSub]);
 
-  useEffect(() => {
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  fetch(`${BACKEND_URL}/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-    .then((r) => r.json())
-    .then((d) => {
-      if (typeof d?.currentLevel === "number") {
-        setMyLevel(d.currentLevel);
-      }
-    })
-    .catch(() => {});
-}, []);
+  
 
   useEffect(() => {
     if (!activeSub) return;
@@ -1704,6 +1711,10 @@ const emojisByLevel = useMemo(() => {
       .then((d) => {
         if (cancelled) return;
         setEmojis(Array.isArray(d?.emojis) ? d.emojis : []);
+
+        if (typeof d?.level === "number") {
+    setMyLevel(d.level);
+  }
       })
       .catch(() => {
         if (cancelled) return;
@@ -2266,7 +2277,7 @@ function insertSystemEmoji(emoji: any) {
 
     {/* CONTENT */}
     {emojiTab === "system" ? (
-      <div className="h-[300px] overflow-hidden">
+      <div className="h-[260px] overflow-hidden">
         <Picker
           data={data}
           onEmojiSelect={insertSystemEmoji}
@@ -2287,12 +2298,14 @@ function insertSystemEmoji(emoji: any) {
     </div>
 
     <div className="flex gap-2 flex-wrap">
-      {(emojisByLevel[myLevel] || []).map((e) => (
+      {emojis
+  .filter((e) => e.unlockLevel <= myLevel)
+  .map((e) => (
         <button
           key={e.id}
           onClick={() => insertEmoji(e)}
           className="
-            w-9 h-9 rounded-lg flex items-center justify-center
+            w-12 h-12 rounded-lg flex items-center justify-center
             bg-gradient-to-br from-amber-400/20 to-yellow-300/10
             border border-amber-400/30
             hover:scale-110 active:scale-95 hover:shadow-[0_0_12px_rgba(250,204,21,0.6)]
@@ -2316,7 +2329,7 @@ function insertSystemEmoji(emoji: any) {
       {(emojisByLevel[myLevel + 1] || []).map((e) => (
   <div
     key={e.id}
-    className="relative w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center"
+    className="relative w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center"
   >
     {/* REAL EMOJI */}
     <div className="opacity-40 blur-[1px] scale-95">
@@ -2554,7 +2567,7 @@ function insertSystemEmoji(emoji: any) {
 
     {/* CONTENT */}
     {emojiTab === "system" ? (
-      <div className="h-[300px] overflow-hidden">
+      <div className="h-[260px] overflow-hidden">
         <Picker
           data={data}
           onEmojiSelect={insertSystemEmoji}
@@ -2575,7 +2588,9 @@ function insertSystemEmoji(emoji: any) {
     </div>
 
     <div className="flex gap-2 flex-wrap">
-      {(emojisByLevel[myLevel] || []).map((e) => (
+      {emojis
+  .filter((e) => e.unlockLevel <= myLevel)
+  .map((e) => (
         <button
           key={e.id}
           onClick={() => insertEmoji(e)}
