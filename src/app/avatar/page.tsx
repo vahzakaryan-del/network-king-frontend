@@ -111,6 +111,9 @@ const [showAchievements, setShowAchievements] = useState(false);
   return Date.now() - new Date(createdAt).getTime() < THREE_DAYS;
 }, []);
 
+const isMonthlyAvatar = (a: AvatarRow) =>
+  a.fileName?.startsWith("premium_");
+
   // ✅ sorting helpers
   const sortLockedNewest = useCallback((arr: AvatarRow[]) => {
     return [...arr].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -521,11 +524,64 @@ const [showAchievements, setShowAchievements] = useState(false);
     null;
 
   const monthlyOwned = !!available.find((a) => monthlyCandidates.includes(a.fileName));
- const lockedWithoutMonthly = locked.filter((a) => !a.fileName.startsWith("premium_"));
+const shopLocked = useMemo(() => {
+  if (!locked) return [];
+
+  const now = new Date();
+  const currentMonth =
+    now.getUTCFullYear() +
+    "-" +
+    String(now.getUTCMonth() + 1).padStart(2, "0");
+
+  let monthly: AvatarRow | null = null;
+  const normal: AvatarRow[] = [];
+
+  for (const a of locked) {
+    if (a.isFree) continue;
+
+    if (a.fileName?.startsWith("premium_")) {
+      const match = a.fileName.match(/^premium_(\d{4}-\d{2})/);
+      if (!match) continue;
+
+      const avatarMonth = match[1];
+
+      if (avatarMonth === currentMonth) {
+        monthly = a;
+      }
+
+      continue;
+    }
+
+    normal.push(a);
+  }
+
+  // 🔥 KEY: monthly goes FIRST
+  return monthly ? [monthly, ...normal] : normal;
+}, [locked]);
 
  // 🔥 Smart sorting + splitting (FEATURED + REST)
 const sortedLockedFull = useMemo(() => {
-  return [...lockedWithoutMonthly].sort((a, b) => {
+  if (!shopLocked.length) return [];
+
+  const [first, ...rest] = shopLocked;
+
+  // if first is monthly → keep it first
+  if (first.fileName?.startsWith("premium_")) {
+    return [
+      first,
+      ...rest.sort((a, b) => {
+        const dateDiff =
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+        if (dateDiff !== 0) return dateDiff;
+
+        return (b.priceCents || 0) - (a.priceCents || 0);
+      }),
+    ];
+  }
+
+  // fallback (no monthly)
+  return [...shopLocked].sort((a, b) => {
     const dateDiff =
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 
@@ -533,19 +589,12 @@ const sortedLockedFull = useMemo(() => {
 
     return (b.priceCents || 0) - (a.priceCents || 0);
   });
-}, [lockedWithoutMonthly]);
+}, [shopLocked]);
 
-const FEATURED_COUNT = 7;
+const MOBILE_FEATURED_COUNT = 7;
 
-const featuredLocked = useMemo(
-  () => sortedLockedFull.slice(0, FEATURED_COUNT),
-  [sortedLockedFull]
-);
-
-const restLocked = useMemo(
-  () => sortedLockedFull.slice(FEATURED_COUNT),
-  [sortedLockedFull]
-);
+const featuredLocked = sortedLockedFull.slice(0, MOBILE_FEATURED_COUNT);
+const restLocked = sortedLockedFull.slice(MOBILE_FEATURED_COUNT);
 
 // pagination applies only to REST
 const visibleRestLocked = useMemo(
@@ -558,10 +607,10 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
 
   // Show more slices
   const visibleAvailable = useMemo(() => available.slice(0, availableLimit), [available, availableLimit]);
-  const visibleLocked = useMemo(() => lockedWithoutMonthly.slice(0, lockedLimit), [lockedWithoutMonthly, lockedLimit]);
+  const visibleLocked = useMemo(() => shopLocked.slice(0, lockedLimit), [shopLocked, lockedLimit]);
 
   const hasMoreAvailable = available.length > availableLimit;
-  const hasMoreLocked = lockedWithoutMonthly.length > lockedLimit;
+  const hasMoreLocked = shopLocked.length > lockedLimit;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-700 via-purple-700 to-pink-500 text-white flex flex-col items-center justify-center px-4 py-6 sm:p-6 relative">
@@ -611,14 +660,13 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
           </div>
 
           {/* LOCKED */}
-          {/* LOCKED */}
 <div className="w-full max-w-5xl z-10 mt-8 sm:mt-10">
   <h2 className="text-xl sm:text-2xl font-bold mb-3">
-  {restLocked.length > 0
+ {sortedLockedFull.length > 0
     ? "🛍 Avatar Shop"
     : "🔒 Locked avatars"}
 </h2>
-  {locked.length === 0 ? (
+  {shopLocked.length === 0 ? (
     <div className="text-white/80">No locked avatars.</div>
   ) : (
     <>
@@ -637,18 +685,26 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
                 >
                   <motion.div
                     whileTap={{ scale: 0.96 }}
-                    className="
-                      rounded-2xl
-                      bg-gradient-to-b from-white/15 to-white/5
-                      border border-white/20
-                      backdrop-blur-xl
-                      p-3
-                      flex flex-col items-center gap-3
-                      shadow-xl
-                    "
+                    className={`
+  rounded-2xl
+  p-3
+  flex flex-col items-center gap-3
+  backdrop-blur-xl
+  transition
+
+  ${
+    isMonthlyAvatar(a)
+      ? "bg-gradient-to-b from-yellow-400/30 to-yellow-200/10 border border-yellow-300 shadow-[0_0_25px_rgba(255,215,0,0.6)]"
+      : "bg-gradient-to-b from-white/15 to-white/5 border border-blue-400 shadow-xl"
+  }
+`}
                     onClick={() => openPreview(a)}
                   >
                     <div className="relative">
+
+                      {isMonthlyAvatar(a) && (
+  <div className="absolute inset-0 rounded-full border border-yellow-300 shadow-[0_0_30px_rgba(255,215,0,0.8)]" />
+)}
   <img
     src={asset(`avatars/${a.fileName}`)}
     className="w-24 h-24 rounded-full object-cover"
@@ -664,7 +720,9 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
 </div>
 
                     <div className="text-sm font-bold text-yellow-200">
-                      {formatPrice(a.priceCents) || "PAID"}
+                      {a.fileName?.startsWith("premium_")
+  ? "Monthly Avatar"
+  : formatPrice(a.priceCents) || "PAID"}
                     </div>
 
                     <div className="text-xs text-white/80">
@@ -678,7 +736,7 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
 
           {/* DESKTOP: grid */}
           <div className="hidden sm:grid grid-cols-3 md:grid-cols-5 gap-6">
-            {featuredLocked.map((a) => (
+            {sortedLockedFull.map((a) => (
               <div key={a.id} className="flex flex-col items-center gap-3">
                 <AvatarBubble
                   a={a}
@@ -686,7 +744,9 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
                   selected={false}
                   previewable={true}
                   onPreview={() => openPreview(a)}
-                  badgeText={formatPrice(a.priceCents) || "PAID"}
+                  badgeText={isMonthlyAvatar(a)
+  ? "PREMIUM"
+  : formatPrice(a.priceCents) || "PAID"}
                 />
 
                 <button
@@ -702,7 +762,7 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
       )}
 
       {/* 🧱 REST */}
-      {restLocked.length > 0 && (
+   {restLocked.length > 0 && (
         <>
           <h3 className="text-lg font-bold mt-6 mb-2">🛒 More avatars</h3>
 
@@ -917,7 +977,7 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
   {isMonthlyPreview ? (
     <div className="flex flex-col gap-3">
       <div className="text-sm text-white/90">
-        Will be available for free after you become a Premium Member
+        Is available only for Premium Members
       </div>
 
       <div className="flex gap-3 justify-end">

@@ -38,7 +38,7 @@ const isSubscription = params.get("subscription") === "1";
     router.replace("/dashboard");
   }
 } else if (isSubscription) {
-      router.replace("/subscription");
+      router.replace("/Subscription");
     } else {
       router.replace("/dashboard");
     }
