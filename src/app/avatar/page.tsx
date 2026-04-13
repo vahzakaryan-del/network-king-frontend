@@ -89,7 +89,6 @@ const [showAchievements, setShowAchievements] = useState(false);
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
   const [premiumUnlocking, setPremiumUnlocking] = useState(false);
 
-  const [pendingAvatarIds, setPendingAvatarIds] = useState<Set<number>>(new Set());
 
   // ✅ Show more limits
   const [availableLimit, setAvailableLimit] = useState(15);
@@ -297,82 +296,81 @@ const [showAchievements, setShowAchievements] = useState(false);
   }, [router, selectedAvatar, showToast]);
 
   const handleBuy = useCallback(
-    async (avatarId: number) => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+  async (avatarId: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
-      setBuyingId(avatarId);
+    setBuyingId(avatarId);
 
-      try {
-        const res = await fetch(`${API}/payments/checkout/avatar`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ avatarId }),
-        });
+    try {
+      // 1️⃣ Create purchase in your backend
+      const res = await fetch(`${API}/payments/checkout/avatar`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ avatarId }),
+      });
 
-        const data: CheckoutResponse = await res.json();
+      const data: CheckoutResponse = await res.json();
 
-        // 🚀 Create Stripe checkout session
-const checkoutRes = await fetch(
-  `${API}/stripe/create-checkout/${data.purchase?.id}`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
+      // ❌ STOP if backend failed
+      if (!res.ok) {
+        showToast(`❌ ${data.error || "Failed to create purchase"}`);
+        return;
+      }
 
-const checkoutData = await checkoutRes.json();
-
-if (!checkoutRes.ok) {
-  showToast("❌ Failed to start Stripe checkout");
-  return;
-}
-
-// redirect user to Stripe
-window.location.href = checkoutData.checkoutUrl;
-return;
-
-
-        if (!res.ok) {
-          showToast(`❌ ${data.error || "Failed to create purchase"}`);
-          return;
-        }
-
-        if (data.alreadyOwned) {
-          showToast("✅ You already own this avatar!");
-          const result = await fetchAvatars();
-          if (result.ok) {
-            setSelectedAvatar((prev) => normalizeSelection(prev, result.data?.available || []));
-          }
-          return;
-        }
-
-        setPendingAvatarIds((prev) => new Set(prev).add(avatarId));
-
-        const status = data.purchase?.status || "pending";
-        showToast(
-          status === "pending"
-            ? "🧾 Purchase created (pending). Mark it PAID in /dev/payments."
-            : "🧾 Purchase created."
-        );
+      // ✅ Already owned → no Stripe needed
+      if (data.alreadyOwned) {
+        showToast("✅ You already own this avatar!");
 
         const result = await fetchAvatars();
         if (result.ok) {
-          setSelectedAvatar((prev) => normalizeSelection(prev, result.data?.available || []));
+          setSelectedAvatar((prev) =>
+            normalizeSelection(prev, result.data?.available || [])
+          );
         }
-      } catch {
-        showToast("❌ Network error");
-      } finally {
-        setBuyingId(null);
+
+        return;
       }
-    },
-    [fetchAvatars, normalizeSelection, showToast]
-  );
+
+      // ❗ Safety check
+      const purchaseId = data.purchase?.id;
+      if (!purchaseId) {
+        showToast("❌ Missing purchase ID");
+        return;
+      }
+
+      // 2️⃣ Create Stripe Checkout session
+      const checkoutRes = await fetch(
+        `${API}/stripe/create-checkout/${purchaseId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const checkoutData = await checkoutRes.json();
+
+      if (!checkoutRes.ok || !checkoutData.checkoutUrl) {
+        showToast("❌ Failed to start Stripe checkout");
+        return;
+      }
+
+      // 3️⃣ Redirect to Stripe
+      window.location.href = checkoutData.checkoutUrl;
+
+    } catch {
+      showToast("❌ Network error");
+    } finally {
+      setBuyingId(null);
+    }
+  },
+  [fetchAvatars, normalizeSelection, showToast]
+);
 
   const handleUnlockMonthly = useCallback(
     async (fileName: string) => {
@@ -710,8 +708,7 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
             {visibleRestLocked.map((a) => {
-              const isPending = pendingAvatarIds.has(a.id);
-
+        
               return (
                 <div key={a.id} className="flex flex-col items-center gap-3">
                   <AvatarBubble
@@ -722,18 +719,17 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
                     onPreview={() => openPreview(a)}
                     badgeText={formatPrice(a.priceCents) || "PAID"}
                   />
-
-                  <button
-                    onClick={() => openPreview(a)}
-                    disabled={isPending}
-                    className={`px-4 py-2 rounded-xl font-bold shadow-lg ${
-                      isPending
-                        ? "bg-white/20 text-white cursor-default"
-                        : "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                    }`}
-                  >
-                    {isPending ? "Pending..." : "View"}
-                  </button>
+<button
+  onClick={() => openPreview(a)}
+  disabled={buyingId === a.id}
+  className={`px-4 py-2 rounded-xl font-bold shadow-lg ${
+    buyingId === a.id
+      ? "bg-white/20 text-white cursor-default"
+      : "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+  }`}
+>
+  {buyingId === a.id ? "Processing..." : "View"}
+</button>
                 </div>
               );
             })}
@@ -932,11 +928,12 @@ const hasMoreRestLocked = restLocked.length > lockedLimit;
           Close
         </button>
 
-        <a href="/Subscription"
-          className="px-4 py-2 rounded-xl font-bold shadow-lg bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-        >
-          Go Premium
-        </a>
+        <button
+  onClick={() => router.push("/Subscription")}
+  className="px-4 py-2 rounded-xl font-bold shadow-lg bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+>
+  Go Premium
+</button>
       </div>
     </div>
   ) : (

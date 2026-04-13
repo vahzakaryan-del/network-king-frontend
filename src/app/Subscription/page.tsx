@@ -82,7 +82,7 @@ export default function PremiumPage() {
   useEffect(() => {
   const params = new URLSearchParams(window.location.search);
 
-  if (params.get("success")) {
+if (params.get("subscription")) {
     fetchEntitlements();
   }
 }, [fetchEntitlements]);
