@@ -1,3 +1,6 @@
+//frontend\src\app\chat\global\page.tsx
+// 
+
 "use client";
 
 import { Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
@@ -92,55 +95,7 @@ useEffect(() => {
     };
   }, []);
 
-  // -----------------------------------------------------------
-  // fetch unread counts
-  // -----------------------------------------------------------
-  const refreshUnread = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    const next: UnreadMap = {};
-
-    const g = await fetch(
-      `${BACKEND_URL}/global/unread-counts?channels=global,announcements,random`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    if (g.ok) {
-      const data = await g.json();
-      const by = data?.byChannel || {};
-      for (const k of Object.keys(by)) next[k] = Number(by[k]) || 0;
-    }
-
-    if (typeof currentLevel === "number" && currentLevel > 0) {
-      const results = await Promise.all(
-        Array.from({ length: currentLevel }, (_, i) => i + 1).map(async (lvl) => {
-          const res = await fetch(
-            `${BACKEND_URL}/chat/levels/${lvl}/unread-counts`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          if (!res.ok) return [lvl, 0] as const;
-          const data = await res.json();
-          return [lvl, Number(data?.total) || 0] as const;
-        })
-      );
-
-      for (const [lvl, total] of results) {
-        next[`level-${lvl}`] = total;
-      }
-    }
-
-    setUnreadByChannel(next);
-  }, [currentLevel]);
-
-  useEffect(() => {
-    if (currentLevel == null) return;
-    refreshUnread();
-  }, [currentLevel, refreshUnread]);
-
-  useEffect(() => {
-    refreshUnread();
-  }, [channel, refreshUnread]);
+ 
 
   // -----------------------------------------------------------
   // Enforce level access
@@ -161,9 +116,18 @@ useEffect(() => {
   // -----------------------------------------------------------
   // Sync URL
   // -----------------------------------------------------------
-  useEffect(() => {
+useEffect(() => {
+  const currentUrlChannel = params.get("channel") || "global";
+
+  if (currentUrlChannel !== channel) {
     router.replace(`/chat/global?channel=${channel}`);
-  }, [channel, router]);
+  }
+
+  setUnreadByChannel((prev) => ({
+    ...prev,
+    [channel]: 0,
+  }));
+}, [channel, router, params]);
 
   // -----------------------------------------------------------
   // ✅ REALTIME (FIXED — NO getSocket HERE)
@@ -171,17 +135,33 @@ useEffect(() => {
   useEffect(() => {
     if (!socket) return;
 
-const onGlobal = () => refreshUnread();
-    const onLevel = () => refreshUnread();
+const onGlobal = (msg: any) => {
+  if (msg.channel !== channel) {
+    setUnreadByChannel((prev) => ({
+      ...prev,
+      [msg.channel || "global"]: (prev[msg.channel || "global"] || 0) + 1,
+    }));
+  }
+};
 
-    socket.on("global_message", onGlobal);
-    socket.on("level_sub_message", onLevel);
+const onLevel = (msg: any) => {
+  const key = `level-${msg.levelNumber}`;
+  if (channel !== key) {
+    setUnreadByChannel((prev) => ({
+      ...prev,
+      [key]: (prev[key] || 0) + 1,
+    }));
+  }
+};
+
+socket.on("global_message", onGlobal);
+socket.on("level_sub_message", onLevel);
 
     return () => {
       socket.off("global_message", onGlobal);
       socket.off("level_sub_message", onLevel);
     };
-  }, [socket, refreshUnread]);
+  }, [socket,  channel]);
 
   function prettyName(id: string) {
     if (id === "global") return "Global Chat";
@@ -203,10 +183,11 @@ const onGlobal = () => refreshUnread();
     <>
       <main className="hidden md:flex h-screen bg-[#2b2d31] text-white overflow-hidden">
         <Sidebar
-          selected={channel}
-          onSelect={setChannel}
-          unreadByChannel={unreadByChannel}
-        />
+  selected={channel}
+  onSelect={setChannel}
+  unreadByChannel={unreadByChannel}
+  currentLevel={currentLevel}
+/>
 
         <div className="flex-1 flex flex-col border-x border-white/10 min-w-0">
           {!isLevel && (
@@ -231,6 +212,7 @@ const onGlobal = () => refreshUnread();
   socket={socket}
   onLevelUnreadTotal={handleLevelUnreadTotal}
   isMobile
+  currentLevel={currentLevel}
 />
         </div>
 
@@ -239,14 +221,15 @@ const onGlobal = () => refreshUnread();
 
       <main className="md:hidden flex h-screen bg-[#2b2d31] text-white overflow-hidden">
         <Sidebar
-          compact
-          selected={channel}
-          onSelect={(c) => {
-            setChannel(c);
-            setMembersOpen(false);
-          }}
-          unreadByChannel={unreadByChannel}
-        />
+  compact
+  selected={channel}
+  onSelect={(c) => {
+    setChannel(c);
+    setMembersOpen(false);
+  }}
+  unreadByChannel={unreadByChannel}
+  currentLevel={currentLevel}
+/>
 
         <div className="flex-1 flex flex-col border-l border-white/10 min-w-0">
           {!isLevel && (
@@ -283,7 +266,8 @@ const onGlobal = () => refreshUnread();
   channel={channel}
   socket={socket}
   onLevelUnreadTotal={handleLevelUnreadTotal}
- isMobile={false}
+  isMobile
+  currentLevel={currentLevel}
 />
         </div>
 

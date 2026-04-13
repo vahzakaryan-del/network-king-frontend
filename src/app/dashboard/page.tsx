@@ -291,12 +291,16 @@ function GlobalChatPreview({
                 className="w-full text-left flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-md px-2 py-1 transition"
               >
                 <img
-                 src={m.user.avatar ? asset(`avatars/${m.user.avatar}`) : asset("avatars/default.webp")}
+                src={
+  m.user?.avatar
+    ? asset(`avatars/${m.user.avatar}`)
+    : asset("avatars/default.webp")
+}
                   alt={m.user.name}
                   className="w-6 h-6 rounded-full object-cover border border-white/20"
                 />
                 <span className="font-semibold text-white/90 truncate max-w-[90px]">
-                  {m.user.name}
+                {m.user?.name || "System"}
                 </span>
                 {m.user.mainCountry && (
                   <img
@@ -927,12 +931,12 @@ const pointerSize = wheelSize * 0.04;
 const [globalPreview, setGlobalPreview] = useState<any[]>([]);
 const [friendsPreview, setFriendsPreview] = useState<any[]>([]);
 
-const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
+const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
 
 const friendsWithPresence = useMemo(() => {
   return friendsPreview.map((f) => ({
     ...f,
-    online: onlineUsers.includes(f.id),
+    online: onlineUsers.has(f.id),
   }));
 }, [friendsPreview, onlineUsers]);
 const [testsPreview, setTestsPreview] = useState<any[]>([]);
@@ -1037,20 +1041,19 @@ useEffect(() => {
 
     // ✅ INITIAL ONLINE USERS
 socket.on("online_users", (ids: number[]) => {
-  setOnlineUsers(ids);
+  setOnlineUsers(new Set(ids));
 });
 
-// ✅ USER ONLINE
 socket.on("user_online", ({ userId }) => {
-  setOnlineUsers((prev) => {
-    if (prev.includes(userId)) return prev;
-    return [...prev, userId];
-  });
+  setOnlineUsers((prev) => new Set(prev).add(userId));
 });
 
-// ✅ USER OFFLINE
 socket.on("user_offline", ({ userId }) => {
-  setOnlineUsers((prev) => prev.filter((id) => id !== userId));
+  setOnlineUsers((prev) => {
+    const next = new Set(prev);
+    next.delete(userId);
+    return next;
+  });
 });
 
 // 🔥 GET INITIAL STATE

@@ -20,6 +20,7 @@ const [invitedLoading, setInvitedLoading] = useState(false);
 const [invitedError, setInvitedError] = useState("");
 
 const onlineSetRef = useRef<Set<number>>(new Set());
+const initialLoadedRef = useRef(false);
 
   const [tab, setTab] = useState<"friends" | "requests">("friends");
   const [requestsSub, setRequestsSub] = useState<"incoming" | "outgoing">(
@@ -56,7 +57,7 @@ const [recommendedInitialized, setRecommendedInitialized] = useState(false);
   const [recommendedOpen, setRecommendedOpen] = useState(false);
   // Mobile invite dropdown
 const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
-
+  
   const router = useRouter();
   const searchParams = useSearchParams();
   const token =
@@ -152,22 +153,15 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
   }
 }, [searchParams, router]);
 
-
-  useEffect(() => {
+useEffect(() => {
   if (!token) return;
+  if (initialLoadedRef.current) return;
+
+  initialLoadedRef.current = true;
 
   refreshAll();
-  loadInviteInfo(); // ✅ add this
-
-  const id = setInterval(() => {
-    refreshAll();
-    // optional: refresh invite count periodically
-    loadInviteInfo();
-  }, 15000);
-
-  return () => clearInterval(id);
+  loadInviteInfo();
 }, [token]);
-
 
   // Find friends drawer search (global search)
   useEffect(() => {
@@ -199,30 +193,26 @@ const [mobileInviteOpen, setMobileInviteOpen] = useState(false);
   }, [findQuery, findOpen, token]);
 
   // Unread DM count
-  useEffect(() => {
-    if (!token) return;
+ useEffect(() => {
+  if (!token) return;
 
-    const loadUnread = () => {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/dm/unread`, {
-  headers: { Authorization: `Bearer ${token}` },
-})
-        .then((res) => res.json())
-        .then((data) => {
-          const map: Record<number, number> = {};
-          (data.unread || []).forEach((u: any) => {
-            map[u.senderId] = u._count._all;
-          });
-          setUnreadMap(map);
-        })
-        .catch(() => {});
-    };
+  const loadUnread = () => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/dm/unread`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const map: Record<number, number> = {};
+        (data.unread || []).forEach((u: any) => {
+          map[u.senderId] = u._count._all;
+        });
+        setUnreadMap(map);
+      })
+      .catch(() => {});
+  };
 
-    loadUnread(); // immediately
-    const id = setInterval(loadUnread, 15000); // same interval
-
-    return () => clearInterval(id);
-  }, [token]);
-
+  loadUnread(); // ONLY once
+}, [token]);
   async function loadFriends() {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends`, {
     headers: { Authorization: `Bearer ${token}` },

@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getSocket } from "@/lib/socket";
+import { getSocket } from "@/lib/socket"; 
 import { useRouter } from "next/navigation";
 import { asset } from "@/lib/assets";
 import type { Socket } from "socket.io-client";

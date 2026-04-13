@@ -128,8 +128,18 @@ const reason = useMemo(() => params.get("reason"), [params]);
 
   useEffect(() => {
   const token = localStorage.getItem("token");
-  if (token) router.replace("/dashboard");
-}, [router]);
+
+  // 🚨 if we JUST got redirected بسبب expired session → ignore token
+  if (token && reason !== "session_expired") {
+    router.replace("/dashboard");
+  }
+
+  // ✅ optional: clear bad token
+  if (reason === "session_expired") {
+    localStorage.removeItem("token");
+  }
+
+}, [router, reason]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const { name, value } = e.target;

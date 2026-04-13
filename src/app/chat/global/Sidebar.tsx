@@ -1,3 +1,6 @@
+//frontend\src\app\chat\global\Sidebar.tsx
+
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -41,40 +44,22 @@ export default function Sidebar({
   onSelect,
   unreadByChannel = {},
   compact = false,
+  currentLevel,
 }: {
   selected: string;
   onSelect: (c: string) => void;
   unreadByChannel?: UnreadMap;
   compact?: boolean;
+  currentLevel: number | null;
 }) {
-  const [currentLevel, setCurrentLevel] = useState(1);
+  
 
    const router = useRouter();
 
 const [lockedToast, setLockedToast] = useState(false);
 const [shakeId, setShakeId] = useState<string | null>(null);
 
- useEffect(() => {
-  let cancelled = false;
-
-  async function load() {
-    try {
-      const res = await apiFetch("/levels/mine");
-      const data = await res.json();
-
-      if (!cancelled && data?.level) {
-        setCurrentLevel(data.level);
-      }
-    } catch {
-      if (!cancelled) setCurrentLevel(1);
-    }
-  }
-
-  load();
-  return () => {
-    cancelled = true;
-  };
-}, []);
+const level = currentLevel ?? 1;
 
   function handleChannelClick(id: string, unlocked: boolean) {
   if (!unlocked) {
@@ -306,7 +291,7 @@ function getMobileGlowClasses(level: number) {
         {compact ? (
           <div className="grid grid-cols-1 gap-2">
             {levelChannels.map((lvl) => {
-              const unlocked = currentLevel >= lvl.level;
+              const unlocked = level >= lvl.level;
               const id = `level-${lvl.level}`;
 
               return (
@@ -324,7 +309,7 @@ function getMobileGlowClasses(level: number) {
           </div>
         ) : (
           levelChannels.map((lvl) => {
-            const unlocked = currentLevel >= lvl.level;
+            const unlocked = level >= lvl.level;
             const id = `level-${lvl.level}`;
 
             return (

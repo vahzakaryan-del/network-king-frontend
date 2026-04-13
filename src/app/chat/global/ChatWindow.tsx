@@ -323,12 +323,24 @@ function EmojiIcon({ e }: { e: AvailableEmoji }) {
 
 
 /* ------------------------------ Global Chat UI ----------------------------- */
-function GlobalChat({ channel, socket }: { channel: string; socket: Socket }) {
+function GlobalChat({ channel, socket, currentLevel }: { channel: string; socket: Socket; currentLevel: number | null }) {
   const router = useRouter();
+
+ const [myId, setMyId] = useState<number | null>(null);
+const [myName, setMyName] = useState("You");
+const [myAvatar, setMyAvatar] = useState<string | null>(null);
+const [myPremium, setMyPremium] = useState(false);
+
+useEffect(() => {
+  setMyId(Number(localStorage.getItem("userId")));
+  setMyName(localStorage.getItem("userName") || "You");
+  setMyAvatar(localStorage.getItem("avatar"));
+  setMyPremium(localStorage.getItem("isPremium") === "1");
+}, []);
 
   const [messages, setMessages] = useState<GlobalMessage[]>([]);
   const [text, setText] = useState("");
-  const [myLevel, setMyLevel] = useState<number>(1);
+ const myLevel = currentLevel ?? 1;
   const [showScroll, setShowScroll] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -405,36 +417,43 @@ const emojisByLevel = useMemo(() => {
       .then((d) => setIsAdmin(d?.role === "admin"))
       .catch(() => setIsAdmin(false));
   }, []);
-
-  useEffect(() => {
+useEffect(() => {
   if (!mentionOpen) return;
 
   const token = localStorage.getItem("token");
   if (!token) return;
 
   const q = mentionQuery.trim();
-  if (!q) {
-    setMentionUsers([]);
-    return;
-  }
 
-  fetch(`${BACKEND_URL}/users/search?q=${encodeURIComponent(q)}`, {
-  headers: { Authorization: `Bearer ${token}` },
-})
-    .then((r) => r.json())
-    .then((d) => {
-      const users = Array.isArray(d?.users) ? d.users : [];
-setMentionUsers(users);
+  const t = setTimeout(() => {
+    if (!q) {
+      setMentionUsers([]);
+      return;
+    }
 
-setMentionCache((prev) => {
-  const next = new Map(prev);
-  for (const u of users) {
-    next.set(u.name.toLowerCase().replace(/\s+/g, "_"), u.id);
-  }
-  return next;
-});
+    fetch(`${BACKEND_URL}/users/search?q=${encodeURIComponent(q)}`, {
+      headers: { Authorization: `Bearer ${token}` },
     })
-    .catch(() => setMentionUsers([]));
+      .then((r) => r.json())
+      .then((d) => {
+        const users = Array.isArray(d?.users) ? d.users : [];
+        setMentionUsers(users);
+
+        setMentionCache((prev) => {
+          const next = new Map(prev);
+          for (const u of users) {
+            next.set(
+              u.name.toLowerCase().replace(/\s+/g, "_"),
+              u.id
+            );
+          }
+          return next;
+        });
+      })
+      .catch(() => setMentionUsers([]));
+  }, 250); // 🔥 debounce delay
+
+  return () => clearTimeout(t);
 }, [mentionQuery, mentionOpen]);
 
 
@@ -563,9 +582,7 @@ function renderFormattedContent(
       if (cancelled) return;
       setEmojis(Array.isArray(d?.emojis) ? d.emojis : []);
 
-      if (typeof d?.level === "number") {
-    setMyLevel(d.level);
-  }
+      
     })
     .catch(() => {
       if (cancelled) return;
@@ -581,107 +598,6 @@ function renderFormattedContent(
   };
 }, []);
 
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    if (!socket) return;
-
-   
-    socket.emit("channel_join", {
-      token,
-      channel: channelRef.current || "global",
-    });
-    prevChannelRef.current = channelRef.current || "global";
-
-   const onMessage = (msg: GlobalMessage) => {
-  const myId = Number(localStorage.getItem("userId"));
-const isMine = msg.user?.id === myId;
-
-const msgChannel = msg.channel || "global";
-const activeChannel = channelRef.current || "global";
-
-// ✅ allow own messages always
-if (!isMine && msgChannel !== activeChannel) return;
-  const myPremium = localStorage.getItem("isPremium") === "1";
-
-  if (msg.user?.id === myId) {
-    msg = {
-      ...msg,
-      user: {
-        ...msg.user,
-        isPremium: myPremium,
-      },
-    };
-  }
-
-  setMessages((prev) => [...prev, msg]);
-
-  const el = scrollAreaRef.current;
-  if (!el) return;
-
-  const distance = el.scrollHeight - (el.scrollTop + el.clientHeight);
-  if (distance < 400) {
-    requestAnimationFrame(() =>
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-    );
-    setNewMsgCount(0);
-    markGlobalReadOnServer(activeChannel);
-  } else {
-    setNewMsgCount((c) => c + 1);
-  }
-};
-
-    const onTyping = (user: TypingUser & { channel?: string }) => {
-      const active = channelRef.current || "global";
-      if ((user.channel || "global") !== active) return;
-
-      setTypingUsers((prev) => {
-        if (prev.find((u) => u.id === user.id)) return prev;
-        return [...prev, { id: user.id, name: user.name }];
-      });
-    };
-
-    const onStopTyping = ({
-      id,
-      channel: ch,
-    }: {
-      id: number;
-      channel: string;
-    }) => {
-      if ((ch || "global") !== (channelRef.current || "global")) return;
-      setTypingUsers((prev) => prev.filter((u) => u.id !== id));
-    };
-
-    const onChannelOnlineUsers = (payload: { channel: string; users: any[] }) => {
-      const active = channelRef.current || "global";
-      if ((payload.channel || "global") !== active) return;
-      setOnlineUsers(
-        Array.isArray(payload.users) ? payload.users.map((u) => u.id) : []
-      );
-    };
-
-    const onGlobalOnlineUsers = (users: any[]) => {
-      const active = channelRef.current || "global";
-      if (active !== "global") return;
-      setOnlineUsers(Array.isArray(users) ? users.map((u) => u.id) : []);
-    };
-
-    socket.on("global_message", onMessage);
-    socket.on("user_typing", onTyping);
-    socket.on("user_stopped_typing", onStopTyping);
-    socket.on("channel_online_users", onChannelOnlineUsers);
-    socket.on("global_online_users", onGlobalOnlineUsers);
-
-    return () => {
-      socket.off("global_message", onMessage);
-      socket.off("user_typing", onTyping);
-      socket.off("user_stopped_typing", onStopTyping);
-      socket.off("channel_online_users", onChannelOnlineUsers);
-      socket.off("global_online_users", onGlobalOnlineUsers);
-    };
-  }, [socket]);
-  
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -766,27 +682,20 @@ if (!isMine && msgChannel !== activeChannel) return;
 
   setText("");
 
-  const myId = Number(localStorage.getItem("userId"));
-const myName = localStorage.getItem("userName") || "You";
-const myAvatar = localStorage.getItem("avatar");
-const myPremium = localStorage.getItem("isPremium") === "1";
-
-
   socket.emit("global_message", {
     content,
     channel,
     mentions,
   });
-
-  const userId = Number(localStorage.getItem("userId"));
+const userId = myId;
   socket.emit("stop_typing", { id: userId, channel });
 };
 
   const handleTyping = () => {
     if (!socket) return;
 
-    const userId = Number(localStorage.getItem("userId"));
-    const userName = localStorage.getItem("userName") || "Someone";
+    const userId = myId;
+const userName = myName;
 
     socket.emit("typing", { id: userId, name: userName, channel });
 
@@ -1249,16 +1158,27 @@ function LevelChat({
   socket,
   onLevelUnreadTotal,
   isMobile,
+  currentLevel,
 }: {
   channel: string;
   levelNumber: number;
   socket: Socket;
   onLevelUnreadTotal?: (levelChannelId: string, total: number) => void;
   isMobile?: boolean;
-})
-
-{
+  currentLevel: number | null;
+}) {
   const router = useRouter();
+ const [myId, setMyId] = useState<number | null>(null);
+const [myName, setMyName] = useState("You");
+const [myAvatar, setMyAvatar] = useState<string | null>(null);
+const [myPremium, setMyPremium] = useState(false);
+
+useEffect(() => {
+  setMyId(Number(localStorage.getItem("userId")));
+  setMyName(localStorage.getItem("userName") || "You");
+  setMyAvatar(localStorage.getItem("avatar"));
+  setMyPremium(localStorage.getItem("isPremium") === "1");
+}, []);
 
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
   const [onlineUsersFull, setOnlineUsersFull] = useState<
@@ -1289,17 +1209,6 @@ const [mentionCache, setMentionCache] = useState<Map<string, number>>(new Map())
     else localStorage.setItem(unreadKey(lvl, subId), String(n));
   }
 
-  async function fetchUnreadCountsFromServer(lvl: number) {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-
-    const res = await fetch(`${BACKEND_URL}/chat/levels/${lvl}/unread-counts`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) return null;
-    return (await res.json()) as { bySub: Record<string, number>; total: number };
-  }
 
   async function markSubReadOnServer(lvl: number, subId: number) {
     const token = localStorage.getItem("token");
@@ -1353,63 +1262,47 @@ const [mentionCache, setMentionCache] = useState<Map<string, number>>(new Map())
     onLevelUnreadTotal(`level-${levelNumber}`, totalUnread);
   }, [totalUnread, levelNumber, onLevelUnreadTotal]);
 
-  useEffect(() => {
+ useEffect(() => {
   if (!mentionOpen) return;
 
   const token = localStorage.getItem("token");
   if (!token) return;
 
   const q = mentionQuery.trim();
-  if (!q) {
-    setMentionUsers([]);
-    return;
-  }
 
-  fetch(`${BACKEND_URL}/levels/${levelNumber}/search-users?q=${encodeURIComponent(q)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-    .then((r) => r.json())
-    .then((d) => {
-      const users = Array.isArray(d?.users) ? d.users : [];
-setMentionUsers(users);
+  const t = setTimeout(() => {
+    if (!q) {
+      setMentionUsers([]);
+      return;
+    }
 
-setMentionCache((prev) => {
-  const next = new Map(prev);
-  for (const u of users) {
-    next.set(u.name.toLowerCase().replace(/\s+/g, "_"), u.id);
-  }
-  return next;
-});
-    })
-    .catch(() => setMentionUsers([]));
-}, [mentionQuery, mentionOpen]);
+    fetch(
+      `${BACKEND_URL}/levels/${levelNumber}/search-users?q=${encodeURIComponent(q)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        const users = Array.isArray(d?.users) ? d.users : [];
+        setMentionUsers(users);
 
-  useEffect(() => {
-    if (!socket) return;
-
-    const onConnect = () => {
-      fetchUnreadCountsFromServer(levelNumber).then((data) => {
-        if (!data?.bySub) return;
-
-        setUnreadBySub((prev) => {
-          const next: Record<number, number> = { ...prev };
-          for (const [subIdStr, count] of Object.entries(data.bySub)) {
-            const subId = Number(subIdStr);
-            if (Number.isFinite(subId)) {
-              next[subId] = Number(count) || 0;
-              writeUnreadToStorage(levelNumber, subId, next[subId]);
-            }
+        setMentionCache((prev) => {
+          const next = new Map(prev);
+          for (const u of users) {
+            next.set(
+              u.name.toLowerCase().replace(/\s+/g, "_"),
+              u.id
+            );
           }
           return next;
         });
-      });
-    };
+      })
+      .catch(() => setMentionUsers([]));
+  }, 250);
 
-    socket.on("connect", onConnect);
-    return () => {
-      socket.off("connect", onConnect);
-    };
-  }, [levelNumber]);
+  return () => clearTimeout(t);
+}, [mentionQuery, mentionOpen, levelNumber]);
 
   const [subChannels, setSubChannels] = useState<SubChannel[]>([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
@@ -1417,7 +1310,7 @@ setMentionCache((prev) => {
 
   const [messages, setMessages] = useState<LevelMessage[]>([]);
   const [text, setText] = useState("");
-  const [myLevel, setMyLevel] = useState<number>(1);
+  const myLevel = currentLevel ?? 1;
   const [loadingMsgs, setLoadingMsgs] = useState(false);
 
   const [emojis, setEmojis] = useState<AvailableEmoji[]>([]);
@@ -1551,19 +1444,6 @@ const emojisByLevel = useMemo(() => {
       }
       setUnreadBySub(map);
 
-      fetchUnreadCountsFromServer(levelNumber).then((data2) => {
-        if (!data2?.bySub) return;
-
-        const next: Record<number, number> = { ...map };
-        for (const [subIdStr, count] of Object.entries(data2.bySub)) {
-          const subId = Number(subIdStr);
-          if (Number.isFinite(subId)) {
-            next[subId] = Number(count) || 0;
-            writeUnreadToStorage(levelNumber, subId, next[subId]);
-          }
-        }
-        setUnreadBySub(next);
-      });
     })
     .catch(() => {
       if (cancelled) return;
@@ -1649,7 +1529,7 @@ const emojisByLevel = useMemo(() => {
 
       if (msg.levelNumber !== lvl) return;
 
-      const myId = Number(localStorage.getItem("userId"));
+    
       const isMine = !!(msg.user?.id && myId && msg.user.id === myId);
 
       if (!sub) {
@@ -1712,9 +1592,7 @@ const emojisByLevel = useMemo(() => {
         if (cancelled) return;
         setEmojis(Array.isArray(d?.emojis) ? d.emojis : []);
 
-        if (typeof d?.level === "number") {
-    setMyLevel(d.level);
-  }
+    
       })
       .catch(() => {
         if (cancelled) return;
@@ -1762,12 +1640,6 @@ async function sendLevelMessage() {
 
   setText("");
   setEmojiOpen(false);
-
-  const myId = Number(localStorage.getItem("userId"));
-const myName = localStorage.getItem("userName") || "You";
-const myAvatar = localStorage.getItem("avatar");
-const myPremium = localStorage.getItem("isPremium") === "1";
-
 
 
   socket.emit("level_sub_message", {
@@ -1964,21 +1836,6 @@ function insertSystemEmoji(emoji: any) {
                 setActiveSub(null);
                 setEmojiOpen(false);
 
-                fetchUnreadCountsFromServer(levelNumber).then((data) => {
-                  if (!data?.bySub) return;
-
-                  setUnreadBySub((prev) => {
-                    const next: Record<number, number> = { ...prev };
-                    for (const [subIdStr, count] of Object.entries(data.bySub)) {
-                      const subId = Number(subIdStr);
-                      if (Number.isFinite(subId)) {
-                        next[subId] = Number(count) || 0;
-                        writeUnreadToStorage(levelNumber, subId, next[subId]);
-                      }
-                    }
-                    return next;
-                  });
-                });
               }}
               className="text-xs px-3 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/20"
             >
@@ -2774,16 +2631,18 @@ export default function ChatWindow({
   socket,
   onLevelUnreadTotal,
   isMobile = false,
+  currentLevel,
 }: {
   channel: string;
   socket: Socket;
   onLevelUnreadTotal?: (levelChannelId: string, total: number) => void;
   isMobile?: boolean;
-}){
+  currentLevel: number | null;
+}) {
   const levelNumber = useMemo(() => parseLevel(channel), [channel]);
 
   if (levelNumber == null) {
-    return <GlobalChat channel={channel} socket={socket} />;
+    return <GlobalChat channel={channel} socket={socket} currentLevel={currentLevel} />;
   }
 
   return (
@@ -2793,6 +2652,7 @@ export default function ChatWindow({
     socket={socket}
     onLevelUnreadTotal={onLevelUnreadTotal}
     isMobile={isMobile}
+     currentLevel={currentLevel}
   />
 );
 }
