@@ -971,15 +971,37 @@ useEffect(() => {
   /* -------------------------------------------------------
      Load profile + notifications
      ------------------------------------------------------- */
-  useEffect(() => {
+ useEffect(() => {
   const token = localStorage.getItem("token");
-
   if (!token) {
     setMessage("❌ Please log in first.");
     setTimeout(() => router.push("/login"), 1200);
     return;
   }
 
+  // ✅ 1. INSTANT LOAD FROM CACHE
+  const cached = sessionStorage.getItem("dashboard_cache");
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+
+      setUser(data.user);
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+      setLevels(data.levels || []);
+      setCurrentLevel(data.currentLevel || 1);
+      setIsPremium(!!data.isPremium);
+
+      setGlobalPreview(data.globalPreview || []);
+      setFriendsPreview(data.friendsPreview || []);
+      setTestsPreview(data.testsPreview || []);
+      setLeaderboard(data.leaderboard || null);
+
+      setMessage(""); // no loading delay
+    } catch {}
+  }
+
+  // ✅ 2. FETCH IN BACKGROUND (silent refresh)
   apiFetch(`/dashboard`)
     .then(async (res) => {
       if (!res.ok) {
@@ -988,37 +1010,24 @@ useEffect(() => {
       }
       return res.json();
     })
-.then((resData) => {
-      // 👤 USER
-     setUser(resData.user);
-
-      // 🔔 NOTIFICATIONS
+    .then((resData) => {
+      // update UI
+      setUser(resData.user);
       setNotifications(resData.notifications || []);
-setUnreadCount(resData.unreadCount || 0);
-
-      // 🏰 LEVELS
+      setUnreadCount(resData.unreadCount || 0);
       setLevels(resData.levels || []);
-setCurrentLevel(resData.currentLevel || 1);
-
-      // 💎 PREMIUM
+      setCurrentLevel(resData.currentLevel || 1);
       setIsPremium(!!resData.isPremium);
-      localStorage.setItem("isPremium", resData.isPremium ? "1" : "0");
 
-     setGlobalPreview(resData.globalPreview || []);
-setFriendsPreview(resData.friendsPreview || []);
-setTestsPreview(resData.testsPreview || []);
-setLeaderboard(resData.leaderboard || null);
+      setGlobalPreview(resData.globalPreview || []);
+      setFriendsPreview(resData.friendsPreview || []);
+      setTestsPreview(resData.testsPreview || []);
+      setLeaderboard(resData.leaderboard || null);
 
-      // 🎯 OPTIONAL: onboarding
-      if (!resData.user?.hasSeenOnboarding) {
-        setTimeout(() => setShowOnboarding(true), 500);
-      }
-
-      setMessage("");
+      // 🔥 SAVE CACHE
+      sessionStorage.setItem("dashboard_cache", JSON.stringify(resData));
     })
-    .catch((err) => {
-      console.error(err);
-    });
+    .catch(console.error);
 }, [router]);
 
   
@@ -1775,9 +1784,17 @@ function showToast(note: NotificationItem) {
               <div className="flex justify-center gap-4 md:gap-5">
                 <button
                   onClick={() => {
-                    localStorage.removeItem("token");
-                    router.push("/login");
-                  }}
+  const socket = getSocket();
+  if (socket) {
+    socket.disconnect(); // 💥 THIS FIXES YOUR BUG
+  }
+
+  delete (window as any).__socket; // 💥 remove singleton
+
+  localStorage.removeItem("token");
+
+  router.push("/login");
+}}
                   className="px-6 py-3 rounded-full font-semibold
                      bg-gradient-to-r from-gray-100 to-gray-200 text-gray-900
                      hover:from-gray-200 hover:to-gray-300
@@ -1975,7 +1992,7 @@ badgeScoreUnit: b.badgeScoreUnit ?? "percent",
               onClick={() => router.push("/tests")}
               className="mt-3 w-full px-5 py-2.5 rounded-lg bg-amber-400 text-gray-900 font-semibold hover:bg-amber-300 transition text-sm"
             >
-              Open Tests
+              All Tests
             </button>
           </motion.div>
 
@@ -2377,7 +2394,7 @@ badgeScoreUnit: b.badgeScoreUnit ?? "percent",
                 onClick={() => router.push("/tests")}
                 className="mt-4 w-full px-5 py-3 rounded-lg bg-amber-400 text-gray-900 font-semibold hover:bg-amber-300 transition-transform hover:scale-105"
               >
-                Open Tests
+                All Tests
               </button>
             </motion.div>
 

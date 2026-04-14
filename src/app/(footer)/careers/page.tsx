@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export default function CareersPage() {
-  const jobsEmail = "mycompany@jobs.com"; // you will replace later
+  const jobsEmail = "contact@networkking.app"; // you will replace later
 
   return (
     <div className="space-y-8">
@@ -43,7 +43,7 @@ export default function CareersPage() {
             )}&body=${encodeURIComponent(
               "Hi,\n\nI’d like to apply for: [Role Name]\n\nHere is my CV:\n[Attach CV]\n\nBest,\n[Your Name]"
             )}`}
-            className="underline underline-offset-4 text-red-700 hover:text-amber-100"
+            className="underline underline-offset-4 text-red-700 hover:text-black"
           >
             {jobsEmail}
           </a>

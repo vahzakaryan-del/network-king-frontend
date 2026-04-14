@@ -9,6 +9,8 @@ import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import type { Socket } from "socket.io-client";
 
+let EMOJI_CACHE: AvailableEmoji[] | null = null;
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL!;
 const MAX_MESSAGE_LEN = 500;
 
@@ -339,15 +341,69 @@ useEffect(() => {
 }, []);
 
   const [messages, setMessages] = useState<GlobalMessage[]>([]);
+  const cacheRef = useRef<Record<string, GlobalMessage[]>>({});
   const [text, setText] = useState("");
  const myLevel = currentLevel ?? 1;
   const [showScroll, setShowScroll] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+
+  useEffect(() => {
+  if (!socket) return;
+
+  const onTyping = (data: { id: number; name: string; channel: string }) => {
+    if (data.channel !== channelRef.current) return;
+if (data.id === myId) return; // ✅ prevent self typing
+
+    setTypingUsers((prev) => {
+      if (prev.find((u) => u.id === data.id)) return prev;
+      return [...prev, { id: data.id, name: data.name }];
+    });
+  };
+
+  const onStopTyping = (data: { id: number; channel: string }) => {
+    if (data.channel !== channelRef.current) return;
+if (data.id === myId) return;
+
+    setTypingUsers((prev) => prev.filter((u) => u.id !== data.id));
+  };
+
+  socket.on("user_typing", onTyping);
+  socket.on("user_stopped_typing", onStopTyping);
+
+  return () => {
+    socket.off("user_typing", onTyping);
+    socket.off("user_stopped_typing", onStopTyping);
+  };
+}, [socket]);
+
+
   const [newMsgCount, setNewMsgCount] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+  if (!socket) return;
+
+  const handleGlobalUsers = (payload: any) => {
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.users)
+      ? payload.users
+      : [];
+
+    setOnlineUsers(list.map((u: any) => u.id));
+  };
+
+  socket.on("global_online_users", handleGlobalUsers);
+
+  // 🔥 request immediately
+  socket.emit("get_global_online_users");
+
+  return () => {
+    socket.off("global_online_users", handleGlobalUsers);
+  };
+}, [socket]);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [loadingInitial, setLoadingInitial] = useState(false);
 
   const [mentionOpen, setMentionOpen] = useState(false);
@@ -372,6 +428,7 @@ const [mentionCache, setMentionCache] = useState<Map<string, number>>(new Map())
   el.style.height = Math.min(el.scrollHeight, 120) + "px";
 }, [text]);
   
+const isInitialLoadRef = useRef(true);
 
   const [emojis, setEmojis] = useState<AvailableEmoji[]>([]);
 const [emojiOpen, setEmojiOpen] = useState(false);
@@ -407,16 +464,11 @@ const emojisByLevel = useMemo(() => {
   const prevChannelRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const role = localStorage.getItem("role");
+  setIsAdmin(role === "admin");
+}, []);
 
-    fetch(`${BACKEND_URL}/me/role`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => setIsAdmin(d?.role === "admin"))
-      .catch(() => setIsAdmin(false));
-  }, []);
+
 useEffect(() => {
   if (!mentionOpen) return;
 
@@ -457,14 +509,15 @@ useEffect(() => {
 }, [mentionQuery, mentionOpen]);
 
 
-  const canPost = channel !== "announcements" || isAdmin;
+  const canPost =
+  channel !== "announcements" || isAdmin === true;
 
   const fetchMessages = async (
     token: string,
     before?: string,
     channelOverride?: string
   ) => {
-    const chan = channelOverride ?? channelRef.current ?? "global";
+    const chan = channelOverride ?? channel ?? "global";
 
     const url = new URL(`${BACKEND_URL}/global/messages`);
     if (before) url.searchParams.set("before", before);
@@ -567,10 +620,17 @@ function renderFormattedContent(
     });
   }
 
-  useEffect(() => {
+ useEffect(() => {
   let cancelled = false;
   const token = localStorage.getItem("token");
   if (!token) return;
+
+  // ✅ USE CACHE FIRST
+  if (EMOJI_CACHE) {
+    setEmojis(EMOJI_CACHE);
+    setEmojiLoading(false);
+    return;
+  }
 
   setEmojiLoading(true);
 
@@ -580,9 +640,12 @@ function renderFormattedContent(
     .then((r) => r.json())
     .then((d) => {
       if (cancelled) return;
-      setEmojis(Array.isArray(d?.emojis) ? d.emojis : []);
 
-      
+      const list = Array.isArray(d?.emojis) ? d.emojis : [];
+      setEmojis(list);
+
+      // ✅ SAVE CACHE
+      EMOJI_CACHE = list;
     })
     .catch(() => {
       if (cancelled) return;
@@ -597,6 +660,17 @@ function renderFormattedContent(
     cancelled = true;
   };
 }, []);
+
+useEffect(() => {
+  if (messages.length > 0) {
+    const ch = channelRef.current;
+
+    cacheRef.current[ch] = messages;
+
+    (window as any).__chatCache = (window as any).__chatCache || {};
+    (window as any).__chatCache[ch] = messages;
+  }
+}, [messages]);
 
 
   useEffect(() => {
@@ -614,26 +688,68 @@ function renderFormattedContent(
     prevChannelRef.current = next;
   }, [channel, socket]);
 
-  
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+useEffect(() => {
+  channelRef.current = channel;
+}, [channel]);
 
-    setMessages([]);
-    setHasMore(true);
-    setNewMsgCount(0);
-    setTypingUsers([]);
+useEffect(() => {
+  if (!socket) return;
 
-    setLoadingInitial(true);
-    fetchMessages(token, undefined, channel).finally(() => {
-      setLoadingInitial(false);
-      markGlobalReadOnServer(channel || "global");
-      requestAnimationFrame(() =>
-        bottomRef.current?.scrollIntoView({ behavior: "auto" })
-      );
-    });
-  }, [channel]);
+  const onGlobal = (msg: any) => {
+    if (msg.channel !== channelRef.current) return;
+
+    setMessages((prev) => [...prev, msg]);
+
+    requestAnimationFrame(() =>
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    );
+  };
+
+  socket.on("global_message", onGlobal);
+
+  return () => {
+    socket.off("global_message", onGlobal);
+  };
+}, [socket]);
+
+useEffect(() => {
+  let cancelled = false;
+
+  const currentChannel = channel;
+
+const run = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  isInitialLoadRef.current = true; // ✅ START
+
+  setLoadingInitial(true);
+  setMessages([]);
+
+  await fetchMessages(token, undefined, currentChannel);
+
+  if (cancelled || currentChannel !== channel) return;
+
+  requestAnimationFrame(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+
+    // ✅ END after scroll
+    setTimeout(() => {
+      isInitialLoadRef.current = false;
+    }, 100);
+  });
+
+  setLoadingInitial(false);
+  markGlobalReadOnServer(currentChannel || "global");
+};
+
+  run();
+
+  return () => {
+    cancelled = true;
+  };
+}, [channel]);
 
   useEffect(() => {
     const el = scrollAreaRef.current;
@@ -645,7 +761,12 @@ function renderFormattedContent(
       setShowScroll(!nearBottom);
       if (nearBottom) setNewMsgCount(0);
 
-      if (el.scrollTop < 80 && !loadingMore && hasMore) {
+      if (
+  !isInitialLoadRef.current && // ✅ ADD THIS
+  el.scrollTop < 80 &&
+  !loadingMore &&
+  hasMore
+){
         const token = localStorage.getItem("token");
         if (!token || messages.length === 0) return;
 
@@ -687,23 +808,30 @@ function renderFormattedContent(
     channel,
     mentions,
   });
+
+ 
 const userId = myId;
   socket.emit("stop_typing", { id: userId, channel });
 };
 
-  const handleTyping = () => {
-    if (!socket) return;
+ const typingTimeoutRef = useRef<any>(null);
 
-    const userId = myId;
-const userName = myName;
+const handleTyping = () => {
+  if (!socket) return;
 
-    socket.emit("typing", { id: userId, name: userName, channel });
+  const userId = myId;
+  const userName = myName;
 
-    clearTimeout((window as any).typingTimeout);
-    (window as any).typingTimeout = setTimeout(() => {
-      socket.emit("stop_typing", { id: userId, channel });
-    }, 2000);
-  };
+  socket.emit("typing", { id: userId, name: userName, channel });
+
+  if (typingTimeoutRef.current) {
+    clearTimeout(typingTimeoutRef.current);
+  }
+
+  typingTimeoutRef.current = setTimeout(() => {
+    socket.emit("stop_typing", { id: userId, channel });
+  }, 2000);
+};
 
   return (
     <section className="relative flex flex-col flex-1 bg-[#2b2d31] text-white overflow-hidden">
@@ -734,10 +862,10 @@ const userName = myName;
         )}
 
        {messages.map((m) => {
-  const isAnnouncement = channel === "announcements";
+  const isAnnouncement = m.channel === "announcements";
 
   return (
-  <div key={m.id} className="flex items-start gap-3">
+  <div key={m.id} className="flex items-start gap-1">
             <div className="relative shrink-0">
               <img
   src={isAnnouncement ? asset("logo.png") : avatarSrc(m.user?.avatar)}
@@ -788,12 +916,16 @@ const userName = myName;
 </div>
 
 {isAnnouncement ? (
-  <div className="
-    relative rounded-xl p-4
+  <div
+  className=" mt-2
+    relative rounded-xl
+    px-5 py-5 sm:p-4   /* 🔥 bigger padding on mobile */
+    -mx-3 sm:mx-0      /* 🔥 stretch wider on mobile */
     bg-gradient-to-br from-yellow-500/10 via-amber-400/10 to-yellow-600/10
     border border-yellow-400/30
     shadow-[0_0_20px_rgba(250,204,21,0.15)]
-  ">
+  "
+>
     {/* Glow */}
     <div className="absolute inset-0 rounded-xl pointer-events-none
       bg-gradient-to-r from-yellow-400/0 via-yellow-400/10 to-yellow-400/0 blur-xl opacity-40" />
@@ -840,7 +972,7 @@ const userName = myName;
         <div ref={bottomRef} />
       </div>
 
-      {canPost ? (
+     {canPost && isAdmin !== null ? (
 <div className="p-3 border-t border-white/10 flex items-center gap-2 flex-shrink-0 relative min-w-0">
   <button
     type="button"
@@ -1181,6 +1313,28 @@ useEffect(() => {
 }, []);
 
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
+  useEffect(() => {
+  if (!socket) return;
+
+  const handleGlobalUsers = (payload: any) => {
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.users)
+      ? payload.users
+      : [];
+
+    setOnlineUsers(list.map((u: any) => u.id));
+  };
+
+  socket.on("global_online_users", handleGlobalUsers);
+
+  // 🔥 request immediately
+  socket.emit("get_global_online_users");
+
+  return () => {
+    socket.off("global_online_users", handleGlobalUsers);
+  };
+}, [socket]);
   const [onlineUsersFull, setOnlineUsersFull] = useState<
     { id: number; name: string; avatar?: string | null; mainCountry?: string | null;  }[]
   >([]);
@@ -1309,7 +1463,9 @@ const [mentionCache, setMentionCache] = useState<Map<string, number>>(new Map())
   const [activeSub, setActiveSub] = useState<SubChannel | null>(null);
 
   const [messages, setMessages] = useState<LevelMessage[]>([]);
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [text, setText] = useState("");
+  const subCacheRef = useRef<Record<string, LevelMessage[]>>({});
   const myLevel = currentLevel ?? 1;
   const [loadingMsgs, setLoadingMsgs] = useState(false);
 
@@ -1372,6 +1528,35 @@ const emojisByLevel = useMemo(() => {
       }
     };
   }, [levelRoom, socket]);
+
+  useEffect(() => {
+  if (!socket) return;
+
+  const onTyping = (data: { id: number; name: string; channel: string }) => {
+    if (data.channel !== `level-${levelNumber}`) return;
+    if (data.id === myId) return;
+
+    setTypingUsers((prev) => {
+      if (prev.find((u) => u.id === data.id)) return prev;
+      return [...prev, { id: data.id, name: data.name }];
+    });
+  };
+
+  const onStopTyping = (data: { id: number; channel: string }) => {
+    if (data.channel !== `level-${levelNumber}`) return;
+    if (data.id === myId) return;
+
+    setTypingUsers((prev) => prev.filter((u) => u.id !== data.id));
+  };
+
+  socket.on("user_typing", onTyping);
+  socket.on("user_stopped_typing", onStopTyping);
+
+  return () => {
+    socket.off("user_typing", onTyping);
+    socket.off("user_stopped_typing", onStopTyping);
+  };
+}, [socket, levelNumber, myId]);
 
   useEffect(() => {
   const el = textareaRef.current;
@@ -1459,14 +1644,27 @@ const emojisByLevel = useMemo(() => {
   };
 }, [levelNumber]);
 
-  useEffect(() => {
-    if (!activeSub) return;
+ useEffect(() => {
+  if (!activeSub) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const token = localStorage.getItem("token");
+  if (!token) return;
 
-    let cancelled = false;
-    setLoadingMsgs(true);
+  const key = `${levelNumber}:${activeSub.id}`;
+
+const cached =
+  subCacheRef.current[key] ||
+  (window as any).__levelChatCache?.[key];
+
+// ✅ instant UI
+if (cached) {
+  setMessages(cached);
+} else {
+  setMessages([]);
+}
+
+  let cancelled = false;
+  setLoadingMsgs(true);
 
     fetch(
       `${BACKEND_URL}/chat/levels/${levelNumber}/subchannels/${activeSub.id}/messages`,
@@ -1475,9 +1673,19 @@ const emojisByLevel = useMemo(() => {
       }
     )
       .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return;
-        setMessages(Array.isArray(data?.messages) ? data.messages : []);
+     .then((data) => {
+  if (cancelled) return;
+
+  const msgs = Array.isArray(data?.messages) ? data.messages : [];
+
+  setMessages(msgs);
+
+  const key = `${levelNumber}:${activeSub.id}`;
+  subCacheRef.current[key] = msgs;
+
+// ✅ GLOBAL CACHE
+(window as any).__levelChatCache = (window as any).__levelChatCache || {};
+(window as any).__levelChatCache[key] = msgs;
         requestAnimationFrame(() =>
           bottomRef.current?.scrollIntoView({ behavior: "auto" })
         );
@@ -1564,7 +1772,21 @@ const emojisByLevel = useMemo(() => {
   return;
 }
 
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+  const next = [...prev, msg];
+
+  const sub = activeSubRef.current;
+  const lvl = levelRef.current;
+
+  if (sub) {
+    const key = `${lvl}:${sub.id}`;
+    subCacheRef.current[key] = next; 
+    (window as any).__levelChatCache = (window as any).__levelChatCache || {};
+(window as any).__levelChatCache[key] = next;
+  }
+
+  return next;
+});
       requestAnimationFrame(() =>
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
       );
@@ -1578,35 +1800,44 @@ const emojisByLevel = useMemo(() => {
     }, [socket]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  let cancelled = false;
+  const token = localStorage.getItem("token");
+  if (!token) return;
 
-    let cancelled = false;
-    setEmojiLoading(true);
+  // ✅ CACHE
+  if (EMOJI_CACHE) {
+    setEmojis(EMOJI_CACHE);
+    setEmojiLoading(false);
+    return;
+  }
 
-    fetch(`${BACKEND_URL}/emojis/available`, {
-      headers: { Authorization: `Bearer ${token}` },
+  setEmojiLoading(true);
+
+  fetch(`${BACKEND_URL}/emojis/available`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      if (cancelled) return;
+
+      const list = Array.isArray(d?.emojis) ? d.emojis : [];
+      setEmojis(list);
+
+      EMOJI_CACHE = list;
     })
-      .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return;
-        setEmojis(Array.isArray(d?.emojis) ? d.emojis : []);
+    .catch(() => {
+      if (cancelled) return;
+      setEmojis([]);
+    })
+    .finally(() => {
+      if (cancelled) return;
+      setEmojiLoading(false);
+    });
 
-    
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setEmojis([]);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setEmojiLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [levelNumber]);
+  return () => {
+    cancelled = true;
+  };
+}, [levelNumber]);
 
   useEffect(() => {
     if (!emojiOpen) return;
@@ -2222,6 +2453,24 @@ function insertSystemEmoji(emoji: any) {
   const value = e.target.value;
   setText(value);
 
+  // ✅ ADD THIS
+  if (socket && myId) {
+    socket.emit("typing", {
+      id: myId,
+      name: myName,
+      channel: `level-${levelNumber}`,
+    });
+
+    clearTimeout((window as any).__lvlTyping);
+    (window as any).__lvlTyping = setTimeout(() => {
+      socket.emit("stop_typing", {
+        id: myId,
+        channel: `level-${levelNumber}`,
+      });
+    }, 2000);
+  }
+
+
   const match = value.match(/@([a-zA-Z0-9_.\-']*)$/);
 
   if (match) {
@@ -2363,185 +2612,23 @@ function insertSystemEmoji(emoji: any) {
                   </div>
                 ))}
 
-                <div ref={bottomRef} />
-              </div>
-
-              <div className="p-3 border-t border-white/10 flex items-center gap-2 relative">
-                <button
-                  type="button"
-                  data-emoji-btn
-                  onClick={() => setEmojiOpen((v) => !v)}
-                  className="px-3 py-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded-lg"
-                  title="Emojis"
-                >
-                  😊
-                </button>
-
-                {emojiOpen && (
-  <div
-    data-emoji-popover
-    className="absolute bottom-14 left-3 w-[320px] max-w-[80vw] bg-[#1e1f22] border border-white/10 rounded-xl shadow-xl p-3 z-[10000]"
-  >
-    {/* HEADER */}
-    <div className="flex items-center justify-between mb-2">
-      <div className="text-sm font-semibold">Emojis</div>
-
-      <button
-        type="button"
-        onClick={() => setEmojiOpen(false)}
-        className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-      >
-        close
-      </button>
-    </div>
-
-    {/* TABS */}
-    <div className="flex gap-2 mb-3">
-      
-
-      <button
-        onClick={() => setEmojiTab("custom")}
-        className={`px-2 py-1 text-xs rounded ${
-          emojiTab === "custom"
-  ? "bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-[0_0_10px_rgba(250,204,21,0.6)]"
-  : "bg-white/10"
-        }`}
-      >
-        👑 Level
-      </button>
-
-      <button
-        onClick={() => setEmojiTab("system")}
-        className={`px-2 py-1 text-xs rounded ${
-          emojiTab === "system"
-            ? "bg-amber-400 text-black"
-            : "bg-white/10"
-        }`}
-      >
-        😊 Classic
-      </button>
-    </div>
-
-    {/* CONTENT */}
-    {emojiTab === "system" ? (
-      <div className="h-[260px] overflow-hidden">
-        <Picker
-          data={data}
-          onEmojiSelect={insertSystemEmoji}
-          theme="dark"
-        />
-      </div>
-    ) : emojiLoading ? (
-      <div className="text-sm text-white/60">Loading…</div>
-    ) : emojis.length === 0 ? (
-      <div className="text-sm text-white/60">No emojis yet.</div>
-    ) : (
-     <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
-
-  {/* CURRENT LEVEL */}
-  <div>
-    <div className="text-xs text-amber-300 mb-2 font-semibold tracking-wide">
-      Your Level ({myLevel})
-    </div>
-
-    <div className="flex gap-2 flex-wrap">
-      {emojis
-  .filter((e) => e.unlockLevel <= myLevel)
-  .map((e) => (
-        <button
-          key={e.id}
-          onClick={() => insertEmoji(e)}
-          className="
-            w-9 h-9 rounded-lg flex items-center justify-center
-            bg-gradient-to-br from-amber-400/20 to-yellow-300/10
-            border border-amber-400/30
-            hover:scale-110 active:scale-95 hover:shadow-[0_0_12px_rgba(250,204,21,0.6)]
-            transition
-          "
-        >
-          <EmojiIcon e={e} />
-        </button>
-      ))}
-    </div>
-  </div>
-
-  {/* NEXT LEVEL PREVIEW */}
-  <div>
-    <div className="text-xs text-white/50 mb-2 flex items-center gap-2">
-      <span>Next Level ({myLevel + 1})</span>
-      <span className="text-red-400">🔒</span>
-    </div>
-
-    <div className="flex gap-2 flex-wrap">
-      {(emojisByLevel[myLevel + 1] || []).map((e) => (
-  <div
-    key={e.id}
-    className="relative w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center"
-  >
-    {/* REAL EMOJI */}
-    <div className="opacity-40 blur-[1px] scale-95">
-      <EmojiIcon e={e} />
-    </div>
-
-    {/* DARK OVERLAY */}
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" />
-
-    {/* LOCK ICON */}
-    <div className="absolute inset-0 flex items-center justify-center text-white text-xs">
-      🔒
-    </div>
-  </div>
-))}
-    </div>
-  </div>
-
-</div>
-    )}
+                {typingUsers.length > 0 && (
+  <div className="text-sm text-gray-200 italic flex items-center gap-1 mt-2 ml-10">
+    <span>
+      {typingUsers.map((u) => u.name).slice(0, 2).join(", ")}
+      {typingUsers.length > 2 ? " and others" : ""}{" "}
+      {typingUsers.length === 1 ? "is typing" : "are typing"}
+    </span>
+    <span className="flex gap-0.5 text-amber-400 animate-pulse">
+      • • •
+    </span>
   </div>
 )}
 
-                <textarea
-  ref={textareaRef}
-  rows={1}
-  maxLength={MAX_MESSAGE_LEN}
-  className="flex-1 min-w-0 bg-[#313338] text-white rounded-lg px-3 py-2 text-sm focus:outline-none resize-none overflow-hidden"
-  placeholder={`Message #${activeSub?.name ?? ""}`}
-  value={text}
-  onChange={(e) => {
-  const value = e.target.value;
-  setText(value);
-
-  const match = value.match(/@([a-zA-Z0-9_.\-']*)$/);
-
-  if (match) {
-  const query = match[1];
-
-  setMentionOpen(true);
-  setMentionQuery(query);
-
-  if (query.length === 0) {
-    setMentionUsers([]); // empty → shows hint
-  }
-} else {
-  setMentionOpen(false);
-}
-}}
-  onKeyDown={(e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-     sendLevelMessage();
-    }
-  }}
-/>
-
-                <button
-                  type="button"
-                  onClick={sendLevelMessage}
-                  className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold rounded-lg"
-                >
-                  Send
-                </button>
+                <div ref={bottomRef} />
               </div>
+
+          
             </motion.div>
           )}
         </AnimatePresence>

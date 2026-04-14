@@ -201,9 +201,36 @@ function getMobileGlowClasses(level: number) {
   const glowClass = isSelected && lvlNum ? getMobileGlowClasses(lvlNum) : "";
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
+   <button
+  type="button"
+  onClick={onClick}
+  onMouseEnter={async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  // ✅ DON'T refetch if already cached
+  if ((window as any).__chatCache?.[id]) return;
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/global/messages?channel=${id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const data = await res.json();
+
+    if (!Array.isArray(data?.messages)) return;
+
+    // ✅ STORE globally
+    if (!(window as any).__chatCache) {
+      (window as any).__chatCache = {};
+    }
+
+    (window as any).__chatCache[id] = data.messages;
+  } catch {}
+}}
       className={[
         "relative w-full rounded-xl border px-2 py-2 flex flex-col items-center justify-center gap-1 transition",
         "min-h-[62px]",
@@ -251,18 +278,31 @@ function getMobileGlowClasses(level: number) {
                 key={ch.id}
                 id={ch.id}
                 icon={ch.icon}
-                // ✅ point (2): name under icon
                 label={ch.name}
                 onClick={() => onSelect(ch.id)}
+                
               />
             ))}
           </div>
         ) : (
           baseChannels.map((ch) => (
-            <button
-              type="button"
-              key={ch.id}
-              onClick={() => onSelect(ch.id)}
+         <button
+  type="button"
+  key={ch.id}
+  onClick={() => onSelect(ch.id)}
+  onMouseEnter={() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/global/messages?channel=${ch.id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+  }}
+
+
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition
                  ${shakeId === ch.id ? "animate-[shake_0.35s]" : ""}
                 ${

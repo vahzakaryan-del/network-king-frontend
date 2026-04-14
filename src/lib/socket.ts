@@ -9,10 +9,22 @@ export function getSocket(): Socket | null {
   const token = localStorage.getItem("token");
   if (!token) return null;
 
-  if ((window as any).__socket) {
-    console.log("♻️ Returning existing socket:", (window as any).__socket.id);
-    return (window as any).__socket;
+const existing = (window as any).__socket;
+
+if (existing) {
+  const currentToken = localStorage.getItem("token");
+
+  // 🔥 if token changed → destroy old socket
+  if (existing.auth?.token !== currentToken) {
+    console.log("⚠️ Token changed → resetting socket");
+
+    existing.disconnect();
+    delete (window as any).__socket;
+  } else {
+    console.log("♻️ Returning existing socket:", existing.id);
+    return existing;
   }
+}
 
   console.log("🆕 Creating NEW socket — called from:", new Error().stack);
 

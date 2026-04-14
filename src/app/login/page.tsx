@@ -211,6 +211,8 @@ try {
     localStorage.setItem("userId", String(data.user?.id ?? ""));
     localStorage.setItem("userName", String(data.user?.name ?? ""));
     localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+    localStorage.setItem("role", String(data.user?.role ?? ""));
+    
 
     setNotice({
   kind: "success",
@@ -482,6 +484,7 @@ try {
         localStorage.setItem("userId", String(data.user?.id ?? ""));
         localStorage.setItem("userName", String(data.user?.name ?? ""));
         localStorage.setItem("avatar", String(data.user?.avatar ?? ""));
+        localStorage.setItem("role", String(data.user?.role ?? ""));
 
         setIsLeaving(true);
         setTimeout(() => router.push("/dashboard"), 600);

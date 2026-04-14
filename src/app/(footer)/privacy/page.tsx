@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 export default function PrivacyPage() {
-  const lastUpdated = "[Month Year]";
+  const lastUpdated = "2026-04-14";
 
   const sections: Array<{ title: string; content: React.ReactNode }> = [
     {
