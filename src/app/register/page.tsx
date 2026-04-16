@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { GoogleLogin } from "@react-oauth/google";
+import { Capacitor } from "@capacitor/core";
 
 
 
@@ -221,13 +222,25 @@ const isCoolingDown = cooldownSecondsLeft > 0;
 
 <div className="flex mb-2 flex-col items-center gap-2">
 
+ {Capacitor.isNativePlatform() ? (
+  // ✅ APP BUTTON
+  <button
+    onClick={() => {
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google/start`;
+    }}
+    className="w-full rounded-full bg-black text-white py-3 font-semibold flex items-center justify-center gap-2"
+  >
+    <img src="/google-icon.png" className="w-5 h-5" />
+    Continue with Google
+  </button>
+) : (
+  // ✅ WEB BUTTON (unchanged)
   <GoogleLogin
     theme="filled_black"
     shape="pill"
     size="large"
     onSuccess={async (credentialResponse) => {
       try {
-
         const ref = refFromUrl || localStorage.getItem("ref") || "";
 
         const res = await fetch(
@@ -245,10 +258,9 @@ const isCoolingDown = cooldownSecondsLeft > 0;
         const data = await res.json();
 
         if (!res.ok) {
-  console.error("Google login failed");
-  setMessage("❌ Google login failed. Try again.");
-  return;
-}
+          setMessage("❌ Google login failed. Try again.");
+          return;
+        }
 
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", String(data.user?.id ?? ""));
@@ -257,13 +269,13 @@ const isCoolingDown = cooldownSecondsLeft > 0;
         localStorage.removeItem("ref");
 
         router.push("/dashboard");
-
       } catch (err) {
         console.error("Google auth error", err);
       }
     }}
     onError={() => setMessage("❌ Google login failed. Try again.")}
   />
+)}
 
   <p className="text-xs mt-4 text-gray-300 text-center leading-relaxed">
 

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { GoogleLogin } from "@react-oauth/google";
 import { Eye, EyeOff } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 
 type NoticeKind = "success" | "warning" | "error" | "info";
 
@@ -453,6 +454,19 @@ try {
     </div>
   )}
 
+ {Capacitor.isNativePlatform() ? (
+  // ✅ APP BUTTON
+  <button
+    onClick={() => {
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google/start`;
+    }}
+    className="w-full rounded-full bg-black text-white py-3 font-semibold flex items-center justify-center gap-2"
+  >
+    <img src="/google-icon.png" className="w-5 h-5" />
+    Continue with Google
+  </button>
+) : (
+  // ✅ WEB BUTTON (unchanged)
   <GoogleLogin
     theme="filled_black"
     shape="pill"
@@ -471,7 +485,6 @@ try {
         );
 
         let data;
-
         try {
           data = await res.json();
         } catch {
@@ -488,13 +501,13 @@ try {
 
         setIsLeaving(true);
         setTimeout(() => router.push("/dashboard"), 600);
-
       } catch (err) {
         console.error("Google login error", err);
       }
     }}
     onError={() => console.log("Google Login Failed")}
   />
+)}
 </div>
     <p className="text-xs mt-3 mb-3 text-gray-300 text-center leading-relaxed">
  
