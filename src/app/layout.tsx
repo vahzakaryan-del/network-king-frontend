@@ -1,11 +1,8 @@
-"use client";
-
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { useEffect } from "react";
-import { StatusBar, Style } from "@capacitor/status-bar";
+import CapacitorFix from "@/components/CapacitorFix";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,18 +26,20 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
-  useEffect(() => {
-    StatusBar.setOverlaysWebView({ overlay: true });
-    StatusBar.setStyle({ style: Style.Dark });
-  }, []);
-
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+        
+        {/* ✅ Capacitor mobile fixes (status bar, etc.) */}
+        <CapacitorFix />
+
+        {/* ✅ Google OAuth (web only usage) */}
+        <GoogleOAuthProvider
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        >
           {children}
         </GoogleOAuthProvider>
+
       </body>
     </html>
   );
