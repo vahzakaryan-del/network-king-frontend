@@ -5,7 +5,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 
 type UnreadMap = Record<string, number>;
 
@@ -93,84 +92,49 @@ const level = currentLevel ?? 1;
   ];
 
 
+const mainChannels = [
+  { id: "help", name: "Get Help", icon: "🆘" },
+  { id: "networking", name: "Networking", icon: "🤝" },
+  { id: "general", name: "General", icon: "💬" },
+];
 
-  // ✅ Keep your original custom level names + icons
-  const levelChannels = [
-    { level: 1, name: "Entrance", icon: "🪵" },
-    { level: 2, name: "Gate", icon: "🪜" },
-    { level: 3, name: "Servant Hall", icon: "🧹" },
-    { level: 4, name: "Inner Gate", icon: "🔒" },
-    { level: 5, name: "Guard Post", icon: "🛡️" },
-    { level: 6, name: "Training Yard", icon: "⚔️" },
-    { level: 7, name: "Archer Loft", icon: "🏹" },
-    { level: 8, name: "Magic Room", icon: "🪄" },
-    { level: 9, name: "Trial Furnace", icon: "🔥" },
-    { level: 10, name: "Mind Chamber", icon: "🧠" },
-    { level: 11, name: "Whisper Hall", icon: "🌙" },
-    { level: 12, name: "Alchemy Lab", icon: "🧪" },
-    { level: 13, name: "Mask Room", icon: "🎭" },
-    { level: 14, name: "Library", icon: "📜" },
-    { level: 15, name: "Crystal Passage", icon: "💠" },
-    { level: 16, name: "Spiral Way", icon: "🌀" },
-    { level: 17, name: "Hidden Door", icon: "🗝️" },
-    { level: 18, name: "Gem Chamber", icon: "💎" },
-    { level: 19, name: "Shrine", icon: "🛕" },
-    { level: 20, name: "Inferno Gate", icon: "🌋" },
-    { level: 21, name: "Frost Vault", icon: "❄️" },
-    { level: 22, name: "Storm Hall", icon: "⚡" },
-    { level: 23, name: "Dragon Lair", icon: "🐉" },
-    { level: 24, name: "Oracle Room", icon: "👁️" },
-    { level: 25, name: "Mirror Chamber", icon: "🪞" },
-    { level: 26, name: "Gravity Well", icon: "🧲" },
-    { level: 27, name: "Divination Room", icon: "🔮" },
-    { level: 28, name: "Strategy Hall", icon: "♟️" },
-    { level: 29, name: "Fate Loom", icon: "🧵" },
-    { level: 30, name: "Ascension Step", icon: "🪶" },
-    { level: 31, name: "Silent Hall", icon: "🕯️" },
-    { level: 32, name: "Ancestor Court", icon: "🗿" },
-    { level: 33, name: "King’s Gate", icon: "👑" },
-    { level: 34, name: "Inner Sanctum", icon: "🛕" },
-    { level: 35, name: "Star Room", icon: "🌌" },
-    { level: 36, name: "Throne Apex", icon: "🏆" },
-  ];
+const gatedChannels = [
+  { id: "lvl-3", name: "Lvl 3", icon: "🔥", level: 3 },
+  { id: "lvl-8", name: "Lvl 8", icon: "💎", level: 12 },
+  { id: "lvl-15", name: "Lvl 15", icon: "👑", level: 18 },
+];
 
-  
+function getMainChannelGlow(id: string) {
+  switch (id) {
+    case "help":
+      return "ring-2 ring-red-400 shadow-[0_0_10px_#f87171]";
 
-  // glow colors based on level group (every 12 levels)
-function getMobileGlowClasses(level: number) {
-  const idx = (level - 1) % 36;
-  const group = Math.floor(idx / 3);
+    case "networking":
+      return "ring-2 ring-green-400 shadow-[0_0_10px_#4ade80]";
 
-  switch (group) {
-    case 0: // Amber (warm)
-      return "ring-2 ring-amber-400 shadow-[0_0_8px_#fbbf24] shadow-[0_0_14px_#f59e0b]";
-    case 1: // Cyan (cool)
-      return "ring-2 ring-cyan-400 shadow-[0_0_8px_#22d3ee] shadow-[0_0_14px_#06b6d4]";
-    case 2:// Red (strong)
-      return "ring-2 ring-red-500 shadow-[0_0_8px_#ef4444] shadow-[0_0_14px_#dc2626]";
-    case 3: // Lime (neon green)
-      return "ring-2 ring-lime-400 shadow-[0_0_8px_#a3e635] shadow-[0_0_14px_#84cc16]";
-    case 4: // Blue (deep cool) 
-      return "ring-2 ring-blue-500 shadow-[0_0_8px_#3b82f6] shadow-[0_0_14px_#2563eb]";
-    case 5:  // Yellow (bright) 
-      return "ring-2 ring-yellow-300 shadow-[0_0_8px_#fde047] shadow-[0_0_14px_#facc15]";
-    case 6: // White (neutral pop)
-      return "ring-2 ring-white shadow-[0_0_8px_#ffffff] shadow-[0_0_14px_#f9fafb]";
-    case 7: // Purple (contrast)
-      return "ring-2 ring-purple-500 shadow-[0_0_8px_#a855f7] shadow-[0_0_14px_#7e22ce]";
-    case 8: // Emerald (rich green)
-      return "ring-2 ring-emerald-400 shadow-[0_0_8px_#34d399] shadow-[0_0_14px_#059669]";
-    case 9: // Pink (vivid)
-      return "ring-2 ring-pink-500 shadow-[0_0_8px_#ec4899] shadow-[0_0_14px_#be185d]";
-    case 10: // Sky (light blue)
-      return "ring-2 ring-sky-400 shadow-[0_0_8px_#38bdf8] shadow-[0_0_14px_#0284c7]";
-    case 11: // Gray (cool neutral)
-      return "ring-2 ring-gray-300 shadow-[0_0_8px_#d1d5db] shadow-[0_0_14px_#9ca3af]";
+    case "general":
+      return "ring-2 ring-blue-400 shadow-[0_0_10px_#60a5fa]";
+
     default:
       return "";
   }
 }
 
+  // glow colors based on lvl
+function getMobileGlowClasses(level: number) {
+  switch (level) {
+    case 3:
+      return "ring-2 ring-orange-400 shadow-[0_0_8px_#fb923c] shadow-[0_0_16px_#f97316]";
+
+    case 8:
+      return "ring-2 ring-cyan-400 shadow-[0_0_8px_#22d3ee] shadow-[0_0_16px_#06b6d4]";
+
+  case 15:
+  return "ring-2 ring-purple-500 shadow-[0_0_10px_#a855f7] shadow-[0_0_20px_#7e22ce] animate-pulse";
+    default:
+      return "";
+  }
+}
 
   // ✅ your original: compact widths + stable min/max
   const asideClass = compact
@@ -193,13 +157,18 @@ function getMobileGlowClasses(level: number) {
   const isSelected = selected === id;
   const unread = unreadByChannel?.[id] ?? 0;
 
-  // extract level number
-  const lvlMatch = id.match(/^level-(\d+)$/);
-  const lvlNum = lvlMatch ? parseInt(lvlMatch[1], 10) : null;
+ const lvlMatch = id.match(/^lvl-(\d+)$/);
+const lvlNum = lvlMatch ? parseInt(lvlMatch[1], 10) : null;
 
-  // glow only if selected and is a level
-  const glowClass = isSelected && lvlNum ? getMobileGlowClasses(lvlNum) : "";
+let glowClass = "";
 
+if (isSelected) {
+  if (lvlNum) {
+    glowClass = getMobileGlowClasses(lvlNum);
+  } else {
+    glowClass = getMainChannelGlow(id);
+  }
+}
   return (
    <button
   type="button"
@@ -238,8 +207,8 @@ function getMobileGlowClasses(level: number) {
   ? "opacity-50 cursor-pointer"
   : "hover:bg-white/10 cursor-pointer",
         shakeId === id ? "animate-[shake_0.35s]" : "",
-        isSelected
-          ? `bg-amber-500/15 border-amber-400/30 text-amber-200 ${glowClass}`
+  isSelected
+  ? `bg-white/10 border-white/20 text-white ${glowClass}`
           : "bg-white/0 border-white/10 text-white/90",
       ].join(" ")}
       title={label}
@@ -320,68 +289,101 @@ function getMobileGlowClasses(level: number) {
         )}
       </div>
 
-      {/* LEVELS */}
-      <div>
-        {!compact && (
-          <h2 className="text-sm uppercase text-gray-400 mb-2">
-            Castle Levels
-          </h2>
-        )}
+     
+<div>
+  {!compact && (
+    <h2 className="text-sm uppercase text-gray-400 mb-2">
+      Channels
+    </h2>
+  )}
 
-        {compact ? (
-          <div className="grid grid-cols-1 gap-2">
-            {levelChannels.map((lvl) => {
-              const unlocked = level >= lvl.level;
-              const id = `level-${lvl.level}`;
+  {compact ? (
+    <div className="grid grid-cols-1 gap-2">
+      {mainChannels.map((ch) => (
+        <CompactTile
+          key={ch.id}
+          id={ch.id}
+          icon={ch.icon}
+          label={ch.name}
+          onClick={() => onSelect(ch.id)}
+        />
+      ))}
+    </div>
+  ) : (
+    mainChannels.map((ch) => (
+      <button
+        key={ch.id}
+        onClick={() => onSelect(ch.id)}
+        className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition
+          ${
+            selected === ch.id
+              ? "bg-amber-500/20 text-amber-300"
+              : "hover:bg-white/10"
+          }`}
+      >
+        <span>{ch.icon}</span>
+        <span className="truncate text-sm">{ch.name}</span>
+        <Badge n={unreadByChannel?.[ch.id] ?? 0} />
+      </button>
+    ))
+  )}
+</div>
 
-              return (
-                <CompactTile
-                  key={lvl.level}
-                  id={id}
-                  icon={lvl.icon}
-                  // ✅ point (1): tile layout + border + unread dot
-                  label={`lvl ${lvl.level}`}
-                   disabled={!unlocked}
-                  onClick={() => handleChannelClick(id, unlocked)}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          levelChannels.map((lvl) => {
-            const unlocked = level >= lvl.level;
-            const id = `level-${lvl.level}`;
+{/* LOUNGES */}
+<div>
+  {!compact && (
+    <h2 className="text-sm uppercase text-gray-400 mb-2">
+      Lounges
+    </h2>
+  )}
 
-            return (
-              <button
-                type="button"
-                key={lvl.level}
-                onClick={() => handleChannelClick(id, unlocked)}
-                className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition
-                  ${
-                    selected === id
-                      ? "bg-amber-500/20 text-amber-300"
-                      : unlocked
-                      ? "hover:bg-white/10"
-                      : "opacity-40"
-                  }`}
-              >
-                <span className="text-base">{lvl.icon}</span>
-                <span className="truncate text-sm">
-                  level-{lvl.level} {lvl.name}
-                </span>
-                {!unlocked ? (
-                  <span className="ml-auto">🔒</span>
-                ) : (
-                  <Badge n={unreadByChannel?.[id] ?? 0} />
-                )}
+  {compact ? (
+    <div className="grid grid-cols-1 gap-2">
+      {gatedChannels.map((ch) => {
+        const unlocked = level >= ch.level;
 
-    
-              </button>
-            );
-          })
-        )}
-      </div>
+        return (
+          <CompactTile
+            key={ch.id}
+            id={ch.id}
+            icon={ch.icon}
+            label={ch.name}
+            disabled={!unlocked}
+            onClick={() => handleChannelClick(ch.id, unlocked)}
+          />
+        );
+      })}
+    </div>
+  ) : (
+    gatedChannels.map((ch) => {
+      const unlocked = level >= ch.level;
+
+      return (
+        <button
+          key={ch.id}
+          onClick={() => handleChannelClick(ch.id, unlocked)}
+          className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition
+            ${
+              selected === ch.id
+                ? "bg-amber-500/20 text-amber-300"
+                : unlocked
+                ? "hover:bg-white/10"
+                : "opacity-40"
+            }`}
+        >
+          <span>{ch.icon}</span>
+          <span className="truncate text-sm">{ch.name}</span>
+
+          {!unlocked ? (
+            <span className="ml-auto">🔒</span>
+          ) : (
+            <Badge n={unreadByChannel?.[ch.id] ?? 0} />
+          )}
+        </button>
+      );
+    })
+  )}
+</div>
       {lockedToast && (
   <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[9999]">
     <div

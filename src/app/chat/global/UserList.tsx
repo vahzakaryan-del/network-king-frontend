@@ -73,7 +73,11 @@ export default function UserList({ channel, socket }: { channel: string; socket:
     }) => {
       const active = channelRef.current || "global";
       if ((payload.channel || "global") !== active) return;
-      setUsers(payload.users);
+      setUsers(
+  [...payload.users].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+);
     };
 
     const handleGlobalUsers = (payload: any) => {
@@ -89,25 +93,15 @@ export default function UserList({ channel, socket }: { channel: string; socket:
       setUsers(list);
     };
 
-    const handleReconnect = () => {
-      const active = channelRef.current || "global";
-
-      socket.emit(
-        active === "global"
-          ? "get_global_online_users"
-          : "get_channel_online_users",
-        active === "global" ? undefined : { channel: active }
-      );
-    };
 
     socket.on("channel_online_users", handleChannelUsers);
     socket.on("global_online_users", handleGlobalUsers);
-    socket.on("connect", handleReconnect);
+   
 
     return () => {
       socket.off("channel_online_users", handleChannelUsers);
       socket.off("global_online_users", handleGlobalUsers);
-      socket.off("connect", handleReconnect);
+    
     };
   }, [socket]);
 
@@ -117,7 +111,7 @@ export default function UserList({ channel, socket }: { channel: string; socket:
   return (
     <aside className="w-56 bg-[#1e1f22] border-l border-white/10 p-3 flex flex-col">
       <h2 className="text-sm uppercase text-gray-400 mb-2">
-        Online — {users.length}
+        🟢 Online ({users.length})
       </h2>
 
       <ul className="space-y-2 overflow-y-auto">

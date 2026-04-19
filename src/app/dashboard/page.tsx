@@ -30,10 +30,15 @@ type NotificationItem = {
   read: boolean;
   createdAt: string;
 };
+type LevelProgress = {
+  done: number;
+  total: number;
+};
 
 /* =========================================================
    Helpers / Components
    ========================================================= */
+   
 
 // level preview rooms emojis
 function levelEmoji(level: number) {
@@ -612,7 +617,8 @@ export default function DashboardPage() {
 
   // ✅ Mobile hamburger drawer
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
+  const [levelProgress, setLevelProgress] = useState<LevelProgress | null>(null);
 
   // Core page state
   const [user, setUser] = useState<any>(null);
@@ -929,6 +935,7 @@ const radius = wheelSize * 0.35;
 const pointerSize = wheelSize * 0.04;
 
 const [globalPreview, setGlobalPreview] = useState<any[]>([]);
+const [globalUnreadCount, setGlobalUnreadCount] = useState(0);
 const [friendsPreview, setFriendsPreview] = useState<any[]>([]);
 
 const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
@@ -993,6 +1000,7 @@ useEffect(() => {
       setIsPremium(!!data.isPremium);
 
       setGlobalPreview(data.globalPreview || []);
+      setGlobalUnreadCount(data.globalUnreadCount || 0);
       setFriendsPreview(data.friendsPreview || []);
       setTestsPreview(data.testsPreview || []);
       setLeaderboard(data.leaderboard || null);
@@ -1020,6 +1028,7 @@ useEffect(() => {
       setIsPremium(!!resData.isPremium);
 
       setGlobalPreview(resData.globalPreview || []);
+      setGlobalUnreadCount(resData.globalUnreadCount || 0);
       setFriendsPreview(resData.friendsPreview || []);
       setTestsPreview(resData.testsPreview || []);
       setLeaderboard(resData.leaderboard || null);
@@ -1030,6 +1039,14 @@ useEffect(() => {
     .catch(console.error);
 }, [router]);
 
+useEffect(() => {
+  apiFetch(`/levels/next-status`)
+    .then(res => res.json())
+    .then(data => {
+      setLevelProgress(data.progress || null);
+    })
+    .catch(console.error);
+}, []);
   
 useEffect(() => {
   if (mobileMenuOpen) {
@@ -1047,6 +1064,15 @@ useEffect(() => {
 
     const socket = getSocket();
     if (!socket) return;
+
+  socket.on("global_new_message", ({ channel, senderId }) => {
+  if (channel !== "global") return;
+
+  setGlobalUnreadCount((c) => {
+    if (senderId === user?.id) return c; // ✅ FIX
+    return c + 1;
+  });
+});
 
     // ✅ INITIAL ONLINE USERS
 socket.on("online_users", (ids: number[]) => {
@@ -1104,8 +1130,10 @@ socket.emit("get_online_users");
       socket.off("online_users");
   socket.off("user_online");
   socket.off("user_offline");
+
+  socket.off("global_new_message");
     };
- }, []);
+}, [user?.id]);
 
   
  const messageNotifications = notifications.filter(
@@ -1203,6 +1231,16 @@ function showToast(note: NotificationItem) {
     setUnreadCount(0);
   }
 }
+
+const progressPct =
+  levelProgress?.total && levelProgress.total > 0
+    ? Math.max(
+        5,
+        Math.round((levelProgress.done / levelProgress.total) * 100)
+      )
+    : 5;
+
+    const isReadyToLevelUp = progressPct >= 100;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-900 via-indigo-900 to-amber-400 text-white font-sans relative overflow-hidden">
@@ -1564,198 +1602,220 @@ function showToast(note: NotificationItem) {
 
 
 
-      {/* =====================================================
-          ✅ Mobile Drawer Menu
-         ===================================================== */}
-      {mobileMenuOpen && (
-        <Portal>
-          <div
-            className="fixed inset-0 z-[10000] bg-white/10 backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="
-  absolute right-0 top-0 h-full w-[86%] max-w-sm p-4
-  border-l border-white/10
-  bg-gradient-to-br from-blue-700 via-indigo-900 to-amber-400
-  shadow-2xl
-"
-
-            >
-              <div className="flex items-center justify-between mb-4">
-                <p className="font-bold text-amber-300">Menu</p>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-lg bg-white/10 border border-white/10"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  router.push("/Subscription");
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full mb-3 px-4 py-3 rounded-xl font-bold border transition ${
-                  isPremium
-                    ? "border-yellow-400 text-yellow-300 shadow-[0_0_10px_rgba(255,215,0,0.45)]"
-                    : "border-silver text-white hover:border-white/50"
-                }`}
-              >
-                👑 Premium
-              </button>
-
-                  {/* Daily widgets  (mobile) */}
-
-             <button
- onClick={() => {
-  setMobileMenuOpen(false);
-  openLottery();
-}}
-  className={[
-    "w-full py-3 rounded-2xl mb-1",
-    "border-2 border-amber-400/80 ring-1 ring-amber-300/50",
-    "shadow-xl transition-all text-left px-4",
-    lotteryAvailable
-      ? "bg-[rgba(169,169,169,0.22)] text-white active:scale-[0.99]"
-      : "bg-[rgba(64,63,63,0.22)] text-white active:scale-[0.99]",
-  ].join(" ")}
+    {mobileMenuOpen && (
+  <Portal>
+   <div
+  className="fixed inset-0 z-[10000] bg-black/40 backdrop-blur-sm"
+  onClick={() => setMobileMenuOpen(false)}
 >
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <span>💎</span>
-      <span className="font-semibold">Daily Lottery</span>
-    </div>
-
-    <span className="text-[11px] font-medium">
-      {lotteryAvailable
-        ? "Ready"
-        : formatLotteryCooldown(lotteryCooldownMs)}
-    </span>
-  </div>
-</button>
-
-            
-           {/* ✅ Mystic Cookie (in menu) */}
-
-<div className="mt-2 bg-black/20 shadow-[0_0_20px_rgba(0,0,0,0.25)]
- rounded-2xl mb-2 overflow-hidden">
-  <button
-    onClick={() => {
-      setMobileMenuOpen(false);
-      openMysticCookie();
-    }}
-    disabled={!cookieAvailable}
-    className={[
-      "relative w-full px-4 py-3 rounded-2xl font-bold text-left",
-      "border-2 border-amber-400/80 ring-1 ring-amber-300/50",
-      "bg-gradient-to-br from-white/80 via-amber-50/60 to-stone-100/80",
-      "shadow-md transition-all",
-      cookieAvailable
-        ? "active:scale-[0.99]"
-        : "opacity-80 cursor-not-allowed",
-    ].join(" ")}
+  <div
+    onClick={(e) => e.stopPropagation()}
+    className="fixed right-0 top-0 h-full w-[86%] max-w-sm
+    bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#0f172a]
+    border-l border-amber-400/30
+shadow-[-6px_0_20px_rgba(255,191,0,0.25)] p-4 flex flex-col overflow-hidden"
   >
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-lg">🥠</span>
-        <span className="text-gray-900">Mystic Cookie</span>
-      </div>
-      <span className="text-[11px] font-medium text-gray-700">
-        {cookieAvailable ? "Ready" : formatCooldown(cooldownMs)}
-      </span>
+
+  
+    <div className="pointer-events-none absolute bottom-0 right-0 w-[200px] h-[200px]
+    bg-amber-400/10 blur-3xl rounded-full" />
+
+    {/* HEADER */}
+    <div className="flex items-center justify-between mb-4 relative z-10">
+      <p className="font-bold text-white/90">Menu</p>
+      <button
+        onClick={() => setMobileMenuOpen(false)}
+        className="px-3 py-2 rounded-lg bg-white/10 border border-white/10"
+      >
+        ✕
+      </button>
     </div>
-  </button>
-</div>
 
-
-              <button
+        {/* ================= PRIMARY ================= */}
+        <div className="space-y-2 mb-4">
+          {/* Premium */}
+         <button
   onClick={() => {
-    router.push("/tests");
+    router.push("/Subscription");
     setMobileMenuOpen(false);
   }}
-  className="
-    w-full mb-3 mt-2 px-4 py-4 rounded-xl
-    font-bold text-white
-    bg-gradient-to-r from-indigo-500 via-purple-600 to-amber-400
-    border border-white/20
-    shadow-[0_0_20px_rgba(255,180,0,0.35)]
-    animate-pulse
-    active:scale-[0.98]
-    transition-all
-  "
+  className={`w-full px-4 py-3 rounded-xl font-semibold border transition ${
+    isPremium
+      ? "border-amber-400 text-amber-300 shadow-[0_0_10px_rgba(255,215,0,0.35)]"
+      : "border-gray-300/90 text-white/80 hover:border-gray-200"
+  }`}
 >
-  🚀 Go to Tests
+  👑 Premium
 </button>
 
+          {/* MAIN CTA */}
+          <button
+            onClick={() => {
+              router.push("/tests");
+              setMobileMenuOpen(false);
+            }}
+            className="
+              w-full px-4 py-4 rounded-xl font-bold text-white
+              bg-gradient-to-r from-indigo-500 via-purple-600 to-amber-400
+              border border-white/20
+              shadow-[0_0_18px_rgba(255,180,0,0.35)]
+              active:scale-[0.98] transition-all
+            "
+          >
+            🚀 Go to Tests
+          </button>
+        </div>
 
+        {/* ================= DAILY ================= */}
+        <div className="mb-4">
+          <p className="text-xs text-white/50 mb-2 px-1">DAILY</p>
 
-              <button
-  onClick={() => {
-    router.push("/settings");
-    setMobileMenuOpen(false);
-  }}
-  className="
-    w-full mb-8 mt-1 px-4 py-3 rounded-xl
-    bg-white/10
-    border border-gray-300
-    text-gray-200
-    hover:border-gray-100
-    transition-colors
-  "
->
-  ⚙️ Settings
-</button>
+          <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+            {/* Lottery */}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openLottery();
+              }}
+              className="w-full px-4 py-3 flex items-center justify-between border-b border-white/10 active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2">
+                <span>💎</span>
+                <span className="text-white">Daily Lottery</span>
+              </div>
+              <span className="text-xs text-white/60">
+                {lotteryAvailable
+                  ? "Ready"
+                  : formatLotteryCooldown(lotteryCooldownMs)}
+              </span>
+            </button>
 
-<div className="mb-5">
-        <div className="mb-3 h-px w-full bg-gradient-to-r from-transparent via-white to-transparent" />
-      </div>
-
-<button
-  
-  onClick={() => {
-    setShowOnboarding(true);
-    setDropdownOpen(false); // if inside dropdown
-    setMobileMenuOpen(false)
-  }}
-   className="w-full mt-4 px-4 py-3 rounded-xl bg-amber-400 text-gray-900 font-semibold"
-               
->
-  
-  🧭 Replay onboarding
-</button>
- 
-
-
-              {user?.role === "admin" && (
-                <button
-                  onClick={() => {
-                    router.push("/admin");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full mb-3 mt-2 px-4 py-3 rounded-xl bg-amber-500 text-gray-900 font-semibold"
-                >
-                  🛠 Admin Panel
-                </button>
-              )}
-
-              
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setLogoutConfirmOpen(true);
-                }}
-                className="w-full mt-4 px-4 py-3 rounded-xl bg-red-600 font-semibold"
-              >
-                Log Out
-              </button>
-            </div>
+            {/* Cookie */}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openMysticCookie();
+              }}
+              disabled={!cookieAvailable}
+              className={`w-full px-4 py-3 flex items-center justify-between ${
+                cookieAvailable ? "active:scale-[0.99]" : "opacity-60"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span>🥠</span>
+                <span className="text-white">Mystic Cookie</span>
+              </div>
+              <span className="text-xs text-white/60">
+                {cookieAvailable
+                  ? "Ready"
+                  : formatCooldown(cooldownMs)}
+              </span>
+            </button>
           </div>
-        </Portal>
-      )}
+        </div>
+
+           <div className="mb-3"> <div className="mb-3 mt-3 h-px w-full bg-gradient-to-r from-transparent via-white to-transparent" /> </div>
+
+        {/* ================= SOCIAL ================= */}
+        <div className="mb-4">
+          <p className="text-xs text-white/50 mb-2 px-1">SOCIAL</p>
+
+          <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+            {/* Chat */}
+            <button
+              onClick={() => {
+                router.push("/chat/global");
+                setGlobalUnreadCount(0);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 flex items-center justify-between border-b border-white/10"
+            >
+              <span className="text-white">💬 Global Chat</span>
+            {globalUnreadCount > 0 && (
+  <span className="
+    min-w-[18px] h-[18px] px-1
+    flex items-center justify-center
+    rounded-full bg-red-500 text-white text-[10px] font-bold
+  ">
+    {globalUnreadCount > 9 ? "9+" : globalUnreadCount}
+  </span>
+)}
+            </button>
+
+            {/* Friends */}
+            <button
+              onClick={() => {
+                router.push("/friends");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 flex items-center justify-between"
+            >
+              <span className="text-white">🤝 Friends</span>
+              <span className="text-xs text-white/60">
+                {friendsPreview?.length || 0}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-4"> <div className="mb-3 mt-2 h-px w-full bg-gradient-to-r from-transparent via-white to-transparent" /> </div>
+
+        {/* ================= SETTINGS ================= */}
+        <div className="space-y-2 mb-4">
+          <button
+            onClick={() => {
+              router.push("/settings");
+              setMobileMenuOpen(false);
+            }}
+            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80"
+          >
+            ⚙️ Settings
+          </button>
+
+         
+
+       
+        </div>
+
+        {/* ================= LOGOUT ================= */}
+        <div className="mt-auto">
+
+             {user?.role === "admin" && (
+            <button
+              onClick={() => {
+                router.push("/admin");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 mb-4 rounded-xl bg-amber-500 text-gray-900 font-semibold"
+            >
+              🛠 Admin Panel
+            </button>
+          )}
+
+           <button
+            onClick={() => {
+              setShowOnboarding(true);
+              setDropdownOpen(false);
+              setMobileMenuOpen(false);
+            }}
+            className="w-full mb-3 px-4 py-3 rounded-xl bg-amber-400/90 text-gray-900 font-semibold"
+          >
+            🧭 Replay onboarding
+          </button>
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setLogoutConfirmOpen(true);
+            }}
+            className="w-full px-4 py-3 rounded-xl bg-red-600 font-semibold"
+          >
+            Log Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </Portal>
+)}
 
       {/* =====================================================
           Logout confirmation (unchanged)
@@ -1828,6 +1888,63 @@ function showToast(note: NotificationItem) {
             ✅ MOBILE LAYOUT (phones)
            ========================= */}
         <div className="md:hidden mt-5 space-y-4">
+
+          
+ {/* ✅ SUPER THIN LEVEL BAR */}
+<motion.div
+  {...fastFade}
+  transition={{ duration: 0.35 }}
+  onClick={() => router.push("/myrooms")}
+  className="cursor-pointer"
+>
+
+  
+<div
+  onClick={() => router.push("/myrooms")}
+  className="cursor-pointer"
+>
+  <div className="relative w-full h-3 rounded-full bg-white/10 overflow-hidden border border-white/10">
+
+    {/* 🔥 Animated progress fill */}
+    <div
+      className="h-full relative"
+      style={{ width: `${progressPct ?? 0}%` }}
+    >
+      {/* gradient base */}
+      <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300" />
+
+      {/* 🔥 moving shine */}
+      <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent)] animate-[shinex_2s_linear_infinite]" />
+
+      {/* 🔥 glow */}
+      <div className="absolute inset-0 shadow-[0_0_12px_rgba(255,180,0,0.8)]" />
+    </div>
+
+    {/* 🔥 subtle pulse at edge */}
+    <div
+      className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-yellow-300 shadow-[0_0_10px_rgba(255,200,0,0.9)] animate-pulse"
+      style={{ left: `${progressPct ?? 0}%` }}
+    />
+  </div>
+
+  {/* TEXT */}
+  <div className="flex justify-between mt-1 text-[10px] text-white/70 px-1">
+    <span>Lv. {currentLevel ?? 1}</span>
+   {isReadyToLevelUp ? (
+  <span className="text-amber-300 font-semibold animate-pulse">
+    Tap 👋 Unlock Lv. {(currentLevel ?? 1) + 1}
+  </span>
+) : (
+  <span>
+    {progressPct}% → Lv. {(currentLevel ?? 1) + 1}
+  </span>
+)}
+  </div>
+</div>
+
+
+</motion.div>
+         
           {/* 2) ID Card (mobile) */}
           <motion.div
   id="onboarding-profile"
@@ -1902,53 +2019,8 @@ badgeScoreUnit: b.badgeScoreUnit ?? "percent",
             )}
           </motion.div>
 
-          {/* 3) My Rooms (thin) */}
-          <motion.div
-            id="onboarding-rooms"
-            {...fastFade}
-            transition={{ delay: 0.05, duration: 0.45 }}
-            className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-4 flex flex-col"
-          >
-            <h2 className="text-lg font-bold text-amber-300 mb-1">🏰 My Rooms</h2>
-            <p className="text-gray-200 text-sm mb-3"></p>
-
-            {currentLevel && current && (
-              <div className="mb-3 rounded-xl bg-gradient-to-r from-amber-400/10 to-purple-500/10 border border-white/10 p-3">
-                <p className="text-[10px] uppercase tracking-wide text-gray-300">Current Room</p>
-
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-base font-extrabold text-amber-300 flex items-center gap-2">
-                    <span>{levelEmoji(current.level)}</span>
-                    Lv. {current.level}
-                  </span>
-
-                  {next && (
-                    <span className="text-[10px] text-gray-400">
-                      Next: {levelEmoji(next.level)} Lv. {next.level}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-          <div className="flex-1">
-  {rooms.length > 0 ? (
-    <ul className="space-y-3">{/* Room items */}</ul>
-  ) : (
-    <div className="py-1" />
-  )}
-</div>
-
-
-            <button
-              onClick={() => router.push("/myrooms")}
-              className=" w-full px-4 py-2 rounded-lg bg-amber-400 text-gray-900 font-semibold hover:bg-amber-300 transition text-sm"
-            >
-              See All My Rooms →
-            </button>
-          </motion.div>
-
-          {/* 4) Global Chat (thin + 1 message preview) */}
+        {/*
+          // 4) Global Chat (thin + 1 message preview) commented out for now
           <motion.div
           id="onboarding-chat"
             {...fastFade}
@@ -1970,7 +2042,7 @@ badgeScoreUnit: b.badgeScoreUnit ?? "percent",
             </div>
           </motion.div>
 
-        
+        */}
 
           {/* 5) Tests & Badges (thin + 4 tests) */}
           <motion.div
@@ -2043,7 +2115,7 @@ badgeScoreUnit: b.badgeScoreUnit ?? "percent",
             </button>
           </motion.div>
 
-          {/* 7) Training */}
+        {/*
           <motion.div
             {...fastFade}
             transition={{ delay: 0.12, duration: 0.45 }}
@@ -2060,6 +2132,7 @@ badgeScoreUnit: b.badgeScoreUnit ?? "percent",
               Open Training
             </button>
           </motion.div>
+          */}
 
          
 
@@ -2216,11 +2289,31 @@ badgeScoreUnit: b.badgeScoreUnit ?? "percent",
               transition={{ delay: 0.1, duration: 0.5 }}
               className="rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/15 p-6 min-h-[280px] flex flex-col"
             >
-              <h2 className="text-2xl font-bold text-amber-300 mb-2">🌐 Global Chat</h2>
+              <div className="flex items-center justify-between mb-2">
+  <h2 className="text-2xl font-bold text-amber-300">
+    🌐 Global Chat
+  </h2>
+
+  {globalUnreadCount > 0 && (
+    <span className="
+      min-w-[22px] h-[22px] px-2
+      flex items-center justify-center
+      rounded-full bg-red-500 text-white text-xs font-bold shadow-[0_0_10px_rgba(239,68,68,0.7)]
+ 
+    ">
+      {globalUnreadCount > 99 ? "99+" : globalUnreadCount}
+    </span>
+  )}
+</div>
               <GlobalChatPreview data={globalPreview} limit={3} />
               <div className="mt-auto pt-4">
                 <button
-                  onClick={() => router.push("/chat/global")}
+                
+                 onClick={() => {
+    setGlobalUnreadCount(0); // ✅ reset unread
+    router.push("/chat/global");
+  }}
+                  
                   className="w-full px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white font-semibold"
                 >
                   💬 Open Chat

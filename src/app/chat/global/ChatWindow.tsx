@@ -58,8 +58,12 @@ async function resolveMentions(
   return Array.from(ids);
 }
 
+function normalizeLevelChannel(level: number) {
+  return `lvl-${level}`;
+}
+
 function parseLevel(channel: string) {
-  const m = /^level-(\d+)$/.exec(channel);
+  const m = /^(?:level|lvl)-(\d+)$/.exec(channel);
   if (!m) return null;
   const n = Number(m[1]);
   return Number.isFinite(n) ? n : null;
@@ -1340,7 +1344,7 @@ useEffect(() => {
   >([]);
   const [membersOpen, setMembersOpen] = useState(false);
 
-  const levelRoom = `level-${levelNumber}`;
+  const levelRoom = normalizeLevelChannel(levelNumber);
 
   const [mentionOpen, setMentionOpen] = useState(false);
 const [mentionQuery, setMentionQuery] = useState("");
@@ -1413,7 +1417,7 @@ const [mentionCache, setMentionCache] = useState<Map<string, number>>(new Map())
 
   useEffect(() => {
     if (!onLevelUnreadTotal) return;
-    onLevelUnreadTotal(`level-${levelNumber}`, totalUnread);
+    onLevelUnreadTotal(normalizeLevelChannel(levelNumber), totalUnread);
   }, [totalUnread, levelNumber, onLevelUnreadTotal]);
 
  useEffect(() => {
@@ -1533,7 +1537,7 @@ const emojisByLevel = useMemo(() => {
   if (!socket) return;
 
   const onTyping = (data: { id: number; name: string; channel: string }) => {
-    if (data.channel !== `level-${levelNumber}`) return;
+    if (data.channel !== normalizeLevelChannel(levelNumber)) return;
     if (data.id === myId) return;
 
     setTypingUsers((prev) => {
@@ -1543,7 +1547,7 @@ const emojisByLevel = useMemo(() => {
   };
 
   const onStopTyping = (data: { id: number; channel: string }) => {
-    if (data.channel !== `level-${levelNumber}`) return;
+    if (data.channel !== normalizeLevelChannel(levelNumber)) return;
     if (data.id === myId) return;
 
     setTypingUsers((prev) => prev.filter((u) => u.id !== data.id));
@@ -2458,14 +2462,14 @@ function insertSystemEmoji(emoji: any) {
     socket.emit("typing", {
       id: myId,
       name: myName,
-      channel: `level-${levelNumber}`,
+      channel: normalizeLevelChannel(levelNumber),
     });
 
     clearTimeout((window as any).__lvlTyping);
     (window as any).__lvlTyping = setTimeout(() => {
       socket.emit("stop_typing", {
         id: myId,
-        channel: `level-${levelNumber}`,
+        channel: normalizeLevelChannel(levelNumber),
       });
     }, 2000);
   }
